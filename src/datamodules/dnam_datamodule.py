@@ -1,5 +1,5 @@
 from typing import Optional, Tuple
-from .datasets.dnam_dataset import DNAmDataset, DNAmDatasetIndexRetrieve
+from .datasets.dnam_dataset import DNAmDataset
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, random_split
 import pickle

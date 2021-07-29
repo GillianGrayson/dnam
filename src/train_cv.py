@@ -5,8 +5,7 @@ from pytorch_lightning import seed_everything
 import hydra
 from omegaconf import DictConfig
 from src.utils import utils
-from src.datamodules.cross_validation import KFoldCVDataModule
-
+from src.datamodules.cross_validation.data_module import KFoldCVDataModule
 
 log = utils.get_logger(__name__)
 
@@ -41,8 +40,8 @@ def train_cv(config: DictConfig) -> Optional[float]:
         config.logger.csv["version"] = f"fold_{fold_idx}"
         config.callbacks.model_checkpoint["filename"] = ckpt_name + f"_fold_{fold_idx}"
 
-        config.logger.wandb["version"] = "_${now:%Y-%m-%d_%H-%M-%S}" + f"fold_{fold_idx}"
-        config.logger.wandb["project"] = config.project_name
+        config.logger.wandb["version"] = f"fold_{fold_idx}"
+        config.logger.wandb["project"] = config.project_name + "_${now:%Y-%m-%d_%H-%M-%S}"
 
         # Init Lightning model
         log.info(f"Instantiating model <{config.model._target_}>")
