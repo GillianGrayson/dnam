@@ -79,7 +79,11 @@ def train(config: DictConfig) -> Optional[float]:
     # Evaluate model on test set, using the best model achieved during training
     if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
         log.info("Starting testing!")
-        trainer.test()
+        test_dataloader = datamodule.test_dataloader()
+        if len(test_dataloader) > 0:
+            trainer.test(model, test_dataloader)
+        else:
+            log.info("Test data is empty!")
 
     # Make sure everything closed properly
     log.info("Finalizing!")

@@ -11,7 +11,10 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
-from scripts.python.routines.filter.pheno import filter_pheno
+from scripts.python.pheno.datasets.filter import filter_pheno
+from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
+    get_sex_dict
+
 
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"

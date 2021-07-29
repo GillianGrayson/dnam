@@ -2,10 +2,12 @@ import pandas as pd
 from scripts.python.routines.manifest import get_manifest
 import numpy as np
 import os
-from scripts.python.routines.filter.pheno import filter_pheno
+from scripts.python.pheno.datasets.filter import filter_pheno
 from scipy.stats import spearmanr
 import seaborn as sns
 import matplotlib.pyplot as plt
+from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
+    get_sex_dict
 
 
 dataset = "GSEUNN"

@@ -4,9 +4,11 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 import os
 from scipy.stats import norm
 import numpy as np
-from scripts.python.routines.filter.pheno import filter_pheno
+from scripts.python.pheno.datasets.filter import filter_pheno
 import upsetplot as upset
 from matplotlib import pyplot
+from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
+    get_sex_dict
 
 
 platform = "GPL13534"
