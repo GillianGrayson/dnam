@@ -5,7 +5,7 @@ from pytorch_lightning import seed_everything
 import hydra
 from omegaconf import DictConfig
 from src.utils import utils
-from src.datamodules.cross_validation.data_module import KFoldCVDataModule
+from src.datamodules.cross_validation import KFoldCVDataModule, StratifiedKFoldCVDataModule
 
 log = utils.get_logger(__name__)
 
@@ -26,16 +26,20 @@ def train_cv(config: DictConfig) -> Optional[float]:
         seed_everything(config.seed)
 
     n_splits = config.n_splits
+    is_stratified = config.is_stratified
 
     # Init Lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
 
-    cv_datamodule = KFoldCVDataModule(datamodule, n_splits)
+    if is_stratified:
+        cv_datamodule = StratifiedKFoldCVDataModule(datamodule, n_splits)
+    else:
+        cv_datamodule = KFoldCVDataModule(datamodule, n_splits)
 
     ckpt_name = config.callbacks.model_checkpoint["filename"]
 
-    for fold_idx, loaders in enumerate(cv_datamodule.split()):
+    for fold_idx, (train_dl, val_dl) in enumerate(cv_datamodule.split()):
 
         config.logger.csv["version"] = f"fold_{fold_idx}"
         config.callbacks.model_checkpoint["filename"] = ckpt_name + f"_fold_{fold_idx}"
@@ -82,7 +86,7 @@ def train_cv(config: DictConfig) -> Optional[float]:
 
         # Train the model
         log.info("Starting training!")
-        trainer.fit(model, *loaders)
+        trainer.fit(model, train_dl, val_dl)
 
         # Evaluate model on test set after training
         if not config.trainer.get("fast_dev_run"):

@@ -58,10 +58,10 @@ class FCMLPModel(LightningModule):
 
         self.mlp = nn.Sequential(*self.mlp_layers)
 
-        self.accuracy_metric = Accuracy()
-        #self.F1 = F1()
-        self.precision_metric = Precision()
-        #self.recall = Recall()
+        self.accuracy_metric = Accuracy(num_classes=self.n_output)
+        self.f1_metric = F1(num_classes=self.n_output)
+        self.precision_metric = Precision(num_classes=self.n_output)
+        self.recall_metric = Recall(num_classes=self.n_output)
 
     def forward(self, x: torch.Tensor):
         z = self.mlp(x)
@@ -75,39 +75,48 @@ class FCMLPModel(LightningModule):
         x, y, ind = batch
         out = self.forward(x)
         batch_size = x.size(0)
-        y = y.view(batch_size, -1)
+        if self.task == "regression":
+            y = y.view(batch_size, -1)
         loss = self.loss_fn(out, y)
 
         logs = {"loss": loss}
+        non_logs = {}
         if self.task == "classification":
-            out_tag = torch.argmax(out, dim=1)
-            acc = self.accuracy_metric(out_tag, y)
-            logs["acc"] = acc
+            preds = torch.argmax(out, dim=1)
+            non_logs["preds"] = preds
+            non_logs["targets"] = y
+            logs["acc"] = self.accuracy_metric(preds, y)
+            logs["f1"] = self.f1_metric(preds, y)
+            logs["precision"] = self.precision_metric(preds, y)
+            logs["recall"] = self.recall_metric(preds, y)
 
-        return loss, logs
+        return loss, logs, non_logs
 
     def training_step(self, batch: Any, batch_idx: int):
-        loss, logs = self.step(batch)
+        loss, logs, non_logs = self.step(batch)
         d = {f"train/{k}": v for k, v in logs.items()}
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
+        logs.update(non_logs)
         return logs
 
     def training_epoch_end(self, outputs: List[Any]):
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, logs = self.step(batch)
+        loss, logs, non_logs = self.step(batch)
         d = {f"val/{k}": v for k, v in logs.items()}
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
+        logs.update(non_logs)
         return logs
 
     def validation_epoch_end(self, outputs: List[Any]):
         pass
 
     def test_step(self, batch: Any, batch_idx: int):
-        loss, logs = self.step(batch)
+        loss, logs, non_logs = self.step(batch)
         d = {f"test/{k}": v for k, v in logs.items()}
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
+        logs.update(non_logs)
         return logs
 
     def test_epoch_end(self, outputs: List[Any]):

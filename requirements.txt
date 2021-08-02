@@ -35,7 +35,7 @@ jupyterlab      # better jupyter notebooks
 pudb            # debugger
 
 omegaconf~=2.1.0.dev26
-torchmetrics~=0.3.2
+torchmetrics
 matplotlib~=3.4.2
 packaging~=20.9
 pandas~=1.2.4

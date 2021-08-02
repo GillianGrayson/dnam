@@ -32,7 +32,7 @@ diseases_keys = {
     "Control": 0,
     "Schizophrenia": 1,
     "Depression": 2,
-    "Parkinson's disease": 3
+    "Parkinson's": 3
 }
 
 target = 'BrainDiseases'

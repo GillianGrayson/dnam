@@ -1,4 +1,4 @@
-_target_: src.models.fcmlp_model.FCMLPModel
+_target_: src.models.dnam.fcmlp.FCMLPModel
 
 n_input: 78394
 topology: [512, 256, 128, 64]
