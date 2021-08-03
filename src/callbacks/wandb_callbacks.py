@@ -151,7 +151,6 @@ class LogConfusionMatrix(Callback):
             targets = torch.cat(self.targets).cpu().numpy()
 
             confusion_matrix = metrics.confusion_matrix(y_true=targets, y_pred=preds)
-
             # set figure size
             plt.figure(figsize=(14, 8))
 
@@ -160,6 +159,10 @@ class LogConfusionMatrix(Callback):
 
             # set font size
             sn.heatmap(confusion_matrix, annot=True, annot_kws={"size": 8}, fmt="g")
+
+            # cosmetics
+            plt.xlabel("Prediction", fontsize=15)
+            plt.ylabel("True Label", fontsize=15)
 
             # names should be uniqe or else charts from different experiments in wandb will overlap
             experiment.log({f"confusion_matrix/{experiment.name}": wandb.Image(plt)}, commit=False)
@@ -226,6 +229,7 @@ class LogF1PrecRecHeatmap(Callback):
                 fmt=".3f",
                 yticklabels=["F1", "Precision", "Recall"],
             )
+            plt.xticks(rotation=90)
 
             # names should be uniqe or else charts from different experiments in wandb will overlap
             experiment.log({f"f1_p_r_heatmap/{experiment.name}": wandb.Image(plt)}, commit=False)

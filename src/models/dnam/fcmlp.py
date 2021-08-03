@@ -2,7 +2,7 @@ from typing import Any, List, Dict
 from pytorch_lightning import LightningModule
 from torch import nn
 import torch
-from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall
+from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, AUROC, CohenKappa, MatthewsCorrcoef
 
 
 class FCMLPModel(LightningModule):
@@ -59,13 +59,24 @@ class FCMLPModel(LightningModule):
         self.mlp = nn.Sequential(*self.mlp_layers)
 
         self.metrics_train = MetricCollection({
-            'acc': Accuracy(num_classes=self.n_output),
-            'f1': F1(num_classes=self.n_output),
-            'precision': Precision(num_classes=self.n_output),
-            'recall': Recall(num_classes=self.n_output)
+            'accuracy': Accuracy(num_classes=self.n_output),
+            'f1_macro': F1(num_classes=self.n_output, average='macro'),
+            'precision_macro': Precision(num_classes=self.n_output, average='macro'),
+            'recall_macro': Recall(num_classes=self.n_output, average='macro'),
+            'f1_weighted': F1(num_classes=self.n_output, average='weighted'),
+            'precision_weighted': Precision(num_classes=self.n_output, average='weighted'),
+            'recall_weighted': Recall(num_classes=self.n_output, average='weighted'),
+            'cohens_kappa': CohenKappa(num_classes=self.n_output),
+            'matthews_corr': MatthewsCorrcoef(num_classes=self.n_output)
+        })
+        self.metrics_train_prob = MetricCollection({
+            'auroc_macro': AUROC(num_classes=self.n_output, average='macro'),
+            'auroc_weighted': AUROC(num_classes=self.n_output, average='weighted'),
         })
         self.metrics_val = self.metrics_train.clone()
+        self.metrics_val_prob = self.metrics_train_prob.clone()
         self.metrics_test = self.metrics_train.clone()
+        self.metrics_test_prob = self.metrics_train_prob.clone()
 
     def forward(self, x: torch.Tensor):
         z = self.mlp(x)
@@ -86,15 +97,19 @@ class FCMLPModel(LightningModule):
         logs = {"loss": loss}
         non_logs = {}
         if self.task == "classification":
+            probs = torch.softmax(out, dim=1)
             preds = torch.argmax(out, dim=1)
             non_logs["preds"] = preds
             non_logs["targets"] = y
             if stage == "train":
                 logs.update(self.metrics_train(preds, y))
+                # logs.update(self.metrics_train_prob(probs, y))
             elif stage == "val":
                 logs.update(self.metrics_val(preds, y))
+                # logs.update(self.metrics_val_prob(probs, y))
             elif stage == "test":
                 logs.update(self.metrics_test(preds, y))
+                # logs.update(self.metrics_test_prob(probs, y))
 
         return loss, logs, non_logs
 
