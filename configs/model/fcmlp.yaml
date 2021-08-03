@@ -6,5 +6,5 @@ n_output: 4
 task: "classification"
 dropout: 0.0
 loss_type: "CrossEntropyLoss"
-lr: 0.001
-weight_decay: 0.0005
+lr: 0.0001
+weight_decay: 0.00005

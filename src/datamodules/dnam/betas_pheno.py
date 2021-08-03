@@ -86,14 +86,14 @@ class BetasPhenoDataModule(LightningDataModule):
         self.ids_train_val, self.ids_test = train_test_split(
             self.ids_all,
             test_size=self.train_val_test_split[-1],
-            stratify=self.pheno.loc[self.pheno.index.values[self.ids_all], self.outcome].values,
+            stratify=self.dataset.ys[self.ids_all],
             random_state=self.seed
         )
 
         self.ids_train, self.ids_val = train_test_split(
             self.ids_train_val,
             test_size=self.train_val_test_split[-2],
-            stratify=self.pheno.loc[self.pheno.index.values[self.ids_train_val], self.outcome].values,
+            stratify=self.dataset.ys[self.ids_train_val],
             random_state=self.seed
         )
 
@@ -103,7 +103,7 @@ class BetasPhenoDataModule(LightningDataModule):
                          "test": self.ids_test}.items():
             if not os.path.exists(f"{self.path}/figs"):
                 os.makedirs(f"{self.path}/figs")
-            status_counts = pd.DataFrame(Counter(self.pheno.loc[self.pheno.index.values[ids], self.outcome]), index=[0])
+            status_counts = pd.DataFrame(Counter(self.dataset.ys[ids]), index=[0])
             status_counts = status_counts.reindex(sorted(status_counts.columns), axis=1)
             plot = status_counts.plot.bar()
             plt.xlabel("Status", fontsize=15)
@@ -125,16 +125,16 @@ class BetasPhenoDataModule(LightningDataModule):
         log.info(f"test_count: {len(self.dataset_test)}")
 
     def get_train_val_dataset_and_labels(self):
-        return Subset(self.dataset, self.ids_train_val), self.pheno.loc[self.pheno.index.values[self.ids_train_val], self.outcome].values
+        return Subset(self.dataset, self.ids_train_val), self.dataset.ys[self.ids_train_val]
 
     def get_weighted_sampler(self):
         return self.weighted_sampler
 
     def train_dataloader(self):
-        y_train = self.pheno.loc[self.pheno.index.values[self.ids_train], self.outcome].values
-        class_counter = Counter(y_train)
+        ys_train = self.dataset.ys[self.ids_train]
+        class_counter = Counter(ys_train)
         class_weights = {c: 1.0 / class_counter[c] for c in class_counter}
-        weights = torch.FloatTensor([class_weights[y] for y in y_train])
+        weights = torch.FloatTensor([class_weights[y] for y in ys_train])
         if self.weighted_sampler:
             weighted_sampler = WeightedRandomSampler(
                 weights=weights,

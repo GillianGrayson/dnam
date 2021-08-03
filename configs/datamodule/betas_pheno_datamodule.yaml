@@ -2,7 +2,7 @@ _target_: src.datamodules.dnam.betas_pheno.BetasPhenoDataModule
 
 data_fn: "E:/YandexDisk/Work/pydnameth/datasets/GPL13534/meta/BrainDiseases/variance(0.005)"
 outcome: "Status"
-batch_size: 10
+batch_size: 30
 train_val_test_split: [0.8, 0.2, 0.2]
 num_workers: 0
 pin_memory: False

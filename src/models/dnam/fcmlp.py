@@ -1,8 +1,8 @@
-from typing import Any, List
+from typing import Any, List, Dict
 from pytorch_lightning import LightningModule
 from torch import nn
 import torch
-from torchmetrics import Accuracy, F1, Precision, Recall
+from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall
 
 
 class FCMLPModel(LightningModule):
@@ -58,10 +58,14 @@ class FCMLPModel(LightningModule):
 
         self.mlp = nn.Sequential(*self.mlp_layers)
 
-        self.accuracy_metric = Accuracy(num_classes=self.n_output)
-        self.f1_metric = F1(num_classes=self.n_output)
-        self.precision_metric = Precision(num_classes=self.n_output)
-        self.recall_metric = Recall(num_classes=self.n_output)
+        self.metrics_train = MetricCollection({
+            'acc': Accuracy(num_classes=self.n_output),
+            'f1': F1(num_classes=self.n_output),
+            'precision': Precision(num_classes=self.n_output),
+            'recall': Recall(num_classes=self.n_output)
+        })
+        self.metrics_val = self.metrics_train.clone()
+        self.metrics_test = self.metrics_train.clone()
 
     def forward(self, x: torch.Tensor):
         z = self.mlp(x)
@@ -71,7 +75,7 @@ class FCMLPModel(LightningModule):
         z = self.mlp(x)
         return torch.softmax(z, dim=1)
 
-    def step(self, batch: Any):
+    def step(self, batch: Any, stage:str):
         x, y, ind = batch
         out = self.forward(x)
         batch_size = x.size(0)
@@ -85,15 +89,17 @@ class FCMLPModel(LightningModule):
             preds = torch.argmax(out, dim=1)
             non_logs["preds"] = preds
             non_logs["targets"] = y
-            logs["acc"] = self.accuracy_metric(preds, y)
-            logs["f1"] = self.f1_metric(preds, y)
-            logs["precision"] = self.precision_metric(preds, y)
-            logs["recall"] = self.recall_metric(preds, y)
+            if stage == "train":
+                logs.update(self.metrics_train(preds, y))
+            elif stage == "val":
+                logs.update(self.metrics_val(preds, y))
+            elif stage == "test":
+                logs.update(self.metrics_test(preds, y))
 
         return loss, logs, non_logs
 
     def training_step(self, batch: Any, batch_idx: int):
-        loss, logs, non_logs = self.step(batch)
+        loss, logs, non_logs = self.step(batch, "train")
         d = {f"train/{k}": v for k, v in logs.items()}
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
         logs.update(non_logs)
@@ -103,7 +109,7 @@ class FCMLPModel(LightningModule):
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, logs, non_logs = self.step(batch)
+        loss, logs, non_logs = self.step(batch, "val")
         d = {f"val/{k}": v for k, v in logs.items()}
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
         logs.update(non_logs)
@@ -113,7 +119,7 @@ class FCMLPModel(LightningModule):
         pass
 
     def test_step(self, batch: Any, batch_idx: int):
-        loss, logs, non_logs = self.step(batch)
+        loss, logs, non_logs = self.step(batch, "test")
         d = {f"test/{k}": v for k, v in logs.items()}
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
         logs.update(non_logs)
