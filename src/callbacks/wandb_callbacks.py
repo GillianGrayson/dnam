@@ -229,7 +229,7 @@ class LogF1PrecRecHeatmap(Callback):
                 fmt=".3f",
                 yticklabels=["F1", "Precision", "Recall"],
             )
-            plt.xticks(rotation=90)
+            plt.yticks(rotation=90)
 
             # names should be uniqe or else charts from different experiments in wandb will overlap
             experiment.log({f"f1_p_r_heatmap/{experiment.name}": wandb.Image(plt)}, commit=False)

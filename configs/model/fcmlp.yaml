@@ -1,7 +1,7 @@
 _target_: src.models.dnam.fcmlp.FCMLPModel
 
 n_input: 78394
-topology: [512, 256, 128, 64]
+topology: [512, 256, 128]
 n_output: 4
 task: "classification"
 dropout: 0.0
