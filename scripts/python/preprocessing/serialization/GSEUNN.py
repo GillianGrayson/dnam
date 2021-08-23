@@ -14,8 +14,8 @@ manifest = get_manifest(platform)
 
 fn = f"{path}/{platform}/{dataset}/pheno.xlsx"
 df = pd.read_excel(fn)
-df['Sample_Name'] = 'X' + df['Sample_Name']
-pheno = df.set_index('Sample_Name')
+#df['Sample_Name'] = 'X' + df['Sample_Name']
+pheno = df.set_index('subject_id')
 pheno.index.name = "subject_id"
 
 fn = f"{path}/{platform}/{dataset}/raw/result/part(v1)_config(0.01_0.10_0.10)/betas.txt"

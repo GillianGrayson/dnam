@@ -13,13 +13,13 @@ from scripts.python.pheno.datasets.features import get_column_name, get_status_n
 
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
-datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
-#datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774"]
+#datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
+datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774"]
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
 
 target = f"Age_Status"
-path_save = f"{path}/{platform}/combo/EWAS/meta/{target}"
+path_save = f"{path}/{platform}/meta/EWAS/{target}"
 if not os.path.exists(f"{path_save}"):
     os.makedirs(f"{path_save}")
 

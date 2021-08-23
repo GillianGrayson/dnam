@@ -16,23 +16,28 @@ from scripts.python.pheno.datasets.filter import filter_pheno
 from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
     get_sex_dict
 
-platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
+
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
+
 datasets_train = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
-datasets_test = ["GSE147221", "GSE84727", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858", "GSE42861", "GSE87648", "GSE106648"]
+datasets_test = ["GSEUNN", "GSE147221", "GSE84727", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
 
 target = f"Age_Status"
-path_save = f"{path}/{platform}/combo/EWAS/meta/{target}"
+
+path_save = f"{path}/meta/EWAS/{target}"
 if not os.path.exists(f"{path_save}/clock"):
     os.makedirs(f"{path_save}/clock")
-
-manifest = get_manifest(platform)
 
 pheno_all = pd.DataFrame(columns=['Age', 'Status'])
 pheno_all.index.name = 'subject_id'
 for d_id, dataset in enumerate(datasets_train):
+
+    platform = datasets_info.loc[dataset, 'platform']
+    manifest = get_manifest(platform)
+
     print(dataset)
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
     age_col = get_column_name(dataset, 'Age').replace(' ', '_')
@@ -80,33 +85,36 @@ cpgs_target = set.intersection(set(betas_all.columns.values), set(cpgs_target))
 X_target = df_all.loc[df_all['Status'] == 'Control', cpgs_target].to_numpy()
 y_target = df_all.loc[df_all['Status'] == 'Control', 'Age'].to_numpy()
 
-X_all = df_all.loc[:, cpgs_target].to_numpy()
-y_all = df_all.loc[:, 'Age'].to_numpy()
-
 cv = RepeatedKFold(n_splits=5, n_repeats=5, random_state=1337)
-model = ElasticNetCV(n_alphas=20, cv=cv, n_jobs=2, verbose=1)
-model.fit(X_target, y_target)
+clock = ElasticNetCV(n_alphas=20, cv=cv, n_jobs=2, verbose=1)
+clock.fit(X_target, y_target)
 
-model_dict = {'feature': ['Intercept'], 'coef': [model.intercept_]}
+clock_dict = {'feature': ['Intercept'], 'coef': [clock.intercept_], 'default': [0.0]}
 num_features = 0
 for cpg_id, cpg in enumerate(cpgs_target):
-    coef = model.coef_[cpg_id]
+    coef = clock.coef_[cpg_id]
     if abs(coef) > 0:
-        model_dict['feature'].append(cpg)
-        model_dict['coef'].append(coef)
+        clock_dict['feature'].append(cpg)
+        clock_dict['coef'].append(coef)
+        cpg_values = df_all.loc[df_all['Status'] == 'Control', cpg].to_numpy()
+        mean_value = np.mean(cpg_values)
+        clock_dict['default'].append(mean_value)
         num_features += 1
-model_df = pd.DataFrame(model_dict)
+clock_df = pd.DataFrame(clock_dict)
+clock_df.set_index('feature', inplace=True)
 if not os.path.exists(f"{path_save}/clock/{num_features}"):
     os.makedirs(f"{path_save}/clock/{num_features}")
-model_df.to_excel(f"{path_save}/clock/{num_features}/clock.xlsx", index=False)
+clock_df.to_excel(f"{path_save}/clock/{num_features}/clock.xlsx", index=True)
 
-metrics_dict = {'alpha': model.alpha_, 'l1_ratio': model.l1_ratio_, 'num_features': num_features}
-y_target_pred = model.predict(X_target)
-metrics_dict['R2_Control'] = model.score(X_target, y_target)
+metrics_dict = {'alpha': clock.alpha_, 'l1_ratio': clock.l1_ratio_, 'num_features': num_features}
+y_target_pred = clock.predict(X_target)
+metrics_dict['R2_Control'] = clock.score(X_target, y_target)
 metrics_dict['RMSE_Control'] = np.sqrt(mean_squared_error(y_target_pred, y_target))
 metrics_dict['MAE_Control'] = mean_absolute_error(y_target_pred, y_target)
-y_all_pred = model.predict(X_all)
-metrics_dict['R2_All'] = model.score(X_all, y_all)
+X_all = df_all.loc[:, cpgs_target].to_numpy()
+y_all = df_all.loc[:, 'Age'].to_numpy()
+y_all_pred = clock.predict(X_all)
+metrics_dict['R2_All'] = clock.score(X_all, y_all)
 metrics_dict['RMSE_All'] = np.sqrt(mean_squared_error(y_all_pred, y_all))
 metrics_dict['MAE_All'] = mean_absolute_error(y_all_pred, y_all)
 metrics_df = pd.DataFrame(metrics_dict, index=[0])
@@ -146,6 +154,10 @@ save_figure(box, f"{path_save}/clock/{num_features}/box_Acceleration")
 
 for d_id, dataset in enumerate(datasets_test):
     print(dataset)
+
+    platform = datasets_info.loc[dataset, 'platform']
+    manifest = get_manifest(platform)
+
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
     age_col = get_column_name(dataset, 'Age').replace(' ', '_')
     sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
@@ -167,7 +179,13 @@ for d_id, dataset in enumerate(datasets_test):
         print(*na_pairs, sep='\n')
     betas.dropna(axis='columns', how='any', inplace=True)
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
-    df[f'AgeEST'] = model.predict(df.loc[:, cpgs_target].to_numpy())
+
+    df_for_clock = df.reindex(columns = cpgs_target, fill_value=0.0)
+    missing_cpgs = list(set(cpgs_target) - set(df.columns))
+    for cpg in missing_cpgs:
+        df_for_clock[cpg] = clock_df.loc[cpg, 'default']
+
+    df[f'AgeEST'] = clock.predict(df_for_clock.to_numpy())
 
     df_1 = df.loc[(df[status_col] == status_dict['Control']), :]
     formula = f"AgeEST ~ {age_col}"
