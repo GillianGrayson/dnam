@@ -141,7 +141,7 @@ class LogConfusionMatrix(Callback):
             self.preds.append(outputs["preds"])
             self.targets.append(outputs["targets"])
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, on_save_checkpoint):
         """Generate confusion matrix."""
         if self.ready:
             logger = get_wandb_logger(trainer)
@@ -165,7 +165,8 @@ class LogConfusionMatrix(Callback):
             plt.ylabel("True Label", fontsize=15)
 
             # names should be uniqe or else charts from different experiments in wandb will overlap
-            experiment.log({f"confusion_matrix/{experiment.name}": wandb.Image(plt)}, commit=False)
+            fn = f"{on_save_checkpoint['epoch']:03d}"
+            experiment.log({f"confusion_matrix/{fn}": wandb.Image(plt)}, commit=False)
 
             # according to wandb docs this should also work but it crashes
             # experiment.log(f{"confusion_matrix/{experiment.name}": plt})
@@ -202,7 +203,7 @@ class LogF1PrecRecHeatmap(Callback):
             self.preds.append(outputs["preds"])
             self.targets.append(outputs["targets"])
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, on_save_checkpoint):
         """Generate f1, precision and recall heatmap."""
         if self.ready:
             logger = get_wandb_logger(trainer=trainer)
@@ -231,8 +232,9 @@ class LogF1PrecRecHeatmap(Callback):
             )
             plt.yticks(rotation=90)
 
+            fn = f"{on_save_checkpoint['epoch']:03d}"
             # names should be uniqe or else charts from different experiments in wandb will overlap
-            experiment.log({f"f1_p_r_heatmap/{experiment.name}": wandb.Image(plt)}, commit=False)
+            experiment.log({f"f1_p_r_heatmap/{fn}": wandb.Image(plt)}, commit=False)
 
             # reset plot
             plt.clf()

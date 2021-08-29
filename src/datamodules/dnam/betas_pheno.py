@@ -41,7 +41,7 @@ class BetasPhenoDataModule(LightningDataModule):
 
     def __init__(
             self,
-            path: str = "E:/YandexDisk/Work/pydnameth/datasets/GPL13534/meta/BrainDiseases/variance(0.005)",
+            path: str = "",
             outcome: str = "Status",
             train_val_test_split: Tuple[float, float, float] = (0.8, 0.2, 0.2),
             batch_size: int = 64,
