@@ -24,7 +24,7 @@ datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 
 target = f"Age_Status"
 path_load = f"{path}/meta/EWAS/{target}"
-path_save = f"{path}/strange_tasks/meta_ctrls_age_acc"
+path_save = f"{path}/meta/EWAS/strange_tasks/meta_ctrls_age_acc"
 if not os.path.exists(f"{path_save}"):
     os.makedirs(f"{path_save}")
 num_features = 29
