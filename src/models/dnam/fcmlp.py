@@ -2,7 +2,7 @@ from typing import Any, List, Dict
 from pytorch_lightning import LightningModule
 from torch import nn
 import torch
-from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, AUROC, CohenKappa, MatthewsCorrcoef
+from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, AUROC, CohenKappa, MatthewsCorrcoef, ConfusionMatrix
 
 
 class FCMLPModel(LightningModule):
@@ -67,11 +67,11 @@ class FCMLPModel(LightningModule):
             'precision_weighted': Precision(num_classes=self.n_output, average='weighted'),
             'recall_weighted': Recall(num_classes=self.n_output, average='weighted'),
             'cohens_kappa': CohenKappa(num_classes=self.n_output),
-            'matthews_corr': MatthewsCorrcoef(num_classes=self.n_output)
+            'matthews_corr': MatthewsCorrcoef(num_classes=self.n_output),
         })
         self.metrics_train_prob = MetricCollection({
-            'auroc_macro': AUROC(num_classes=self.n_output, average='macro'),
-            'auroc_weighted': AUROC(num_classes=self.n_output, average='weighted'),
+            # 'auroc_macro': AUROC(num_classes=self.n_output, average='macro'),
+            # 'auroc_weighted': AUROC(num_classes=self.n_output, average='weighted'),
         })
         self.metrics_val = self.metrics_train.clone()
         self.metrics_val_prob = self.metrics_train_prob.clone()
@@ -103,13 +103,13 @@ class FCMLPModel(LightningModule):
             non_logs["targets"] = y
             if stage == "train":
                 logs.update(self.metrics_train(preds, y))
-                # logs.update(self.metrics_train_prob(probs, y))
+                logs.update(self.metrics_train_prob(probs, y))
             elif stage == "val":
                 logs.update(self.metrics_val(preds, y))
-                # logs.update(self.metrics_val_prob(probs, y))
+                logs.update(self.metrics_val_prob(probs, y))
             elif stage == "test":
                 logs.update(self.metrics_test(preds, y))
-                # logs.update(self.metrics_test_prob(probs, y))
+                logs.update(self.metrics_test_prob(probs, y))
 
         return loss, logs, non_logs
 

@@ -165,7 +165,7 @@ class LogConfusionMatrix(Callback):
             plt.ylabel("True Label", fontsize=15)
 
             # names should be uniqe or else charts from different experiments in wandb will overlap
-            fn = f"{on_save_checkpoint['epoch']:03d}"
+            fn = f"{trainer.current_epoch:03d}"
             experiment.log({f"confusion_matrix/{fn}": wandb.Image(plt)}, commit=False)
 
             # according to wandb docs this should also work but it crashes
@@ -232,7 +232,7 @@ class LogF1PrecRecHeatmap(Callback):
             )
             plt.yticks(rotation=90)
 
-            fn = f"{on_save_checkpoint['epoch']:03d}"
+            fn = f"{trainer.current_epoch:03d}"
             # names should be uniqe or else charts from different experiments in wandb will overlap
             experiment.log({f"f1_p_r_heatmap/{fn}": wandb.Image(plt)}, commit=False)
 

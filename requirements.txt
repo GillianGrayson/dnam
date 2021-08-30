@@ -38,7 +38,7 @@ omegaconf~=2.1.0.dev26
 torchmetrics
 matplotlib~=3.4.2
 packaging~=20.9
-pandas~=1.2.4
+pandas>=1.2.4
 statsmodels~=0.12.2
 plotly~=5.1.0
 numpy~=1.19.5
@@ -48,3 +48,4 @@ tqdm~=4.60.0
 pingouin~=0.3.12
 geoparse~=2.0.3
 skfeature~=1.0.0
+kaleido>=0.2.1

@@ -12,6 +12,7 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.violin import add_violin_trace
 from scripts.python.routines.plot.layout import add_layout
 import os
+import pickle
 from scripts.python.pheno.datasets.filter import filter_pheno
 from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
     get_sex_dict
@@ -20,7 +21,7 @@ path = f"E:/YandexDisk/Work/pydnameth/datasets"
 
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 
-datasets_train = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
+datasets_train = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774"]
 datasets_test = ["GSEUNN", "GSE147221", "GSE84727", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
@@ -63,7 +64,7 @@ for d_id, dataset in enumerate(datasets_train):
 
     pheno = df[[age_col, status_col]]
     status_dict_inverse = dict((v, k) for k, v in status_dict.items())
-    pheno.loc[:, status_col] = pheno[status_col].map(status_dict_inverse)
+    pheno.replace({status_col:status_dict_inverse}, inplace=True)
     pheno.rename(columns={age_col: 'Age', status_col: 'Status'}, inplace=True)
     pheno_all = pheno_all.append(pheno, verify_integrity=True)
 
@@ -80,12 +81,13 @@ df_all = pd.merge(pheno_all, betas_all, left_index=True, right_index=True)
 
 with open(f"cpgs.txt") as f:
     cpgs_target = f.read().splitlines()
-cpgs_target = set.intersection(set(betas_all.columns.values), set(cpgs_target))
+cpgs_target = list(set.intersection(set(betas_all.columns.values), set(cpgs_target)))
 
 X_target = df_all.loc[df_all['Status'] == 'Control', cpgs_target].to_numpy()
 y_target = df_all.loc[df_all['Status'] == 'Control', 'Age'].to_numpy()
 
 cv = RepeatedKFold(n_splits=5, n_repeats=5, random_state=1337)
+
 clock = ElasticNetCV(n_alphas=20, cv=cv, n_jobs=2, verbose=1)
 clock.fit(X_target, y_target)
 
@@ -105,6 +107,8 @@ clock_df.set_index('feature', inplace=True)
 if not os.path.exists(f"{path_save}/clock/{num_features}"):
     os.makedirs(f"{path_save}/clock/{num_features}")
 clock_df.to_excel(f"{path_save}/clock/{num_features}/clock.xlsx", index=True)
+pickle.dump(clock, open(f"{path_save}/clock/{num_features}/clock.sav", 'wb'))
+np.savetxt(f"{path_save}/clock/{num_features}/clock_cpgs.txt", cpgs_target, fmt='%s')
 
 metrics_dict = {'alpha': clock.alpha_, 'l1_ratio': clock.l1_ratio_, 'num_features': num_features}
 y_target_pred = clock.predict(X_target)
@@ -180,10 +184,13 @@ for d_id, dataset in enumerate(datasets_test):
     betas.dropna(axis='columns', how='any', inplace=True)
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
 
-    df_for_clock = df.reindex(columns = cpgs_target, fill_value=0.0)
+    df_for_clock = df.reindex(columns=cpgs_target, fill_value=0.0)
     missing_cpgs = list(set(cpgs_target) - set(df.columns))
     for cpg in missing_cpgs:
-        df_for_clock[cpg] = clock_df.loc[cpg, 'default']
+        if cpg in clock_df.index:
+            df_for_clock[cpg] = clock_df.loc[cpg, 'default']
+        else:
+            df_for_clock[cpg] = 0
 
     df[f'AgeEST'] = clock.predict(df_for_clock.to_numpy())
 
