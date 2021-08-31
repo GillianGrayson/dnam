@@ -1,5 +1,6 @@
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
+from scripts.python.routines.betas import betas_drop_na
 from tqdm import tqdm
 from scripts.python.EWAS.routines.correction import correct_pvalues
 import statsmodels.formula.api as smf
@@ -14,9 +15,9 @@ from scripts.python.pheno.datasets.features import get_column_name, get_status_n
     get_sex_dict
 
 
-platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
-datasets = ["GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858", "GSE147221", "GSE84727"]
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
+datasets = ["GSE128235", "GSE72774", "GSE53740", "GSE144858", "GSE147221", "GSE84727", "GSE125105", "GSE111629"]
 
 is_rerun = True
 num_cpgs_to_plot = 10
@@ -24,20 +25,24 @@ num_cpgs_to_plot = 10
 for dataset in datasets:
     print(dataset)
 
+    platform = datasets_info.loc[dataset, 'platform']
+    manifest = get_manifest(platform)
+
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
     age_col = get_column_name(dataset, 'Age').replace(' ', '_')
     sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
     status_dict = get_status_dict(dataset)
-    status_vals = sorted(list(status_dict.values()))
     status_names_dict = get_status_names_dict(dataset)
     sex_dict = get_sex_dict(dataset)
+
+    status_vals = sorted(list(status_dict.values()))
     sex_vals = sorted(list(sex_dict.values()))
 
     dnam_acc_type = 'DNAmGrimAgeAcc'
 
-    formula = f"{age_col} + C({sex_col}) + C({status_col})"
-    terms = [f"{age_col}", f"C({sex_col})[T.{sex_vals[-1]}]", f"C({status_col})[T.{status_vals[-1]}]", ]
-    aim = f"Age_Sex_Status"
+    formula = f"{age_col} + C({status_col})"
+    terms = [f"{age_col}", f"C({status_col})[T.{status_vals[-1]}]"]
+    aim = f"Age_Status"
 
     path_save = f"{path}/{platform}/{dataset}/EWAS/from_formula/{aim}"
     if not os.path.exists(f"{path_save}/figs"):
@@ -48,16 +53,11 @@ for dataset in datasets:
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
+    betas = betas_drop_na(betas)
 
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
-    for name, feat in continuous_vars.items():
-        df = df[df[feat].notnull()]
-    for feat, groups in categorical_vars.items():
-        df = df.loc[df[feat].isin(list(groups.values())), :]
 
     cpgs = betas.columns.values
-
-    manifest = get_manifest(platform)
 
     if is_rerun:
         result = {'CpG': cpgs}

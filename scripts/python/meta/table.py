@@ -11,23 +11,23 @@ from scripts.python.pheno.datasets.features import get_column_name, get_status_n
     get_sex_dict
 
 
-platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
-#datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774", "GSE53740", "GSE144858"]
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774"]
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
 
 target = f"Age_Status"
-path_save = f"{path}/{platform}/meta/EWAS/{target}"
+path_save = f"{path}/meta/EWAS/{target}"
 if not os.path.exists(f"{path_save}"):
     os.makedirs(f"{path_save}")
 
-tables_aim = f"Age_Status_{dnam_acc_type}"
+tables_aim = f"Age_Status"
 
 pval_suff = '_fdr_bh'
 pval_thld = 0.05
 
+platform = "GPL13534"
 manifest = get_manifest(platform)
 tables_meta = manifest[['Gene']]
 tables_single = manifest[['Gene']]
@@ -60,8 +60,6 @@ for dataset in datasets:
         f"{age_col}_pvalue{pval_suff}",
         f"C({status_col})[T.{status_vals[-1]}]_pvalue{pval_suff}",
     ]
-
-    #single_cols[dataset] = [single_cols[dataset][-1]]
 
     continuous_vars = {'Age': age_col, dnam_acc_type: dnam_acc_type}
     categorical_vars = {status_col: status_dict, sex_col: sex_dict}
@@ -125,13 +123,3 @@ result = tables_meta[['Gene'] + meta_cols['meta']]
 result = correct_pvalues(result, meta_cols['meta'])
 result.sort_values(meta_cols['meta'], ascending=[True] * len(meta_cols['meta']), inplace=True)
 result.to_excel(f"{path_save}/meta.xlsx", index=True)
-
-
-
-
-
-
-
-
-
-
