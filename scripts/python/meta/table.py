@@ -25,7 +25,7 @@ if not os.path.exists(f"{path_save}"):
 tables_aim = f"Age_Status"
 
 pval_suff = '_fdr_bh'
-pval_thld = 0.05
+pval_thld = 0.025
 
 platform = "GPL13534"
 manifest = get_manifest(platform)

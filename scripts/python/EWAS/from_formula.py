@@ -40,9 +40,9 @@ for dataset in datasets:
 
     dnam_acc_type = 'DNAmGrimAgeAcc'
 
-    formula = f"{age_col} + C({status_col})"
-    terms = [f"{age_col}", f"C({status_col})[T.{status_vals[-1]}]"]
-    aim = f"Age_Status"
+    formula = f"C({status_col})" #f"{age_col} + C({status_col})"
+    terms = [f"C({status_col})[T.{status_vals[-1]}]"] #[f"{age_col}", f"C({status_col})[T.{status_vals[-1]}]"]
+    aim = f"Status" #f"Age_Status"
 
     path_save = f"{path}/{platform}/{dataset}/EWAS/from_formula/{aim}"
     if not os.path.exists(f"{path_save}/figs"):
