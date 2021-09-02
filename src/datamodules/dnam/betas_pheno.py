@@ -2,6 +2,7 @@ import torch
 from typing import Optional, Tuple
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
+from fast_ml.model_development import train_valid_test_split
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler, Subset
 import numpy as np
 import pandas as pd
@@ -43,7 +44,7 @@ class BetasPhenoDataModule(LightningDataModule):
             self,
             path: str = "",
             outcome: str = "Status",
-            train_val_test_split: Tuple[float, float, float] = (0.8, 0.2, 0.2),
+            train_val_test_split: Tuple[float, float, float] = (0.8, 0.1, 0.1),
             batch_size: int = 64,
             num_workers: int = 0,
             pin_memory: bool = False,
@@ -83,6 +84,8 @@ class BetasPhenoDataModule(LightningDataModule):
 
         self.ids_all = np.arange(len(self.dataset))
 
+        assert abs(1.0 - sum(self.train_val_test_split)) < 1.0e-8, "Sum of train_val_test_split must be 1"
+
         self.ids_train_val, self.ids_test = train_test_split(
             self.ids_all,
             test_size=self.train_val_test_split[-1],
@@ -90,9 +93,11 @@ class BetasPhenoDataModule(LightningDataModule):
             random_state=self.seed
         )
 
+        corrected_val_size = self.train_val_test_split[1] / (self.train_val_test_split[0] + self.train_val_test_split[1])
+
         self.ids_train, self.ids_val = train_test_split(
             self.ids_train_val,
-            test_size=self.train_val_test_split[-2],
+            test_size=corrected_val_size, # self.train_val_test_split[-2]
             stratify=self.dataset.ys[self.ids_train_val],
             random_state=self.seed
         )
