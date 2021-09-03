@@ -3,6 +3,7 @@ from pytorch_lightning import LightningModule
 from torch import nn
 import torch
 from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, AUROC, CohenKappa, MatthewsCorrcoef, ConfusionMatrix
+import wandb
 
 
 class FCMLPModel(LightningModule):
@@ -58,7 +59,7 @@ class FCMLPModel(LightningModule):
 
         self.mlp = nn.Sequential(*self.mlp_layers)
 
-        self.metrics_train = MetricCollection({
+        self.metrics_dict = {
             'accuracy': Accuracy(num_classes=self.n_output),
             'f1_macro': F1(num_classes=self.n_output, average='macro'),
             'precision_macro': Precision(num_classes=self.n_output, average='macro'),
@@ -68,15 +69,41 @@ class FCMLPModel(LightningModule):
             'recall_weighted': Recall(num_classes=self.n_output, average='weighted'),
             'cohens_kappa': CohenKappa(num_classes=self.n_output),
             'matthews_corr': MatthewsCorrcoef(num_classes=self.n_output),
-        })
-        self.metrics_train_prob = MetricCollection({
+        }
+        self.metrics_summary = {
+            'accuracy': 'max',
+            'f1_macro': 'max',
+            'precision_macro': 'max',
+            'recall_macro': 'max',
+            'f1_weighted': 'max',
+            'precision_weighted': 'max',
+            'recall_weighted': 'max',
+            'cohens_kappa': 'max',
+            'matthews_corr': 'max',
+        }
+        self.metrics_prob_dict = {
             # 'auroc_macro': AUROC(num_classes=self.n_output, average='macro'),
             # 'auroc_weighted': AUROC(num_classes=self.n_output, average='weighted'),
-        })
+        }
+        self.metrics_prob_summary = {
+            # 'auroc_macro': 'max',
+            # 'auroc_weighted': 'max',
+        }
+
+        self.metrics_train = MetricCollection(self.metrics_dict)
+        self.metrics_train_prob = MetricCollection(self.metrics_prob_dict)
         self.metrics_val = self.metrics_train.clone()
         self.metrics_val_prob = self.metrics_train_prob.clone()
         self.metrics_test = self.metrics_train.clone()
         self.metrics_test_prob = self.metrics_train_prob.clone()
+
+    def on_fit_start(self) -> None:
+        for stage_type in ['train', 'val', 'test']:
+            for m, sum in self.metrics_summary.items():
+                wandb.define_metric(f"{stage_type}/{m}", summary=sum)
+            for m, sum in self.metrics_prob_summary.items():
+                wandb.define_metric(f"{stage_type}/{m}", summary=sum)
+            wandb.define_metric(f"{stage_type}/loss", summary='min')
 
     def forward(self, x: torch.Tensor):
         z = self.mlp(x)
