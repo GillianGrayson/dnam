@@ -9,10 +9,10 @@ n_splits: 5
 
 # specify here default training configuration
 defaults:
-  - trainer: null
+  - trainer: tabnet.yaml
   - model: tabnet.yaml
   - datamodule: betas_pheno_datamodule.yaml
-  - callbacks: null
+  - callbacks: none.yaml
   - logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
 
   - experiment: null
