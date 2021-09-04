@@ -9,12 +9,11 @@ from pytorch_lightning import (
 import pandas as pd
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_tabnet.tab_model import TabNetClassifier
-
-from src.tabnet.metrics import custom_metric
+from tabnet.metrics import get_metrics_dict
 from src.utils import utils
 
-log = utils.get_logger(__name__)
 
+log = utils.get_logger(__name__)
 
 def train_tabnet(config: DictConfig):
 
@@ -67,18 +66,16 @@ def train_tabnet(config: DictConfig):
     X_test = test_data.loc[:, datamodule.betas.columns.values].values
     y_test = test_data.loc[:, datamodule.outcome].values
 
+    metrics_dict = get_metrics_dict(config.model.n_output)
+
     eval_metric = [
         'accuracy',
-        custom_metric("accuracy", config.model.n_output, 'macro'),
-        custom_metric("accuracy", config.model.n_output, 'weighted'),
-        custom_metric("f1", config.model.n_output, 'macro'),
-        custom_metric("f1", config.model.n_output, 'weighted'),
-        custom_metric("precision", config.model.n_output, 'macro'),
-        custom_metric("precision", config.model.n_output, 'weighted'),
-        custom_metric("recall", config.model.n_output, 'macro'),
-        custom_metric("recall", config.model.n_output, 'weighted'),
-        custom_metric("cohen_kappa", config.model.n_output, ''),
-        custom_metric("matthews_corrcoef", config.model.n_output, '')
+        metrics_dict["accuracy_macro"],
+        metrics_dict["accuracy_weighted"],
+        metrics_dict["f1_macro"],
+        metrics_dict["cohen_kappa"],
+        metrics_dict["matthews_corrcoef"],
+        metrics_dict["f1_weighted"],
     ]
 
     model.fit(
@@ -86,7 +83,7 @@ def train_tabnet(config: DictConfig):
         y_train=y_train,
         eval_set=[(X_train, y_train), (X_test, y_test), (X_val, y_val)],
         eval_name=['train', 'test', 'val'],
-        eval_metric=['accuracy'],
+        eval_metric=eval_metric,
         max_epochs=config.max_epochs,
         patience=config.patience,
         batch_size=config.batch_size,
