@@ -395,7 +395,7 @@ Have a question? Found a bug? Missing a specific feature? Ran into a problem? Fe
 
 
 ### How it works
-By design, every run is initialized by [run.py](run.py) file. All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
+By design, every run is initialized by [run.py](run_fcmlp.py) file. All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
 ```yaml
 _target_: src.models.mnist_model.MNISTLitModel
 input_size: 784
@@ -417,7 +417,7 @@ The whole pipeline managing the instantiation logic is placed in [src/train.py](
 
 
 ### Main Project Configuration
-Location: [configs/config.yaml](configs/config.yaml)<br>
+Location: [configs/config.yaml](configs/config_fcmlp.yaml)<br>
 Main project config contains default training configuration.<br>
 It determines how config is composed when simply executing command `python run.py`.<br>
 It also specifies everything that shouldn't be managed by experiment configurations.
@@ -809,7 +809,7 @@ List of extra utilities available in the template:
 - debug mode
 <!-- - (TODO) resuming latest run -->
 
-You can easily remove any of those by modifying [run.py](run.py) and [src/train.py](src/train.py).
+You can easily remove any of those by modifying [run.py](run_fcmlp.py) and [src/train.py](src/train.py).
 <br><br>
 
 <!--
@@ -1126,7 +1126,7 @@ This way you can reference any datamodule attribute from your config like this:
 # this will get 'datamodule.some_param' field
 some_parameter: ${datamodule: some_param}
 ```
-When later accessing this field, say in your lightning model, it will get automatically resolved based on all resolvers that are registered. Remember not to access this field before datamodule is initialized. **You also need to set resolve to false in print_config() in [run.py](run.py) method or it will throw errors!**
+When later accessing this field, say in your lightning model, it will get automatically resolved based on all resolvers that are registered. Remember not to access this field before datamodule is initialized. **You also need to set resolve to false in print_config() in [run.py](run_fcmlp.py) method or it will throw errors!**
 ```python
 utils.print_config(config, resolve=False)
 ```

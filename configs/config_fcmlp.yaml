@@ -1,14 +1,29 @@
 # @package _global_
 
-project_name: fcmlp
-
-task_type: "regular"
+project_name: fcmlp_1
 
 seed: 1337
 
 is_cv: False
 is_stratified: True
 n_splits: 5
+
+# specify here default training configuration
+defaults:
+  - trainer: default.yaml
+  - model: fcmlp.yaml
+  - datamodule: betas_pheno_datamodule.yaml
+  - callbacks: classification.yaml # set this to null if you don't want to use callbacks
+  - logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+
+  - experiment: null
+  - hparams_search: null
+
+  - hydra: default.yaml
+
+  # enable color logging
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the current log directory,
@@ -34,22 +49,3 @@ ignore_warnings: True
 # check performance on test set, using the best model achieved during training
 # lightning chooses best model based on metric specified in checkpoint callback
 test_after_training: True
-
-
-# specify here default training configuration
-defaults:
-  - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
-  - override /model: fcmlp.yaml
-  - override /datamodule: betas_pheno_datamodule.yaml
-  - override /callbacks: regular.yaml
-  - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
-
-  - override /hydra/hydra_logging: colorlog
-  - override /hydra/job_logging: colorlog
-
-trainer:
-  min_epochs: 1
-  max_epochs: 500
-
-datamodule:
-  batch_size: 64

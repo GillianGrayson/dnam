@@ -1,0 +1,16 @@
+_target_: pytorch_tabnet.tab_model.TabNetClassifier
+
+n_d: 8
+n_a: 8
+n_steps: 3
+n_independent: 2
+n_shared: 2
+momentum: 0.02
+lambda_sparse: 1e-3
+seed: 0
+optimizer_lr: 0.001
+optimizer_weight_decay: 0.0005
+scheduler_step_size: 10
+scheduler_gamma: 0.9
+mask_type: "sparsemax"
+n_output: 4

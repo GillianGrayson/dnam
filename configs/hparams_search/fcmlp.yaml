@@ -45,14 +45,14 @@ hydra:
     search_space:
       datamodule.batch_size:
         type: categorical
-        choices: [32, 64]
+        choices: [64]
       model.lr:
         type: categorical
-        choices: [0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05]
+        choices: [0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
       model.weight_decay:
         type: categorical
-        choices: [0.00005, 0.0005, 0]
+        choices: [0]
       model.topology:
         type: categorical
-        choices: [[512, 256, 128, 64], [512, 256, 128], [512, 256], [256, 128]]
+        choices: [[512, 256, 128], [512, 256], [256, 128]]
 
