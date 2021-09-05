@@ -8,3 +8,7 @@ defaults:
   - override /logger: many_loggers.yaml
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
+
+trainer:
+  max_epochs: 500
+  patience: 100
