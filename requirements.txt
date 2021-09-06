@@ -12,7 +12,7 @@ hydra-optuna-sweeper==1.1.0
 # hydra-submitit-launcher
 
 # --------- loggers --------- #
-wandb~=0.11.0
+wandb>=0.11.0
 # neptune-client
 # mlflow
 # comet-ml
@@ -29,8 +29,8 @@ python-dotenv~=0.17.1
 rich~=10.2.1
 pytest~=6.2.4
 sh~=1.14.2
-scikit-learn~=0.24.2
-seaborn~=0.11.1
+scikit-learn>=0.24.2
+seaborn>=0.11.1
 jupyterlab      # better jupyter notebooks
 pudb            # debugger
 
@@ -39,13 +39,12 @@ torchmetrics
 matplotlib~=3.4.2
 packaging~=20.9
 pandas>=1.2.4
-statsmodels~=0.12.2
-plotly~=5.1.0
-numpy~=1.19.5
-scipy~=1.6.3
-upsetplot~=0.5.0
-tqdm~=4.60.0
-pingouin~=0.3.12
-geoparse~=2.0.3
-skfeature~=1.0.0
+statsmodels>=0.12.2
+plotly>=5.1.0
+numpy>=1.19.5
+scipy>=1.6.3
+upsetplot>=0.5.0
+tqdm>=4.60.0
+pingouin>=0.3.12
+geoparse>=2.0.3
 kaleido>=0.2.1

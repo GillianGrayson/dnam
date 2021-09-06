@@ -1,0 +1,15 @@
+# @package _global_
+
+defaults:
+  - override /hydra/sweeper: optuna
+
+hydra:
+  sweeper:
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    storage: null
+    study_name: null
+    n_jobs: 1
+
+    sampler:
+      _target_: optuna.samplers.GridSampler
+      search_space: {"model.n_d": [ 4, 8, 16 ]}

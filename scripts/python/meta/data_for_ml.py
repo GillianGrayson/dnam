@@ -37,7 +37,7 @@ diseases_keys = {
 
 target = 'BrainDiseases'
 metric = 'variance'
-thld = 0.005
+thld = 0.000001
 
 path_save = f"{path}/{platform}/meta/{target}"
 if not os.path.exists(f"{path_save}/figs"):

@@ -115,6 +115,7 @@ def train_tabnet(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("./feature_importances.xlsx", index=True)
 
-    ololo = 1
-
+    optimized_metric = config.get("optimized_metric")
+    if optimized_metric:
+        return max(model.history.history[optimized_metric])
 
