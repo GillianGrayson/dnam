@@ -5,9 +5,7 @@
 #SBATCH --time=72:00:00
 #SBATCH --partition=gpu
 #SBATCH -o /common/home/yusipov_i/source/dnam/submit/output/%j.txt
-#SBATCH -e /common/home/yusipov_i/source/dnam/submit/errors/%j.txt
 
 code_dir=/common/home/yusipov_i/source/dnam
 
-srun python $code_dir/run_tabnet.py $1
-
+srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)/models/tabnet" data_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)" datamodule.path="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)"

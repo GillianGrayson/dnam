@@ -21,4 +21,5 @@ args = f"--multirun hparams_search=tabnet_grid " \
 
 os.system(f"sbatch run_tabnet_unn.sh {args}")
 
-#srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)/models/tabnet" data_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)" datamodule.path="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)"
+# srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)/models/tabnet" data_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)" datamodule.path="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)"
+# srun python $code_dir/run_tabnet.py $1
