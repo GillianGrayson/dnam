@@ -15,10 +15,10 @@ lambda_sparse  = [0.0001, 0.001, 0.01]
 optimizer_lr = [0.00001, 0.0001, 0.001, 0.01]
 optimizer_weight_decay = [0.0, 0.0001, 0.001]
 
-args = f"--multirun hparams_search=tabnet " \
+args = f"--multirun project_name={project_name}" \
+       f" hparams_search=tabnet " \
        f"experiment=tabnet work_dir=\"{data_path}/models/tabnet\" " \
        f"data_dir=\"{data_path}\" " \
-       f"datamodule.path=\"{data_path}\" " \
-       f"project_name={project_name}"
+       f"datamodule.path=\"{data_path}\""
 
 os.system(f"sbatch run_tabnet_unn.sh \"{args}\"")

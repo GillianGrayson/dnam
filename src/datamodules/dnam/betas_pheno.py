@@ -2,7 +2,6 @@ import torch
 from typing import Optional, Tuple
 from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
-from fast_ml.model_development import train_valid_test_split
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler, Subset
 import numpy as np
 import pandas as pd
