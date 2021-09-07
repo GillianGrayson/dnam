@@ -15,8 +15,8 @@ lambda_sparse  = [0.0001, 0.001, 0.01]
 optimizer_lr = [0.00001, 0.0001, 0.001, 0.01]
 optimizer_weight_decay = [0.0, 0.0001, 0.001]
 
-args = f"--multirun project_name={project_name}" \
-       f" hparams_search=tabnet logger.wandb.offline=True" \
+args = f"--multirun project_name={project_name} " \
+       f"hparams_search=tabnet logger.wandb.offline=True " \
        f"experiment=tabnet work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
        f"datamodule.path=\"{data_path}\""
