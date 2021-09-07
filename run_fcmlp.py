@@ -15,6 +15,7 @@ def main(config: DictConfig):
     from src.train import train
     from src.train_cv import train_cv
     from src.utils import utils
+    import torch
 
     # A couple of optional utilities:
     # - disabling python warnings
@@ -26,6 +27,13 @@ def main(config: DictConfig):
     # Pretty print config using Rich library
     if config.get("print_config"):
         utils.print_config(config, resolve=True)
+
+    use_cuda = torch.cuda.is_available()
+    if use_cuda:
+        print('__CUDNN VERSION:', torch.backends.cudnn.version())
+        print('__Number CUDA Devices:', torch.cuda.device_count())
+        print('__CUDA Device Name:', torch.cuda.get_device_name(0))
+        print('__CUDA Device Total Memory [GB]:', torch.cuda.get_device_properties(0).total_memory / 1e9)
 
     # Train model
     is_cv = config.is_cv

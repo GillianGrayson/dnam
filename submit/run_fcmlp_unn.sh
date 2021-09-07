@@ -16,4 +16,4 @@ code_dir=/common/home/yusipov_i/source/dnam
 
 printf "args:\n $1 \n"
 
-srun python $code_dir/run_tabnet.py $1
+srun python $code_dir/run_fcmlp.py $1
