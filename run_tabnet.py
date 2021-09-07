@@ -14,6 +14,7 @@ def main(config: DictConfig):
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
     from tabnet.train import train_tabnet
+    import torch
 
     # A couple of optional utilities:
     # - disabling python warnings
@@ -21,6 +22,13 @@ def main(config: DictConfig):
     # - forcing debug friendly configuration
     # You can safely get rid of this line if you don't want those
     utils.extras(config)
+
+    use_cuda = torch.cuda.is_available()
+    if use_cuda:
+        print('__CUDNN VERSION:', torch.backends.cudnn.version())
+        print('__Number CUDA Devices:', torch.cuda.device_count())
+        print('__CUDA Device Name:', torch.cuda.get_device_name(0))
+        print('__CUDA Device Total Memory [GB]:', torch.cuda.get_device_properties(0).total_memory / 1e9)
 
     # Pretty print config using Rich library
     if config.get("print_config"):

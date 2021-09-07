@@ -6,12 +6,11 @@
 #SBATCH --partition=gpu
 #SBATCH -o /common/home/yusipov_i/source/dnam/submit/output/%j.txt
 
-cudaDevs=$(echo $CUDA_VISIBLE_DEVICES | sed -e 's/,/ /g')
+module load cuda/cuda-11.3
+#export CUDA_VISIBLE_DEVICES=0
 
-for cudaDev in $cudaDevs
-do
-  echo cudaDev = $cudaDev
-done
+cudaDevs=$(echo $CUDA_VISIBLE_DEVICES | sed -e 's/,/ /g')
+printf "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 code_dir=/common/home/yusipov_i/source/dnam
 
