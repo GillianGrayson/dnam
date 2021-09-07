@@ -8,4 +8,8 @@
 
 code_dir=/common/home/yusipov_i/source/dnam
 
-srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)/models/tabnet" data_dir="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)" datamodule.path="/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)"
+printf "args:\n $1 \n"
+
+srun python $code_dir/run_tabnet.py $1
+
+#srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)/models/tabnet" data_dir="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)" datamodule.path="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)"
