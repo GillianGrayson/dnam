@@ -17,7 +17,7 @@ optimizer_weight_decay = [0.0, 0.0001, 0.001]
 
 args = f"--multirun project_name={project_name}" \
        f" hparams_search=tabnet " \
-       f"experiment=tabnet work_dir=\"{data_path}/models/tabnet\" " \
+       f"experiment=tabnet work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
        f"datamodule.path=\"{data_path}\""
 
