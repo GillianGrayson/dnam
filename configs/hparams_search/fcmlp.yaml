@@ -49,7 +49,7 @@ hydra:
       model.lr:
         type: float
         low: 0.00001
-        high: 0.1
+        high: 0.01
       model.weight_decay:
         type: categorical
         choices: [0]
