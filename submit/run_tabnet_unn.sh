@@ -12,4 +12,4 @@ printf "args:\n $1 \n"
 
 srun python $code_dir/run_tabnet.py $1
 
-#srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)/models/tabnet" data_dir="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)" datamodule.path="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance(0.005)"
+#srun python $code_dir/run_tabnet.py --multirun hparams_search=tabnet_grid experiment=tabnet work_dir="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005/models/tabnet" data_dir="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005" datamodule.path="/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005"
