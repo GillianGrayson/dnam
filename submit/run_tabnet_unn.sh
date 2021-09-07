@@ -6,6 +6,13 @@
 #SBATCH --partition=gpu
 #SBATCH -o /common/home/yusipov_i/source/dnam/submit/output/%j.txt
 
+cudaDevs=$(echo $CUDA_VISIBLE_DEVICES | sed -e 's/,/ /g')
+
+for cudaDev in $cudaDevs
+do
+  echo cudaDev = $cudaDev
+done
+
 code_dir=/common/home/yusipov_i/source/dnam
 
 printf "args:\n $1 \n"
