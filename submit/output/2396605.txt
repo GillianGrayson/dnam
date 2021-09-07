@@ -1,0 +1,91 @@
+args:
+ --multirun project_name=tabnet_2 hparams_search=tabnet logger.wandb.offline=True experiment=tabnet work_dir=/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005/models/tabnet_2 data_dir=/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005 datamodule.path=/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005 
+
+[32m[I 2021-09-07 23:00:32,838][0m A new study created in memory with name: no-name-68d6f17d-428c-4fa3-be63-b635340fd7c8[0m
+[[36m2021-09-07 23:00:32,838[0m][[35mHYDRA[0m] Study name: no-name-68d6f17d-428c-4fa3-be63-b635340fd7c8[0m
+[[36m2021-09-07 23:00:32,838[0m][[35mHYDRA[0m] Storage: None[0m
+[[36m2021-09-07 23:00:32,838[0m][[35mHYDRA[0m] Sampler: TPESampler[0m
+[[36m2021-09-07 23:00:32,839[0m][[35mHYDRA[0m] Directions: ['maximize'][0m
+[[36m2021-09-07 23:00:33,152[0m][[35mHYDRA[0m] Launching 1 jobs locally[0m
+[[36m2021-09-07 23:00:33,152[0m][[35mHYDRA[0m] 	#0 : model.n_d=8 model.n_a=8 model.n_steps=6 model.n_independent=3 model.n_shared=2 model.lambda_sparse=0.001 model.optimizer_lr=0.002788483929748654 model.optimizer_weight_decay=0.001 project_name=tabnet_2 hparams_search=tabnet logger.wandb.offline=True experiment=tabnet work_dir=/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005/models/tabnet_2 data_dir=/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005 datamodule.path=/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005[0m
+[[36m2021-09-07 23:00:41,525[0m][[34msrc.utils.utils[0m][[32mINFO[0m] - Disabling python warnings! <config.ignore_warnings=True>[0m
+CUDNN VERSION: 7605
+Number CUDA Devices: 1
+CUDA Device Name: A100-PCIE-40GB
+CUDA Device Total Memory [GB]: 39.58612060546875
+CONFIG                                                                          
+├── trainer                                                                     
+│   └── max_epochs: 500                                                         
+│       patience: 100                                                           
+│       batch_size: 128                                                         
+│       virtual_batch_size: 64                                                  
+│                                                                               
+├── model                                                                       
+│   └── _target_: pytorch_tabnet.tab_model.TabNetClassifier                     
+│       n_d: 8                                                                  
+│       n_a: 8                                                                  
+│       n_steps: 6                                                              
+│       n_independent: 3                                                        
+│       n_shared: 2                                                             
+│       momentum: 0.02                                                          
+│       lambda_sparse: 0.001                                                    
+│       seed: 0                                                                 
+│       optimizer_lr: 0.002788483929748654                                      
+│       optimizer_weight_decay: 0.001                                           
+│       scheduler_step_size: 10                                                 
+│       scheduler_gamma: 0.9                                                    
+│       mask_type: sparsemax                                                    
+│       n_output: 4                                                             
+│                                                                               
+├── datamodule                                                                  
+│   └── _target_: src.datamodules.dnam.betas_pheno.BetasPhenoDataModule         
+│       path: /home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.0
+│       outcome: Status                                                         
+│       batch_size: 30                                                          
+│       train_val_test_split:                                                   
+│       - 0.8                                                                   
+│       - 0.1                                                                   
+│       - 0.1                                                                   
+│       num_workers: 0                                                          
+│       pin_memory: false                                                       
+│       seed: 42                                                                
+│       weighted_sampler: false                                                 
+│                                                                               
+├── callbacks                                                                   
+│   └── {}                                                                      
+│                                                                               
+├── logger                                                                      
+│   └── csv:                                                                    
+│         _target_: pytorch_lightning.loggers.csv_logs.CSVLogger                
+│         save_dir: .                                                           
+│         name: csv/                                                            
+│         version: null                                                         
+│         prefix: ''                                                            
+│       wandb:                                                                  
+│         _target_: pytorch_lightning.loggers.wandb.WandbLogger                 
+│         project: dnam                                                         
+│         version: 0                                                            
+│         name: null                                                            
+│         save_dir: .                                                           
+│         offline: true                                                         
+│         id: null                                                              
+│         log_model: false                                                      
+│         prefix: ''                                                            
+│         job_type: train                                                       
+│         group: ''                                                             
+│         tags: []                                                              
+│                                                                               
+└── seed                                                                        
+    └── 1337                                                                    
+[[36m2021-09-07 23:00:42,643[0m][[34mpytorch_lightning.utilities.seed[0m][[32mINFO[0m] - Global seed set to 1337[0m
+[[36m2021-09-07 23:00:42,644[0m][[34mtabnet.train[0m][[32mINFO[0m] - Instantiating datamodule <src.datamodules.dnam.betas_pheno.BetasPhenoDataModule>[0m
+[[36m2021-09-07 23:00:43,608[0m][[34msrc.datamodules.dnam.betas_pheno[0m][[32mINFO[0m] - total_count: 3654[0m
+[[36m2021-09-07 23:00:43,608[0m][[34msrc.datamodules.dnam.betas_pheno[0m][[32mINFO[0m] - train_count: 2922[0m
+[[36m2021-09-07 23:00:43,608[0m][[34msrc.datamodules.dnam.betas_pheno[0m][[32mINFO[0m] - val_count: 366[0m
+[[36m2021-09-07 23:00:43,608[0m][[34msrc.datamodules.dnam.betas_pheno[0m][[32mINFO[0m] - test_count: 366[0m
+[[36m2021-09-07 23:00:43,608[0m][[34mtabnet.train[0m][[32mINFO[0m] - Instantiating logger <pytorch_lightning.loggers.csv_logs.CSVLogger>[0m
+[[36m2021-09-07 23:00:43,609[0m][[34mtabnet.train[0m][[32mINFO[0m] - Instantiating logger <pytorch_lightning.loggers.wandb.WandbLogger>[0m
+Device used : cuda
+[[36m2021-09-07 23:00:44,616[0m][[34mtabnet.train[0m][[32mINFO[0m] - Logging hyperparameters![0m
+wandb: WARNING `resume` will be ignored since W&B syncing is set to `offline`. Starting a new run with run id 2ol08zjw.
+wandb: W&B syncing is set to `offline` in this directory.  Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
