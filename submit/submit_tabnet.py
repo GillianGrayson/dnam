@@ -1,6 +1,6 @@
 import os
 
-project_name = 'tabnet_1'
+project_name = 'tabnet_2'
 
 data_path = "/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005"
 
