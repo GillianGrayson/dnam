@@ -1,6 +1,6 @@
 import os
 
-project_name = 'tabnet_2'
+project_name = 'tabnet_3'
 
 data_path = "/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/variance_0.005"
 
@@ -19,6 +19,7 @@ args = f"--multirun project_name={project_name} " \
        f"hparams_search=tabnet logger.wandb.offline=True " \
        f"experiment=tabnet work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
-       f"datamodule.path=\"{data_path}\""
+       f"datamodule.path=\"{data_path}\" " \
+       f"model.mask_type=\"entmax\""
 
 os.system(f"sbatch run_tabnet_unn.sh \"{args}\"")
