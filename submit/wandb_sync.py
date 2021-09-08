@@ -7,6 +7,10 @@ folder_path = f"/common/home/yusipov_i/data/dnam/datasets/meta/BrainDiseases/var
 
 folders_to_sync = glob(f"{folder_path}/*/wandb/offline-run-*")
 folders_to_sync.sort()
-for f in folders_to_sync:
+
+runs = next(os.walk(folder_path))[1]
+runs.sort()
+
+for f_id, f in enumerate(folders_to_sync):
     print(f)
-    os.system(f"wandb sync {f}")
+    os.system(f"wandb sync --id {runs[f_id]} --project {model} {f}")
