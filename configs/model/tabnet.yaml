@@ -14,3 +14,4 @@ scheduler_step_size: 10
 scheduler_gamma: 0.9
 mask_type: "sparsemax"
 n_output: 4
+device_name: "auto"

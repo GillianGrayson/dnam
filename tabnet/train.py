@@ -59,7 +59,8 @@ def train_tabnet(config: DictConfig):
         verbose=1,
         scheduler_params={"step_size": config.model.scheduler_step_size, "gamma": config.model.scheduler_gamma},
         scheduler_fn=torch.optim.lr_scheduler.StepLR,
-        mask_type=config.model.mask_type
+        mask_type=config.model.mask_type,
+        device_name=config.device_name
     )
 
     log.info("Logging hyperparameters!")
