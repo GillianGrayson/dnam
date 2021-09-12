@@ -1,5 +1,5 @@
 import numpy as np
-from src.models.fcmlp_model import FCMLPModel
+from src.models.dnam.fcmlp import FCMLPModel
 import os
 import matplotlib.pyplot as plt
 import pickle
@@ -20,24 +20,18 @@ log = utils.get_logger(__name__)
 
 dotenv.load_dotenv(override=True)
 
-@hydra.main(config_path="../../configs/", config_name="config.yaml")
+@hydra.main(config_path="../configs/", config_name="main_xai.yaml")
 def main(config: DictConfig):
 
-    num_top_features = 100
+    num_top_features = 20
 
     if "seed" in config:
         seed_everything(config.seed)
 
-    save_dir = os.path.dirname(config.datamodule.data_fn)
+    checkpoint_path = config.checkpoint_path
+    checkpoint_name = config.checkpoint_name
 
-    model_path = "E:/YandexDisk/Work/dnamvae/models/fcmlp_model/logs/runs/2021-06-09/01-45-07"
-    ckpt_path = f"{model_path}/checkpoints/epoch=223_fold_1.ckpt"
-    model_type = "FCMLPModel"
-    if model_type == "FCMLPModel":
-        model = FCMLPModel.load_from_checkpoint(checkpoint_path=ckpt_path)
-    else:
-        raise ValueError("Unsupported model type!")
-    # switch to evaluation mode
+    model = FCMLPModel.load_from_checkpoint(checkpoint_path=f"{checkpoint_path}/{checkpoint_name}")
     model.eval()
     model.freeze()
 
@@ -60,9 +54,9 @@ def main(config: DictConfig):
 
     batch_id = 0
     d = {}
-    for background, _, indexes in tqdm(dataloader):
+    for background, outs_real, indexes in tqdm(dataloader):
 
-        outs = model(background).flatten()
+        outs_pred = model(background).flatten()
 
         if batch_id == 0:
             e = shap.DeepExplainer(model, background)
@@ -81,7 +75,7 @@ def main(config: DictConfig):
         outcomes = datamodule.data["pheno"].loc[subjects, config.datamodule.outcome].to_numpy()
 
         betas = background.cpu().detach().numpy()
-        preds = outs.cpu().detach().numpy()
+        preds = outs_pred.cpu().detach().numpy()
 
         if batch_id == 0:
             d['subject'] = subjects

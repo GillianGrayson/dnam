@@ -1,0 +1,17 @@
+# @package _global_
+
+# to execute this experiment run:
+# python run.py experiment=interpretation.yaml
+
+defaults:
+    - override /logger: null
+    - override /model: null
+    - override /datamodule: betas_pheno_datamodule.yaml
+    - override /trainer: null
+    - override /logger: null
+
+checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/BrainDiseases/variance(0.005)/models/tabnetpl_1/logs/runs/2021-09-12_23-05-42/checkpoints"
+checkpoint_name: "147.ckpt"
+
+datamodule:
+    batch_size: 20

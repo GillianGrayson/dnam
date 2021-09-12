@@ -104,7 +104,8 @@ def train_tabnet(config: DictConfig):
     )
 
     # save tabnet model
-    model.save_model("./best_model")
+    saved_filepath = model.save_model("./best_model")
+    print(saved_filepath)
 
     metrics_dict = model.history.history
     metrics_dict['epoch'] = list(range(1, len(metrics_dict['loss']) + 1))
