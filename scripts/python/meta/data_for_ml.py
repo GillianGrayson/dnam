@@ -24,7 +24,6 @@ datasets_diseases = {
     "GSE147221": "Schizophrenia",
     "GSE125105": "Depression",
     "GSE111629": "Parkinson's",
-    "GSE128235": "Depression",
     "GSE72774": "Parkinson's"
 }
 
@@ -35,9 +34,9 @@ diseases_keys = {
     "Parkinson's": 3
 }
 
-target = 'BrainDiseases'
+target = 'SchizophreniaDepressionParkinson'
 metric = 'variance'
-thld = 0.000001
+thld = 0.00000001
 
 path_save = f"{path}/{platform}/meta/{target}"
 if not os.path.exists(f"{path_save}/figs"):
