@@ -37,6 +37,7 @@ class TabNetModel(pl.LightningModule):
         self._build_network()
 
         self.task = task
+        self.produce_probabilities = False
 
         if task == "classification":
             self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
@@ -123,7 +124,10 @@ class TabNetModel(pl.LightningModule):
             for i in range(self.hparams.output_dim):
                 y_min, y_max = self.hparams.target_range[i]
                 x[:, i] = y_min + nn.Sigmoid()(x[:, i]) * (y_max - y_min)
-        return x  # No Easy way to access the raw features in TabNet
+        if self.produce_probabilities:
+            return torch.softmax(x, dim=1)
+        else:
+            return x  # No Easy way to access the raw features in TabNet
 
     def forward_masks(self, x):
         return self.tabnet.forward_masks(x)
@@ -135,10 +139,6 @@ class TabNetModel(pl.LightningModule):
             for m, sum in self.metrics_prob_summary.items():
                 wandb.define_metric(f"{stage_type}/{m}", summary=sum)
             wandb.define_metric(f"{stage_type}/loss", summary='min')
-
-    def get_probabilities(self, x: torch.Tensor):
-        z = self.mlp(x)
-        return torch.softmax(z, dim=1)
 
     def step(self, batch: Any, stage:str):
         x, y, ind = batch

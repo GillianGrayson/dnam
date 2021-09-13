@@ -10,8 +10,10 @@ defaults:
     - override /trainer: null
     - override /logger: null
 
-checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/BrainDiseases/variance(0.005)/models/tabnetpl_1/logs/runs/2021-09-12_23-05-42/checkpoints"
+checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/BrainDiseases/variance(0.005)/models/tabnetpl_1/logs/runs/2021-09-13_19-32-28/checkpoints"
 checkpoint_name: "147.ckpt"
+num_top_features: 10
+num_examples: 10
 
 datamodule:
     batch_size: 20
