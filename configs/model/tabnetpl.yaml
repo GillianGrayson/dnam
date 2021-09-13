@@ -1,7 +1,7 @@
 _target_: src.models.dnam.tabnet.TabNetModel
 
 task: "classification"
-input_dim: 78394
+input_dim: 391023
 output_dim: 4
 n_d_n_a: 8
 n_steps: 3

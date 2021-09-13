@@ -1,6 +1,6 @@
 _target_: src.datamodules.dnam.betas_pheno.BetasPhenoDataModule
 
-path: "E:/YandexDisk/Work/pydnameth/datasets/meta/BrainDiseases/variance(0.005)"
+path: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinson/full"
 outcome: "Status"
 batch_size: 30
 train_val_test_split: [0.8, 0.1, 0.1]
