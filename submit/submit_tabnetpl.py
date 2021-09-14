@@ -15,7 +15,6 @@ scheduler_step_size = [150]
 scheduler_gamma = [0.9]
 
 args = f"--multirun project_name={project_name} " \
-       f"datamodule.train_val_test_split=[0.8, 0.1, 0.1] " \
        f"logger.wandb.offline=True " \
        f"experiment=tabnetpl " \
        f"work_dir=\"{data_path}/models/{project_name}\" " \
