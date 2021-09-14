@@ -101,7 +101,8 @@ class BetasPhenoDataModule(LightningDataModule):
             random_state=self.seed
         )
 
-        for name, ids in {"train_val": self.ids_train_val,
+        for name, ids in {"all": self.ids_all,
+                          "train_val": self.ids_train_val,
                          "train": self.ids_train,
                          "val": self.ids_val,
                          "test": self.ids_test}.items():

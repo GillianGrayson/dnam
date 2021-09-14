@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 
 
-def add_histogram_trace(fig, x, name):
+def add_histogram_trace(fig, x, name, xbins_size):
     showlegend = False if name == "" else True
     fig.add_trace(
         go.Histogram(
@@ -14,5 +14,6 @@ def add_histogram_trace(fig, x, name):
                     width=1
                 ),
             ),
+            xbins=dict(size=xbins_size)
         )
     )

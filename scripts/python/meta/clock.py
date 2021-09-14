@@ -26,7 +26,7 @@ datasets_test = ["GSEUNN", "GSE147221", "GSE84727", "GSE125105", "GSE111629", "G
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
 
-target = f"Age_Status"
+target = f"correct_Age(0.05)_Status(0.05)"
 
 path_save = f"{path}/meta/EWAS/{target}"
 if not os.path.exists(f"{path_save}/clock"):

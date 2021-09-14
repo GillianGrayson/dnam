@@ -13,7 +13,7 @@ from scripts.python.pheno.datasets.features import get_column_name, get_status_n
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
-datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE128235", "GSE72774"]
+datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE72774"]
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
 
@@ -25,7 +25,7 @@ if not os.path.exists(f"{path_save}"):
 tables_aim = f"Age_Status"
 
 pval_suff = '_fdr_bh'
-pval_thld = 0.025
+pval_thld = 0.01
 
 platform = "GPL13534"
 manifest = get_manifest(platform)
