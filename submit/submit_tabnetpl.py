@@ -9,9 +9,9 @@ n_steps = [3, 6]
 gamma = [1.3, 1.7]
 n_independent = [1, 2]
 n_shared = [2, 4]
-optimizer_lr = [0.0005, 0.001, 0.005, 0.01]
+optimizer_lr = [0.0001, 0.0005, 0.001]
 optimizer_weight_decay = [0.0]
-scheduler_step_size = [100]
+scheduler_step_size = [150]
 scheduler_gamma = [0.9]
 
 args = f"--multirun project_name={project_name} " \
@@ -29,6 +29,6 @@ args = f"--multirun project_name={project_name} " \
        f"model.optimizer_lr={','.join(str(x) for x in optimizer_lr)} " \
        f"model.optimizer_weight_decay={','.join(str(x) for x in optimizer_weight_decay)} " \
        f"model.scheduler_step_size={','.join(str(x) for x in scheduler_step_size)} " \
-       f"model.scheduler_step_size={','.join(str(x) for x in scheduler_gamma)} "
+       f"model.scheduler_gamma={','.join(str(x) for x in scheduler_gamma)} "
 
 os.system(f"sbatch run_tabnetpl_unn.sh \"{args}\"")
