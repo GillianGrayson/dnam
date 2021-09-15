@@ -20,6 +20,7 @@ from src.utils import utils
 from omegaconf import DictConfig
 import shap
 from pathlib import Path
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, ConfusionMatrixDisplay, RocCurveDisplay
 
 
 log = utils.get_logger(__name__)
@@ -68,6 +69,29 @@ def main(config: DictConfig):
         pin_memory=config.datamodule.pin_memory,
         shuffle=True
     )
+
+    outs_real_all = np.empty(0, dtype=int)
+    outs_pred_all = np.empty(0, dtype=int)
+    outs_prob_all = np.empty(shape=(0, len(class_names)), dtype=int)
+    for x, outs_real, indexes in tqdm(test_dataloader):
+        outs_real = outs_real.cpu().detach().numpy()
+        outs_prob = model(x).cpu().detach().numpy()
+        outs_pred = np.argmax(outs_prob, axis=1)
+        outs_real_all = np.append(outs_real_all, outs_real, axis=0)
+        outs_pred_all = np.append(outs_pred_all, outs_pred, axis=0)
+        outs_prob_all = np.append(outs_prob_all, outs_prob, axis=0)
+
+    conf_mtx = confusion_matrix(outs_real_all, outs_pred_all)
+    disp = ConfusionMatrixDisplay(conf_mtx, display_labels=class_names)
+    disp.plot()
+    fig = plt.gcf()
+    fig.set_size_inches(8, 6, forward=True)
+    plt.savefig('test_confusion_matrix.png')
+    plt.savefig('test_confusion_matrix.pdf')
+    plt.close()
+
+    roc_auc = roc_auc_score(outs_real_all, outs_prob_all, average='macro', multi_class='ovr')
+    log.info(f"roc_auc for test set: {roc_auc}")
 
     background_dataloader = test_dataloader
 
