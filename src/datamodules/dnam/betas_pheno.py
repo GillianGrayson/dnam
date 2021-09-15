@@ -116,8 +116,8 @@ class BetasPhenoDataModule(LightningDataModule):
             plt.xticks([])
             plt.axis('auto')
             fig = plot.get_figure()
-            fig.savefig(f"{self.path}/figs/bar_{name}.pdf")
-            fig.savefig(f"{self.path}/figs/bar_{name}.png")
+            fig.savefig(f"bar_{name}.pdf")
+            fig.savefig(f"bar_{name}.png")
             plt.close()
 
         self.dataset_train = Subset(self.dataset, self.ids_train)
