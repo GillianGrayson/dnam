@@ -11,7 +11,7 @@ n_shared: 2
 virtual_batch_size: 128
 mask_type: "sparsemax"
 loss_type: "CrossEntropyLoss"
-optimizer_lr: 0.004155
+optimizer_lr: 0.005
 optimizer_weight_decay: 0.0
-scheduler_step_size: 200
-scheduler_gamma: 0.9
+scheduler_step_size: 50
+scheduler_gamma: 0.8

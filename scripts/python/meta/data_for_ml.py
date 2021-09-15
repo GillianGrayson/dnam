@@ -35,10 +35,10 @@ diseases_keys = {
 }
 
 target = 'SchizophreniaDepressionParkinson'
-metric = 'variance'
+metric = 'from_list' # 'lap_score', 'from_list'
 thld = 0.00000001
 
-path_save = f"{path}/{platform}/meta/{target}"
+path_save = f"{path}/meta/{target}"
 if not os.path.exists(f"{path_save}/figs"):
     os.makedirs(f"{path_save}/figs")
 
@@ -124,19 +124,38 @@ for m in ["variance", "lap_score"]:
     fig.savefig(f"{path_save}/figs/{m}.png")
     plt.close()
 
-path_save = f"{path}/{platform}/meta/{target}/{metric}({thld})"
-if not os.path.exists(f"{path_save}"):
-    os.makedirs(f"{path_save}")
 
-cpgs = cpgs_metrics_df.index.values
-ids = np.where(cpgs_metrics_df[metric].values > thld)[0]
-filtered_cpgs = cpgs[ids]
-print(f"Number of remaining CpGs: {len(filtered_cpgs)}")
+if metric in ["variance", "lap_score"]:
+    path_save = f"{path}/meta/{target}/{metric}({thld})"
+    if not os.path.exists(f"{path_save}"):
+        os.makedirs(f"{path_save}")
 
-curr_manifest = manifest.loc[filtered_cpgs, :]
-curr_manifest.to_excel(f"{path_save}/manifest.xlsx", index=True)
+    cpgs = cpgs_metrics_df.index.values
+    ids = np.where(cpgs_metrics_df[metric].values > thld)[0]
+    filtered_cpgs = cpgs[ids]
+    print(f"Number of remaining CpGs: {len(filtered_cpgs)}")
 
-betas_all = betas_all.loc[:, filtered_cpgs]
+    curr_manifest = manifest.loc[filtered_cpgs, :]
+    curr_manifest.to_excel(f"{path_save}/manifest.xlsx", index=True)
 
-pheno_all, betas_all = get_pheno_betas_with_common_subjects(pheno_all, betas_all)
-save_pheno_betas_to_pkl(pheno_all, betas_all, f"{path_save}")
+    betas_all = betas_all.loc[:, filtered_cpgs]
+
+    pheno_all, betas_all = get_pheno_betas_with_common_subjects(pheno_all, betas_all)
+    save_pheno_betas_to_pkl(pheno_all, betas_all, f"{path_save}")
+else:
+    with open(f"cpgs.txt") as f:
+        cpgs_target = f.read().splitlines()
+    cpgs_target = list(set.intersection(set(betas_all.columns.values), set(cpgs_target)))
+
+    path_save = f"{path}/meta/{target}/from_{len(cpgs_target)}"
+    if not os.path.exists(f"{path_save}"):
+        os.makedirs(f"{path_save}")
+
+    curr_manifest = manifest.loc[cpgs_target, :]
+    curr_manifest.to_excel(f"{path_save}/manifest.xlsx", index=True)
+
+    betas_all = betas_all.loc[:, cpgs_target]
+
+    pheno_all, betas_all = get_pheno_betas_with_common_subjects(pheno_all, betas_all)
+    save_pheno_betas_to_pkl(pheno_all, betas_all, f"{path_save}")
+

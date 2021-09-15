@@ -17,3 +17,4 @@ trainer:
 
 datamodule:
   batch_size: 64
+  train_val_test_split: [0.8, 0.1, 0.1]
