@@ -8,11 +8,11 @@ n_d_n_a = [8, 16]
 n_steps = [3, 6]
 gamma = [1.3, 1.7]
 n_independent = [1, 2]
-n_shared = [2, 4]
-optimizer_lr = [0.0001, 0.0005, 0.001]
+n_shared = [2]
+optimizer_lr = [0.01, 0.001, 0.0001]
 optimizer_weight_decay = [0.0]
-scheduler_step_size = [150]
-scheduler_gamma = [0.9]
+scheduler_step_size = [50]
+scheduler_gamma = [0.5]
 
 args = f"--multirun project_name={project_name} " \
        f"logger.wandb.offline=True " \
