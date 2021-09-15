@@ -2,8 +2,8 @@ import os
 
 project_name = 'tabnetpl_unnhpc_1'
 
-data_path = "/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinson/full"
-input_dim = 391023
+data_path = "/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinson/from_1098"
+input_dim = 1098#391023
 
 n_d_n_a = [8, 16]
 n_steps = [3, 6]
@@ -15,12 +15,15 @@ optimizer_weight_decay = [0.0]
 scheduler_step_size = [50]
 scheduler_gamma = [0.75]
 
+weighted_sampler = True
+
 args = f"--multirun project_name={project_name} " \
        f"logger.wandb.offline=True " \
        f"experiment=tabnetpl " \
        f"work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
        f"datamodule.path=\"{data_path}\" " \
+       f"datamodule.weighted_sampler={weighted_sampler} " \
        f"model.input_dim={input_dim} " \
        f"model.mask_type=\"sparsemax\" " \
        f"model.n_d_n_a={','.join(str(x) for x in n_d_n_a)} " \
