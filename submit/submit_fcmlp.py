@@ -17,6 +17,6 @@ args = f"--multirun project_name={project_name} " \
        f"data_dir=\"{data_path}\" " \
        f"datamodule.path=\"{data_path}\"" \
        f"datamodule.weighted_sampler={weighted_sampler} " \
-       f"model.n_input={n_input} " \
+       f"model.n_input={n_input} "
 
 os.system(f"sbatch run_fcmlp_unn.sh \"{args}\"")
