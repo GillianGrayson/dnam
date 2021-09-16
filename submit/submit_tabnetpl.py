@@ -2,20 +2,20 @@ import os
 
 project_name = 'tabnetpl_unnhpc_1'
 
-data_path = "/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinson/from_1098"
-input_dim = 1098#391023
+data_path = "/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinson/full"
+input_dim = 391023
 
 n_d_n_a = [8, 16]
-n_steps = [3, 6]
-gamma = [1.3, 1.7]
-n_independent = [1, 2]
+n_steps = [3]
+gamma = [1.3, 1.8]
+n_independent = [1]
 n_shared = [2]
-optimizer_lr = [0.01, 0.001, 0.0001]
+optimizer_lr = [0.05, 0.01, 0.005, 0.001, 0.0005]
 optimizer_weight_decay = [0.0]
 scheduler_step_size = [50]
-scheduler_gamma = [0.75]
+scheduler_gamma = [0.95]
 
-weighted_sampler = True
+weighted_sampler = False
 
 args = f"--multirun project_name={project_name} " \
        f"logger.wandb.offline=True " \
