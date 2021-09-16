@@ -1,19 +1,21 @@
 import os
 
-project_name = 'tabnetpl_unnhpc_1'
+project_name = 'tabnetpl_unnhpc'
 
-data_path = "/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinson/full"
+data_segment = 'SchizophreniaDepressionParkinsonCases'
 input_dim = 391023
+output_dim = 3
+data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{data_segment}/{input_dim}"
 
 n_d_n_a = [8, 16]
 n_steps = [3]
-gamma = [1.3, 1.8]
+gamma = [1.3, 1.7]
 n_independent = [1]
 n_shared = [2]
 optimizer_lr = [0.05, 0.01, 0.005, 0.001, 0.0005]
 optimizer_weight_decay = [0.0]
 scheduler_step_size = [50]
-scheduler_gamma = [0.95]
+scheduler_gamma = [0.9]
 
 weighted_sampler = False
 
@@ -25,6 +27,7 @@ args = f"--multirun project_name={project_name} " \
        f"datamodule.path=\"{data_path}\" " \
        f"datamodule.weighted_sampler={weighted_sampler} " \
        f"model.input_dim={input_dim} " \
+       f"model.output_dim={output_dim} " \
        f"model.mask_type=\"sparsemax\" " \
        f"model.n_d_n_a={','.join(str(x) for x in n_d_n_a)} " \
        f"model.n_steps={','.join(str(x) for x in n_steps)} " \

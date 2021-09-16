@@ -19,6 +19,8 @@ from scripts.python.preprocessing.serialization.routines.save import save_pheno_
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 
+only_cases = True
+
 datasets_diseases = {
     "GSE84727": "Schizophrenia",
     "GSE147221": "Schizophrenia",
@@ -27,15 +29,21 @@ datasets_diseases = {
     "GSE72774": "Parkinson's"
 }
 
+# diseases_keys = {
+#     "Control": 0,
+#     "Schizophrenia": 1,
+#     "Depression": 2,
+#     "Parkinson's": 3
+# }
+
 diseases_keys = {
-    "Control": 0,
-    "Schizophrenia": 1,
-    "Depression": 2,
-    "Parkinson's": 3
+    "Schizophrenia": 0,
+    "Depression": 1,
+    "Parkinson's": 2
 }
 
-target = 'SchizophreniaDepressionParkinson'
-metric = 'from_list' # 'lap_score', 'from_list'
+target = 'SchizophreniaDepressionParkinsonCases'
+metric = 'variance' # 'lap_score', 'from_list'
 thld = 0.00000001
 
 path_save = f"{path}/meta/{target}"
@@ -69,6 +77,9 @@ for d_id, (dataset, disease) in enumerate(datasets_diseases.items()):
         print(*na_pairs, sep='\n')
     betas.dropna(axis='columns', how='any', inplace=True)
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
+
+    if only_cases == True:
+        df = df.loc[df[status_col] == status_dict["Case"], :]
 
     pheno = df[[age_col, sex_col, status_col]]
     status_dict[datasets_diseases[dataset]] = status_dict.pop("Case")
