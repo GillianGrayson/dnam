@@ -10,8 +10,8 @@ defaults:
     - override /trainer: null
     - override /logger: null
 
-checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinson/full/models/best/tabnetpl/2021-09-14_16-32-52/16/checkpoints"
-checkpoint_name: "395.ckpt"
+checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinsonCasesControls/391023/models/tabnetpl_local/logs/runs/2021-09-16_18-50-31/checkpoints"
+checkpoint_name: "152.ckpt"
 num_top_features: 10
 num_examples: 10
 

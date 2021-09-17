@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
 import numpy as np
@@ -19,7 +21,8 @@ from scripts.python.preprocessing.serialization.routines.save import save_pheno_
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 
-only_cases = True
+only_cases = False
+different_controls = True
 
 datasets_diseases = {
     "GSE84727": "Schizophrenia",
@@ -36,13 +39,22 @@ datasets_diseases = {
 #     "Parkinson's": 3
 # }
 
+# diseases_keys = {
+#     "Schizophrenia": 0,
+#     "Depression": 1,
+#     "Parkinson's": 2
+# }
+
 diseases_keys = {
-    "Schizophrenia": 0,
-    "Depression": 1,
-    "Parkinson's": 2
+    "SchizophreniaControl": 0,
+    "Schizophrenia": 1,
+    "DepressionControl": 2,
+    "Depression": 3,
+    "Parkinson'sControl": 4,
+    "Parkinson's": 5
 }
 
-target = 'SchizophreniaDepressionParkinsonCases'
+target = 'SchizophreniaDepressionParkinsonCasesControls'
 metric = 'variance' # 'lap_score', 'from_list'
 thld = 0.00000001
 
@@ -83,6 +95,8 @@ for d_id, (dataset, disease) in enumerate(datasets_diseases.items()):
 
     pheno = df[[age_col, sex_col, status_col]]
     status_dict[datasets_diseases[dataset]] = status_dict.pop("Case")
+    if different_controls == True:
+        status_dict[f"{datasets_diseases[dataset]}Control"] = status_dict.pop("Control")
     status_dict_inverse = dict((v, k) for k, v in status_dict.items())
     pheno[status_col].replace(status_dict_inverse, inplace=True)
     sex_dict_inverse = dict((v, k) for k, v in sex_dict.items())

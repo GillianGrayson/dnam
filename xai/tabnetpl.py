@@ -30,12 +30,22 @@ dotenv.load_dotenv(override=True)
 @hydra.main(config_path="../configs/", config_name="main_xai.yaml")
 def main(config: DictConfig):
 
+    # class_names = [
+    #     "Control",
+    #     "Schizophrenia",
+    #     "Depression",
+    #     "Parkinson"
+    # ]
+
     class_names = [
-        "Control",
+        "Schizophrenia Control",
         "Schizophrenia",
+        "Depression Control",
         "Depression",
+        "Parkinson Control",
         "Parkinson"
     ]
+
     for cl in class_names:
         Path(f"{cl}").mkdir(parents=True, exist_ok=True)
 
@@ -82,7 +92,7 @@ def main(config: DictConfig):
         outs_prob_all = np.append(outs_prob_all, outs_prob, axis=0)
 
     conf_mtx = confusion_matrix(outs_real_all, outs_pred_all)
-    disp = ConfusionMatrixDisplay(conf_mtx, display_labels=class_names)
+    disp = ConfusionMatrixDisplay(conf_mtx, display_labels=[x.replace(' ', '\n') for x in class_names])
     disp.plot()
     fig = plt.gcf()
     fig.set_size_inches(8, 6, forward=True)
