@@ -1,11 +1,11 @@
 import os
 from glob import glob
 
-model = "fcmlp_unnhpc_1"
-date_time = "2021-09-16_01-29-49"
-data_type = 'full'
+model = "tabnetpl_unnhpc"
+date_time = "2021-09-16_17-22-32"
+data_type = '391023'
 project = f"{data_type}_{model}_{date_time}"
-folder_path = f"/common/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinson/{data_type}/models/{model}/logs/multiruns/{date_time}"
+folder_path = f"/common/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinsonCases/{data_type}/models/{model}/logs/multiruns/{date_time}"
 
 folders_to_sync = glob(f"{folder_path}/*/wandb/offline-run-*")
 folders_to_sync.sort()

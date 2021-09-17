@@ -2,9 +2,9 @@ import os
 
 project_name = 'tabnetpl_unnhpc'
 
-data_segment = 'SchizophreniaDepressionParkinsonCases'
+data_segment = 'SchizophreniaDepressionParkinsonCasesControls'
 input_dim = 391023
-output_dim = 3
+output_dim = 6
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{data_segment}/{input_dim}"
 
 n_d_n_a = [8, 16]
