@@ -21,8 +21,8 @@ from scripts.python.preprocessing.serialization.routines.save import save_pheno_
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 
-only_cases = False
-different_controls = True
+only_cases = True
+different_controls = False
 
 datasets_diseases = {
     "GSE84727": "Schizophrenia",
@@ -39,23 +39,23 @@ datasets_diseases = {
 #     "Parkinson's": 3
 # }
 
-# diseases_keys = {
-#     "Schizophrenia": 0,
-#     "Depression": 1,
-#     "Parkinson's": 2
-# }
-
 diseases_keys = {
-    "SchizophreniaControl": 0,
-    "Schizophrenia": 1,
-    "DepressionControl": 2,
-    "Depression": 3,
-    "Parkinson'sControl": 4,
-    "Parkinson's": 5
+    "Schizophrenia": 0,
+    "Depression": 1,
+    "Parkinson's": 2
 }
 
-target = 'SchizophreniaDepressionParkinsonCasesControls'
-metric = 'variance' # 'lap_score', 'from_list'
+# diseases_keys = {
+#     "SchizophreniaControl": 0,
+#     "Schizophrenia": 1,
+#     "DepressionControl": 2,
+#     "Depression": 3,
+#     "Parkinson'sControl": 4,
+#     "Parkinson's": 5
+# }
+
+target = 'SchizophreniaDepressionParkinsonCases'
+metric =  'from_list' # 'lap_score' 'from_list' 'variance'
 thld = 0.00000001
 
 path_save = f"{path}/meta/{target}"
