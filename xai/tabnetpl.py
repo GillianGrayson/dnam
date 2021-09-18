@@ -37,12 +37,18 @@ def main(config: DictConfig):
     #     "Parkinson"
     # ]
 
+    # class_names = [
+    #     "Schizophrenia Control",
+    #     "Schizophrenia",
+    #     "Depression Control",
+    #     "Depression",
+    #     "Parkinson Control",
+    #     "Parkinson"
+    # ]
+
     class_names = [
-        "Schizophrenia Control",
         "Schizophrenia",
-        "Depression Control",
         "Depression",
-        "Parkinson Control",
         "Parkinson"
     ]
 
@@ -124,8 +130,16 @@ def main(config: DictConfig):
     background_np = background.cpu().detach().numpy()
     outs_real_np = outs_real.cpu().detach().numpy()
 
-    deep_explainer = shap.DeepExplainer(model, background)
-    shap_values = deep_explainer.shap_values(background)
+    def proba(X):
+        X = torch.from_numpy(X)
+        tmp = model(X)
+        return tmp.cpu().detach().numpy()
+
+    explainer = shap.KernelExplainer(proba, background_np)
+    shap_values = explainer.shap_values(background_np)
+
+    # deep_explainer = shap.DeepExplainer(model, background)
+    # shap_values = deep_explainer.shap_values(background)
 
     shap.summary_plot(
         shap_values=shap_values,
@@ -133,7 +147,7 @@ def main(config: DictConfig):
         feature_names=datamodule.betas.columns.values,
         max_display=num_top_features,
         class_names=class_names,
-        class_inds=[0, 1, 2, 3],
+        class_inds=list(range(len(class_names))),
         plot_size=(12, 8),
         show=False
     )

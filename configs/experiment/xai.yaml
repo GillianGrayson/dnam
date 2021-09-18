@@ -10,10 +10,10 @@ defaults:
     - override /trainer: null
     - override /logger: null
 
-checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinsonCasesControls/391023/models/tabnetpl_unnhpc/6/checkpoints"
-checkpoint_name: "277.ckpt"
+checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinsonCases/33/models/tabnetpl_unnhpc/logs/multiruns/2021-09-18_03-16-30/6/checkpoints"
+checkpoint_name: "052.ckpt"
 num_top_features: 10
 num_examples: 10
 
 datamodule:
-    batch_size: 20
+    batch_size: 172
