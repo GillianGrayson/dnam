@@ -242,13 +242,12 @@ def main(config: DictConfig):
     features = datamodule.betas.columns.values[order]
     features_best = features[0:num_top_features]
 
-
     for feat_id, feat in enumerate(features_best):
 
         fig = go.Figure()
         for cl_id, cl in enumerate(class_names):
-            class_shap_values = shap_values[cl_id][:, order[cl_id]]
-            real_values = background_np[:, order[cl_id]]
+            class_shap_values = shap_values[cl_id][:, order[feat_id]]
+            real_values = background_np[:, order[feat_id]]
             add_scatter_trace(fig, real_values, class_shap_values, cl)
         add_layout(fig, f"Methylation level", f"SHAP values", f"{feat}")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
