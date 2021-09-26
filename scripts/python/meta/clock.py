@@ -113,14 +113,14 @@ np.savetxt(f"{path_save}/clock/{num_features}/clock_cpgs.txt", cpgs_target, fmt=
 metrics_dict = {'alpha': clock.alpha_, 'l1_ratio': clock.l1_ratio_, 'num_features': num_features}
 y_target_pred = clock.predict(X_target)
 metrics_dict['R2_Control'] = clock.score(X_target, y_target)
-metrics_dict['RMSE_Control'] = np.sqrt(mean_squared_error(y_target_pred, y_target))
-metrics_dict['MAE_Control'] = mean_absolute_error(y_target_pred, y_target)
+metrics_dict['RMSE_Control'] = np.sqrt(mean_squared_error(y_target, y_target_pred))
+metrics_dict['MAE_Control'] = mean_absolute_error(y_target, y_target_pred)
 X_all = df_all.loc[:, cpgs_target].to_numpy()
 y_all = df_all.loc[:, 'Age'].to_numpy()
 y_all_pred = clock.predict(X_all)
 metrics_dict['R2_All'] = clock.score(X_all, y_all)
-metrics_dict['RMSE_All'] = np.sqrt(mean_squared_error(y_all_pred, y_all))
-metrics_dict['MAE_All'] = mean_absolute_error(y_all_pred, y_all)
+metrics_dict['RMSE_All'] = np.sqrt(mean_squared_error(y_all, y_all_pred))
+metrics_dict['MAE_All'] = mean_absolute_error(y_all, y_all_pred)
 metrics_df = pd.DataFrame(metrics_dict, index=[0])
 metrics_df.to_excel(f"{path_save}/clock/{num_features}/metrics.xlsx", index=False)
 
@@ -129,8 +129,8 @@ pheno_all[f'AgeEST'] = y_all_pred
 formula = f"AgeEST ~ Age"
 reg = smf.ols(formula=formula, data=pheno_all.loc[pheno_all['Status'] == 'Control', :]).fit()
 res_dict = {'R2': reg.rsquared, 'R2_adj': reg.rsquared_adj}
-res_dict['RMSE'] = np.sqrt(mean_squared_error(reg.fittedvalues.values, pheno_all.loc[pheno_all['Status'] == 'Control', 'Age'].values))
-res_dict['MAE'] = mean_absolute_error(reg.fittedvalues.values, pheno_all.loc[pheno_all['Status'] == 'Control', 'Age'].values)
+res_dict['RMSE'] = np.sqrt(mean_squared_error(pheno_all.loc[pheno_all['Status'] == 'Control', 'Age'].values), reg.fittedvalues.values)
+res_dict['MAE'] = mean_absolute_error(pheno_all.loc[pheno_all['Status'] == 'Control', 'Age'].values, reg.fittedvalues.values)
 
 pheno_all['Acceleration'] = pheno_all[f'AgeEST'] - reg.predict(pheno_all)
 pheno_all.to_excel(f"{path_save}/clock/{num_features}/pheno.xlsx", index=True)
@@ -199,8 +199,8 @@ for d_id, dataset in enumerate(datasets_test):
     reg = smf.ols(formula=formula, data=df_1).fit()
     R2 = reg.rsquared
     R2_adj = reg.rsquared_adj
-    RMSE = np.sqrt(mean_squared_error(reg.fittedvalues.values, df_1[age_col].values))
-    MAE = mean_absolute_error(reg.fittedvalues.values, df_1[age_col].values)
+    RMSE = np.sqrt(mean_squared_error(df_1[age_col].values, reg.fittedvalues.values))
+    MAE = mean_absolute_error(df_1[age_col].values, reg.fittedvalues.values)
 
     df['AgeESTAcc'] = df[f'AgeEST']  - reg.predict(pheno)
     df_1 = df.loc[(df[status_col] == status_dict['Control']), :]
