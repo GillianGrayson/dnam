@@ -3,10 +3,11 @@ import copy
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
 import numpy as np
-import plotly.graph_objects as go
-from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
+from scripts.python.routines.plot.save import save_figure
+from scripts.python.routines.plot.violin import add_violin_trace
 from scripts.python.routines.plot.layout import add_layout
+import plotly.graph_objects as go
 import os
 import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.filter import filter_pheno
@@ -16,12 +17,13 @@ from sklearn.feature_selection import VarianceThreshold
 from skfeature.function.similarity_based import lap_score
 from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
 from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
+import plotly.express as px
 
 
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 
-only_cases = True
+only_cases = False
 different_controls = False
 
 datasets_diseases = {
@@ -32,18 +34,18 @@ datasets_diseases = {
     "GSE72774": "Parkinson's"
 }
 
-# diseases_keys = {
-#     "Control": 0,
-#     "Schizophrenia": 1,
-#     "Depression": 2,
-#     "Parkinson's": 3
-# }
-
 diseases_keys = {
-    "Schizophrenia": 0,
-    "Depression": 1,
-    "Parkinson's": 2
+    "Control": 0,
+    "Schizophrenia": 1,
+    "Depression": 2,
+    "Parkinson's": 3
 }
+
+# diseases_keys = {
+#     "Schizophrenia": 0,
+#     "Depression": 1,
+#     "Parkinson's": 2
+# }
 
 # diseases_keys = {
 #     "SchizophreniaControl": 0,
@@ -54,9 +56,9 @@ diseases_keys = {
 #     "Parkinson's": 5
 # }
 
-target = 'SchizophreniaDepressionParkinsonCases'
-metric =  'from_list' # 'lap_score' 'from_list' 'variance'
-thld = 0.00000001
+target = 'SchizophreniaDepressionParkinson'
+metric =  'variance' # 'from_list' 'variance'
+thld = 1e-2
 
 path_save = f"{path}/meta/{target}"
 if not os.path.exists(f"{path_save}/figs"):
@@ -121,6 +123,8 @@ save_figure(fig, f"{path_save}/figs/status_counts")
 
 pheno_all['Status'].replace(diseases_keys, inplace=True)
 
+print(f"Number of remaining subjects: {pheno_all.shape[0]}")
+
 betas_all = betas_all.T
 betas_all.index.name = "subject_id"
 betas_all = betas_all.astype('float32')
@@ -131,14 +135,11 @@ vt.fit(betas_all)
 vt_metrics = vt.variances_
 vt_bool = vt.get_support()
 cpgs_metrics_dict['variance'] = vt_metrics
-lap_metrics = lap_score.lap_score(betas_all.to_numpy())
-lap_idx = lap_score.feature_ranking(lap_metrics)
-cpgs_metrics_dict["lap_score"] = lap_metrics
 cpgs_metrics_df = pd.DataFrame(cpgs_metrics_dict)
 cpgs_metrics_df.set_index('CpG', inplace=True)
 cpgs_metrics_df.to_excel(f"{path_save}/cpgs_metrics.xlsx", index=True)
 
-for m in ["variance", "lap_score"]:
+for m in ["variance"]:
     plot = cpgs_metrics_df[m].plot.kde(ind=np.logspace(-5, 0, 501))
     plt.xlabel("Values", fontsize=15)
     plt.ylabel("PDF",fontsize=15)
@@ -149,8 +150,7 @@ for m in ["variance", "lap_score"]:
     fig.savefig(f"{path_save}/figs/{m}.png")
     plt.close()
 
-
-if metric in ["variance", "lap_score"]:
+if metric in ["variance"]:
     path_save = f"{path}/meta/{target}/{metric}({thld})"
     if not os.path.exists(f"{path_save}"):
         os.makedirs(f"{path_save}")
@@ -167,6 +167,11 @@ if metric in ["variance", "lap_score"]:
 
     pheno_all, betas_all = get_pheno_betas_with_common_subjects(pheno_all, betas_all)
     save_pheno_betas_to_pkl(pheno_all, betas_all, f"{path_save}")
+
+    wtf_betas = pd.read_pickle(f"{path_save}/betas.pkl")
+    wtf_pheno = pd.read_pickle(f"{path_save}/pheno.pkl")
+
+    ololo = 1
 else:
     with open(f"cpgs.txt") as f:
         cpgs_target = f.read().splitlines()
@@ -183,4 +188,3 @@ else:
 
     pheno_all, betas_all = get_pheno_betas_with_common_subjects(pheno_all, betas_all)
     save_pheno_betas_to_pkl(pheno_all, betas_all, f"{path_save}")
-
