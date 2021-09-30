@@ -1,10 +1,11 @@
 import os
 from glob import glob
 
+num_classes = 3
 model = "tabnetpl_unnhpc"
-date_time = "2021-09-16_17-22-32"
-data_type = '391023'
-project = f"{data_type}_{model}_{date_time}"
+date_time = "2021-09-30_16-11-30"
+data_type = '17'
+project = f"{num_classes}_{data_type}_{model}_{date_time}"
 folder_path = f"/common/home/yusipov_i/data/dnam/datasets/meta/SchizophreniaDepressionParkinsonCases/{data_type}/models/{model}/logs/multiruns/{date_time}"
 
 folders_to_sync = glob(f"{folder_path}/*/wandb/offline-run-*")

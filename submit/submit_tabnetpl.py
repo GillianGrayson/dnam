@@ -2,9 +2,9 @@ import os
 
 project_name = 'tabnetpl_unnhpc'
 
-data_segment = 'SchizophreniaDepressionParkinsonCasesControls'
-input_dim = 391023
-output_dim = 6
+data_segment = 'SchizophreniaDepressionParkinsonCases'
+input_dim = 17
+output_dim = 3
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{data_segment}/{input_dim}"
 
 n_d_n_a = [8, 16]
@@ -17,7 +17,7 @@ optimizer_weight_decay = [0.0]
 scheduler_step_size = [50]
 scheduler_gamma = [0.9]
 
-weighted_sampler = False
+weighted_sampler = True
 
 args = f"--multirun project_name={project_name} " \
        f"logger.wandb.offline=True " \
