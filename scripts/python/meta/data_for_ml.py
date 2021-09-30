@@ -23,7 +23,7 @@ import plotly.express as px
 platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 
-only_cases = False
+only_cases = True
 different_controls = False
 
 datasets_diseases = {
@@ -34,18 +34,18 @@ datasets_diseases = {
     "GSE72774": "Parkinson's"
 }
 
-diseases_keys = {
-    "Control": 0,
-    "Schizophrenia": 1,
-    "Depression": 2,
-    "Parkinson's": 3
-}
-
 # diseases_keys = {
-#     "Schizophrenia": 0,
-#     "Depression": 1,
-#     "Parkinson's": 2
+#     "Control": 0,
+#     "Schizophrenia": 1,
+#     "Depression": 2,
+#     "Parkinson's": 3
 # }
+
+diseases_keys = {
+    "Schizophrenia": 0,
+    "Depression": 1,
+    "Parkinson's": 2
+}
 
 # diseases_keys = {
 #     "SchizophreniaControl": 0,
@@ -56,8 +56,8 @@ diseases_keys = {
 #     "Parkinson's": 5
 # }
 
-target = 'SchizophreniaDepressionParkinson'
-metric =  'variance' # 'from_list' 'variance'
+target = 'SchizophreniaDepressionParkinsonCases'
+metric =  'from_list' # 'from_list' 'variance'
 thld = 1e-2
 
 path_save = f"{path}/meta/{target}"

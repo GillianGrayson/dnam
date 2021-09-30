@@ -82,6 +82,8 @@ def main(config: DictConfig):
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.setup()
 
+    manifest = pd.read_excel(f"{datamodule.path}/manifest.xlsx", index_col='CpG')
+
     for name, ids in {"all": datamodule.ids_all,
                       "train_val": datamodule.ids_train_val,
                       "train": datamodule.ids_train,
@@ -249,7 +251,7 @@ def main(config: DictConfig):
             class_shap_values = shap_values[cl_id][:, order[feat_id]]
             real_values = background_np[:, order[feat_id]]
             add_scatter_trace(fig, real_values, class_shap_values, cl)
-        add_layout(fig, f"Methylation level", f"SHAP values", f"{feat}")
+        add_layout(fig, f"Methylation level", f"SHAP values", f"{feat} ({manifest.at[feat, 'Gene']})")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
         Path(f"features/scatter").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/scatter/{feat_id}_{feat}")
@@ -257,7 +259,7 @@ def main(config: DictConfig):
         fig = go.Figure()
         for cl_id, cl in enumerate(class_names):
             add_violin_trace(fig, common_df.loc[common_df['Status'] == cl_id, feat].values, cl)
-        add_layout(fig, "", f"{feat}", f"")
+        add_layout(fig, "", f"{feat} ({manifest.at[feat, 'Gene']})", f"")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
         Path(f"features/violin").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/violin/{feat_id}_{feat}")

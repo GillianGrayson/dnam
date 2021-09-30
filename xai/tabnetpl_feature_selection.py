@@ -60,8 +60,8 @@ def main(config: DictConfig):
     ]
 
     model = "tabnetpl_unnhpc"
-    num_feat = 31732
-    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinsonCases/{num_feat}/models/{model}"
+    num_feat = 391023
+    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinsonCases/{num_feat}/models/{model}/logs/multiruns/2021-09-30_03-57-27"
 
     num_top_features = config.num_top_features
     runs = next(os.walk(folder_path))[1]
@@ -116,7 +116,7 @@ def main(config: DictConfig):
 
     feat_importances.set_index('feat', inplace=True)
     feat_importances['average'] = feat_importances.mean(numeric_only=True, axis=1)
-    feat_importances.sort_values(['average'], ascending=[False])
+    feat_importances.sort_values(['average'], ascending=[False], inplace=True)
     feat_importances.to_excel("./feat_importances.xlsx", index=True)
 
     for feat_id, feat in enumerate(feat_importances.index.values[0:num_top_features]):
