@@ -219,7 +219,7 @@ def main(config: DictConfig):
                 probs_real = probs_np[subj_id, cl_id]
                 probs_expl = explainer.expected_value[cl_id] + sum(shap_values[cl_id][subj_id])
                 if abs(probs_real - probs_expl) > 1e-8:
-                    raise ValueError("Model's probability differs explanation's probability")
+                    print(f"diff between prediction: {abs(probs_real - probs_expl)}")
 
                 shap.waterfall_plot(
                     shap.Explanation(
