@@ -1,11 +1,11 @@
 import pandas as pd
-from scripts.python.preprocessing.serialization.routines.filter import get_forbidden_cpgs, manifest_filter
+from scripts.python.preprocessing.serialization.routines.filter import get_forbidden_cpgs, manifest_filter, betas_pvals_filter
 from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
 from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
 from scripts.python.routines.manifest import get_manifest
 
 
-dataset = "GSE72774"
+dataset = "GSE145361"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 forbidden_types = ["NoCG", "SNP", "MultiHit", "XY"]
 
@@ -19,8 +19,8 @@ df['subject_id'] = df['title']
 pheno = df.set_index('subject_id')
 pheno.index.name = "subject_id"
 
-fn = f"{path}/{platform}/{dataset}/raw/GSE72774_datBetaNormalized.csv"
-df = pd.read_csv(fn, delimiter=",")
+fn = f"{path}/{platform}/{dataset}/raw/GSE145361_Vallerga2020_NCOMMS_AvgBeta_Matrix.txt"
+df = pd.read_csv(fn, delimiter="\t")
 df.rename(columns={df.columns[0]: 'CpG'}, inplace=True)
 df.set_index('CpG', inplace=True)
 betas = df.T

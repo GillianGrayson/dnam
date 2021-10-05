@@ -28,4 +28,10 @@ forbidden_cpgs = get_forbidden_cpgs(f"{path}/{platform}/manifest/forbidden_cpgs"
 betas = betas.loc[:, ~betas.columns.isin(forbidden_cpgs)]
 
 pheno, betas = get_pheno_betas_with_common_subjects(pheno, betas)
+if list(pheno.index.values) == list(betas.index.values):
+    print("Change index")
+    pheno.set_index('geo_accession', inplace=True)
+    pheno.index.name = "subject_id"
+    betas.set_index(pheno.index, inplace=True)
+    betas.index.name = "subject_id"
 save_pheno_betas_to_pkl(pheno, betas, f"{path}/{platform}/{dataset}")
