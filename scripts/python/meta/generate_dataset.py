@@ -28,7 +28,8 @@ statuses = {
     'Control': 0,
     'Schizophrenia': 1,
     'First episode psychosis': 2,
-    'Parkinson': 3
+    'Parkinson': 3,
+    'Depression': 4,
 }
 
 target_features = ['Status']
@@ -47,7 +48,7 @@ path_save = f"{path}/meta/{folder_name}"
 if not os.path.exists(f"{path_save}/figs"):
     os.makedirs(f"{path_save}/figs")
 
-pheno_all = pd.DataFrame(columns=target_features)
+pheno_all = pd.DataFrame(columns=target_features + ['StatusFull', 'Dataset'])
 pheno_all.index.name = 'subject_id'
 for d_id, dataset in enumerate(datasets):
     print(dataset)
@@ -69,6 +70,8 @@ for d_id, dataset in enumerate(datasets):
     status_dict_inverse = dict((x.column, x.label) for x in status_passed_fields)
     pheno[status_col].replace(status_dict_inverse, inplace=True)
     pheno.rename(columns={status_col: 'Status'}, inplace=True)
+    pheno['StatusFull'] = pheno['Status']
+    pheno.loc[:, 'Dataset'] = dataset
     pheno_all = pheno_all.append(pheno, verify_integrity=True)
 
     cpgs = betas.columns.values

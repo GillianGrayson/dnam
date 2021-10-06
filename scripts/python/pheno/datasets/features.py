@@ -39,18 +39,25 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'Sex',
         }
+    elif dataset == "GSE125105":
+        d = {
+            'Status': 'diagnosis',
+            'Age': 'age',
+            'Sex': 'Sex',
+        }
+    elif dataset == "GSE113725":
+        d = {
+            'Status': 'groupid',
+            'Age': 'age',
+            'Sex': 'gender',
+        }
+
 
     elif dataset == "GSE42861":
         d = {
             'Status': 'subject',
             'Age': 'age',
             'Sex': 'gender',
-        }
-    elif dataset == "GSE125105":
-        d = {
-            'Status': 'diagnosis',
-            'Age': 'age',
-            'Sex': 'Sex',
         }
     elif dataset == "GSE147221":
         d = {
@@ -128,11 +135,13 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 1)], "Case": [Field('Schizophrenia', 2)]}
     elif dataset == "GSE80417":
         d = {"Control": [Field('Control', 1)], "Case": [Field('Schizophrenia', 2)]}
+    elif dataset == "GSE125105":
+        d = {"Control": [Field('Control', "control")], "Case": [Field('Depression',"case")]}
+    elif dataset == "GSE113725":
+        d = {"Control": [Field('Control', 4)], "Case": [Field('Depression', 2), Field('Inflammatory disorder', 3)]}
 
     elif dataset == "GSE42861":
         d = {"Control": "Normal", "Cases": ["Patient"]}
-    elif dataset == "GSE125105":
-        d = {"Control": "control", "Case": "case"}
     elif dataset == "GSE147221":
         d = {"Control": "Control", "Case": "Case"}
     elif dataset == "GSE152027":
@@ -162,7 +171,8 @@ def get_statuses_datasets_dict():
     d = {
         'Schizophrenia': ['GSE152027', 'GSE84727', 'GSE80417', 'GSE152027'],
         'First episode psychosis': ['GSE152027'],
-        'Parkinson': ['GSE145361', 'GSE111629', 'GSE72774']
+        'Parkinson': ['GSE145361', 'GSE111629', 'GSE72774'],
+        'Depression': ['GSE125105', 'GSE113725'],
     }
     return d
 
@@ -203,11 +213,14 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE80417":
         d = {"F": "F", "M": "M"}
+    elif dataset == "GSE125105":
+        d = {"F": "F", "M": "M"}
+    elif dataset == "GSE113725":
+        d = {"F": "F", "M": "M"}
+
 
     elif dataset == "GSE42861":
         d = {"F": "f", "M": "m"}
-    elif dataset == "GSE125105":
-        d = {"F": "F", "M": "M"}
     elif dataset == "GSE147221":
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE168739":
