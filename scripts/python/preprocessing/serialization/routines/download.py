@@ -26,7 +26,7 @@ def download_betas_and_pvals_from_gsms(gsms, path):
     betas = betas.T
     betas.index.name = "subject_id"
     pvals = pvals.T
-    betas.index.name = "subject_id"
+    pvals.index.name = "subject_id"
 
     print(f"Number of NaNs in betas: {betas.isna().values.sum()}")
     print(f"Number of NaNs in pvals: {pvals.isna().values.sum()}")

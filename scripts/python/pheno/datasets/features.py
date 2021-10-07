@@ -51,6 +51,30 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'gender',
         }
+    elif dataset == "GSE89353":
+        d = {
+            'Status': 'Status',
+            'Age': None,
+            'Sex': 'gender',
+        }
+    elif dataset == "GSE53740":
+        d = {
+            'Status': 'diagnosis',
+            'Age': 'age',
+            'Sex': 'gender',
+        }
+    elif dataset == "GSE156994":
+        d = {
+            'Status': 'sample_group',
+            'Age': 'age',
+            'Sex': 'Sex',
+        }
+    elif dataset == "GSE144858":
+        d = {
+            'Status': 'disease state',
+            'Age': 'age',
+            'Sex': 'Sex',
+        }
 
 
     elif dataset == "GSE42861":
@@ -77,21 +101,9 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'Sex',
         }
-    elif dataset == "GSE53740":
-        d = {
-            'Status': 'diagnosis',
-            'Age': 'age',
-            'Sex': 'gender',
-        }
     elif dataset == "GSE87648":
         d = {
             'Status': 'simplified_diagnosis',
-            'Age': 'age',
-            'Sex': 'Sex',
-        }
-    elif dataset == "GSE144858":
-        d = {
-            'Status': 'disease state',
             'Age': 'age',
             'Sex': 'Sex',
         }
@@ -100,12 +112,6 @@ def get_columns_dict(dataset: str):
             'Status': 'disease status',
             'Age': 'age',
             'Sex': 'gender',
-        }
-    elif dataset == "GSE156994":
-        d = {
-            'Status': 'sample_group',
-            'Age': 'age',
-            'Sex': 'Sex',
         }
     elif dataset == "GSEUNN":
         d = {
@@ -139,6 +145,14 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', "control")], "Case": [Field('Depression',"case")]}
     elif dataset == "GSE113725":
         d = {"Control": [Field('Control', 4)], "Case": [Field('Depression', 2), Field('Inflammatory disorder', 3)]}
+    elif dataset == "GSE89353":
+        d = {"Control": [Field('Control', 'Control')], "Case": [Field('Intellectual disability and congenital anomalies', 'IDCA')]}
+    elif dataset == "GSE53740":
+        d = {"Control": [Field('Control', 'Control')], "Case": [Field('Progressive supranuclear palsy', 'PSP'), Field('Frontotemporal dementia', 'FTD')]}
+    elif dataset == "GSE156994":
+        d = {"Control": [Field('Control', 'CTRL')], "Case": [Field('Sporadic Creutzfeldt-Jakob disease', 'sCJD')]}
+
+
 
     elif dataset == "GSE42861":
         d = {"Control": "Normal", "Cases": ["Patient"]}
@@ -152,16 +166,12 @@ def get_status_dict(dataset: str):
         d = {"Control": "PD-free control", "Case": "Parkinson's disease (PD)"}
     elif dataset == "GSE128235":
         d = {"Control": "control", "Case": "case"}
-    elif dataset == "GSE53740":
-        d = {"Control": "Control", "Case": "FTD"}
     elif dataset == "GSE87648":
         d = {"Control": "HL", "Case": "CD"}
     elif dataset == "GSE144858":
         d = {"Control": "control", "Case": "Alzheimer's disease"}
     elif dataset == "GSE106648":
         d = {"Control": "Healthy control", "Case": "MS case"}
-    elif dataset == "GSE156994":
-        d = {"Control": "CTRL", "Case": "sCJD"}
     elif dataset == "GSEUNN":
         d = {"Control": "Control", "Case": "ESRD"}
     return d
@@ -169,10 +179,13 @@ def get_status_dict(dataset: str):
 
 def get_statuses_datasets_dict():
     d = {
-        'Schizophrenia': ['GSE152027', 'GSE84727', 'GSE80417', 'GSE152027'],
+        'Schizophrenia': ['GSE152027', 'GSE84727', 'GSE80417'],
         'First episode psychosis': ['GSE152027'],
         'Parkinson': ['GSE145361', 'GSE111629', 'GSE72774'],
         'Depression': ['GSE125105', 'GSE113725'],
+        'Intellectual disability and congenital anomalies': ['GSE89353'],
+        'Progressive supranuclear palsy': ['GSE53740'],
+        'Frontotemporal dementia': ['GSE53740'],
     }
     return d
 
@@ -217,6 +230,12 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE113725":
         d = {"F": "F", "M": "M"}
+    elif dataset == "GSE89353":
+        d = {"F": "Female", "M": "Male"}
+    elif dataset == "GSE53740":
+        d = {"F": "FEMALE", "M": "MALE"}
+    elif dataset == "GSE156994":
+        d = {"F": "Female", "M": "Male"}
 
 
     elif dataset == "GSE42861":
@@ -227,16 +246,12 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE128235":
         d = {"F": "F", "M": "M"}
-    elif dataset == "GSE53740":
-        d = {"F": "FEMALE", "M": "MALE"}
     elif dataset == "GSE87648":
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE144858":
         d = {"F": "Female", "M": "Male"}
     elif dataset == "GSE106648":
         d = {"F": "female", "M": "male"}
-    elif dataset == "GSE156994":
-        d = {"F": "Female", "M": "Male"}
     elif dataset == "GSEUNN":
         d = {"F": "F", "M": "M"}
     return d

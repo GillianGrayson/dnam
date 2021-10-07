@@ -7,10 +7,11 @@ from scripts.python.routines.manifest import get_manifest
 
 
 dataset = "GSE144858"
-platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 forbidden_types = ["NoCG", "SNP", "MultiHit", "XY"]
 
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
+platform = datasets_info.loc[dataset, 'platform']
 manifest = get_manifest(platform)
 
 fn = f"{path}/{platform}/{dataset}/pheno.xlsx"
