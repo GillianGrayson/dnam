@@ -151,7 +151,8 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'Control')], "Case": [Field('Progressive supranuclear palsy', 'PSP'), Field('Frontotemporal dementia', 'FTD')]}
     elif dataset == "GSE156994":
         d = {"Control": [Field('Control', 'CTRL')], "Case": [Field('Sporadic Creutzfeldt-Jakob disease', 'sCJD')]}
-
+    elif dataset == "GSE144858":
+        d = {"Control": [Field('Control', 'control')], "Case": [Field('Alzheimer', "Alzheimer's disease"), Field('Mild cognitive impairment', "mild cognitive impairment")]}
 
 
     elif dataset == "GSE42861":
@@ -186,6 +187,9 @@ def get_statuses_datasets_dict():
         'Intellectual disability and congenital anomalies': ['GSE89353'],
         'Progressive supranuclear palsy': ['GSE53740'],
         'Frontotemporal dementia': ['GSE53740'],
+        'Sporadic Creutzfeldt-Jakob disease': ['GSE156994'],
+        'Mild cognitive impairment': ['GSE144858'],
+        'Alzheimer': ['GSE144858']
     }
     return d
 
@@ -236,6 +240,8 @@ def get_sex_dict(dataset: str):
         d = {"F": "FEMALE", "M": "MALE"}
     elif dataset == "GSE156994":
         d = {"F": "Female", "M": "Male"}
+    elif dataset == "GSE144858":
+        d = {"F": "Female", "M": "Male"}
 
 
     elif dataset == "GSE42861":
@@ -248,8 +254,6 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE87648":
         d = {"F": "F", "M": "M"}
-    elif dataset == "GSE144858":
-        d = {"F": "Female", "M": "Male"}
     elif dataset == "GSE106648":
         d = {"F": "female", "M": "male"}
     elif dataset == "GSEUNN":

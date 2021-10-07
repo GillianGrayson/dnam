@@ -24,17 +24,34 @@ path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 
 include_controls = True
+# statuses = {
+#     'Control': 0,
+#     'Schizophrenia': 1,
+#     'First episode psychosis': 2,
+#     'Parkinson': 3,
+#     'Depression': 4,
+#     'Intellectual disability and congenital anomalies': 5,
+#     'Frontotemporal dementia': 6,
+#     'Sporadic Creutzfeldt-Jakob disease': 7,
+#     'Mild cognitive impairment': 8,
+#     'Alzheimer': 9,
+# }
 statuses = {
-    'Control': 0,
-    'Schizophrenia': 1,
-    'First episode psychosis': 2,
-    'Parkinson': 3,
-    'Depression': 4,
+    'Schizophrenia': 0,
+    'First episode psychosis': 1,
+    'Parkinson': 2,
+    'Depression': 3,
+    'Intellectual disability and congenital anomalies': 4,
+    'Frontotemporal dementia': 5,
+    'Sporadic Creutzfeldt-Jakob disease': 6,
+    'Mild cognitive impairment': 7,
+    'Alzheimer': 8,
 }
+
 
 target_features = ['Status']
 metric = 'variance' # 'list' 'variance'
-thld = 0.05
+thld = 1e-10
 
 statuses_datasets_dict = get_statuses_datasets_dict()
 datasets = set()
