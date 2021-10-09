@@ -75,6 +75,12 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'Sex',
         }
+    elif dataset == "GSEUNN":
+        d = {
+            'Status': 'Status',
+            'Age': 'Age',
+            'Sex': 'Sex',
+        }
 
 
     elif dataset == "GSE42861":
@@ -113,12 +119,6 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'gender',
         }
-    elif dataset == "GSEUNN":
-        d = {
-            'Status': 'Status',
-            'Age': 'Age',
-            'Sex': 'Sex',
-        }
     return d
 
 
@@ -153,7 +153,8 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'CTRL')], "Case": [Field('Sporadic Creutzfeldt-Jakob disease', 'sCJD')]}
     elif dataset == "GSE144858":
         d = {"Control": [Field('Control', 'control')], "Case": [Field('Alzheimer', "Alzheimer's disease"), Field('Mild cognitive impairment', "mild cognitive impairment")]}
-
+    elif dataset == "GSEUNN":
+        d = {"Control": [Field('Control', 'Control')], "Case": [Field("ESRD", "ESRD")] }
 
     elif dataset == "GSE42861":
         d = {"Control": "Normal", "Cases": ["Patient"]}
@@ -173,8 +174,7 @@ def get_status_dict(dataset: str):
         d = {"Control": "control", "Case": "Alzheimer's disease"}
     elif dataset == "GSE106648":
         d = {"Control": "Healthy control", "Case": "MS case"}
-    elif dataset == "GSEUNN":
-        d = {"Control": "Control", "Case": "ESRD"}
+
     return d
 
 
@@ -242,6 +242,8 @@ def get_sex_dict(dataset: str):
         d = {"F": "Female", "M": "Male"}
     elif dataset == "GSE144858":
         d = {"F": "Female", "M": "Male"}
+    elif dataset == "GSEUNN":
+        d = {"F": "F", "M": "M"}
 
 
     elif dataset == "GSE42861":
@@ -256,6 +258,4 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE106648":
         d = {"F": "female", "M": "male"}
-    elif dataset == "GSEUNN":
-        d = {"F": "F", "M": "M"}
     return d

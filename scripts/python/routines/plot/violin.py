@@ -8,6 +8,7 @@ def add_violin_trace(fig, y, name):
             y=y,
             name=name,
             box_visible=True,
+            meanline_visible=True,
             showlegend=showlegend,
         )
     )
