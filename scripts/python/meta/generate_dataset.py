@@ -45,13 +45,12 @@ statuses = {
     'Frontotemporal dementia': 5,
     'Sporadic Creutzfeldt-Jakob disease': 6,
     'Mild cognitive impairment': 7,
-    'Alzheimer': 8,
 }
 
 
 target_features = ['Status']
 metric = 'variance' # 'list' 'variance'
-thld = 1e-10
+thld = 0.01
 
 statuses_datasets_dict = get_statuses_datasets_dict()
 datasets = set()

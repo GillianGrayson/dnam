@@ -37,31 +37,22 @@ dotenv.load_dotenv(override=True)
 @hydra.main(config_path="../configs/", config_name="main_xai.yaml")
 def main(config: DictConfig):
 
-    # class_names = [
-    #     "Control",
-    #     "Schizophrenia",
-    #     "Depression",
-    #     "Parkinson"
-    # ]
-
-    # class_names = [
-    #     "Schizophrenia Control",
-    #     "Schizophrenia",
-    #     "Depression Control",
-    #     "Depression",
-    #     "Parkinson Control",
-    #     "Parkinson"
-    # ]
-
-    class_names = [
-        "Schizophrenia",
-        "Depression",
-        "Parkinson"
-    ]
+    statuses = {
+        'Control': 0,
+        'Schizophrenia': 1,
+        'First episode psychosis': 2,
+        'Parkinson': 3,
+        'Depression': 4,
+        'Intellectual disability and congenital anomalies': 5,
+        'Frontotemporal dementia': 6,
+        'Sporadic Creutzfeldt-Jakob disease': 7,
+        'Mild cognitive impairment': 8,
+        'Alzheimer': 9,
+    }
 
     model = "tabnetpl_unnhpc"
-    num_feat = 391023
-    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinsonCases/{num_feat}/models/{model}/logs/multiruns/2021-09-30_03-57-27"
+    num_feat = 374853
+    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/classes_9/{num_feat}/models/{model}/logs/multiruns/2021-10-07_14-27-10"
 
     num_top_features = config.num_top_features
     runs = next(os.walk(folder_path))[1]
@@ -111,8 +102,6 @@ def main(config: DictConfig):
 
         if run_id == 0:
             common_df = pd.merge(datamodule.pheno, datamodule.betas, left_index=True, right_index=True)
-            curr_var = np.var(common_df.loc[:, 'cg00000109'].values)
-            olol = 1
 
     feat_importances.set_index('feat', inplace=True)
     feat_importances['average'] = feat_importances.mean(numeric_only=True, axis=1)
@@ -124,9 +113,9 @@ def main(config: DictConfig):
         curr_var = np.var(common_df.loc[:, feat].values)
 
         fig = go.Figure()
-        for cl_id, cl in enumerate(class_names):
-            add_violin_trace(fig, common_df.loc[common_df['Status'] == cl_id, feat].values, cl)
-        add_layout(fig, "", f"{feat}", f"variance = {curr_var:0.2e}")
+        for status, code_status in statuses.items():
+            add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, False)
+        add_layout(fig, f"variance = {curr_var:0.2e}", f"{feat}", "")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
         Path(f"features/violin").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/violin/{feat_id}_{feat}")
