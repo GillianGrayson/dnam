@@ -38,23 +38,22 @@ dotenv.load_dotenv(override=True)
 def main(config: DictConfig):
 
     statuses = {
-        'Control': 0,
-        'Schizophrenia': 1,
-        'First episode psychosis': 2,
-        'Parkinson': 3,
-        'Depression': 4,
-        'Intellectual disability and congenital anomalies': 5,
-        'Frontotemporal dementia': 6,
-        'Sporadic Creutzfeldt-Jakob disease': 7,
-        'Mild cognitive impairment': 8,
-        'Alzheimer': 9,
+        'Schizophrenia': 0,
+        'First episode psychosis': 1,
+        'Parkinson': 2,
+        'Depression': 3,
+        'Intellectual disability and congenital anomalies': 4,
+        'Frontotemporal dementia': 5,
+        'Sporadic Creutzfeldt-Jakob disease': 6,
+        'Mild cognitive impairment': 7,
     }
 
     model = "tabnetpl_unnhpc"
     num_feat = 374853
-    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/classes_9/{num_feat}/models/{model}/logs/multiruns/2021-10-07_14-27-10"
+    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/classes_8/{num_feat}/models/{model}/logs/multiruns/2021-10-07_14-28-58"
 
-    num_top_features = config.num_top_features
+    num_top_features = 100
+
     runs = next(os.walk(folder_path))[1]
     runs.sort()
 
@@ -114,9 +113,10 @@ def main(config: DictConfig):
 
         fig = go.Figure()
         for status, code_status in statuses.items():
-            add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, False)
+            add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, True)
         add_layout(fig, f"variance = {curr_var:0.2e}", f"{feat}", "")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
+        fig.update_xaxes(showticklabels=False)
         Path(f"features/violin").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/violin/{feat_id}_{feat}")
 

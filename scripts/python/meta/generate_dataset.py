@@ -45,6 +45,7 @@ statuses = {
     'Frontotemporal dementia': 5,
     'Sporadic Creutzfeldt-Jakob disease': 6,
     'Mild cognitive impairment': 7,
+    'Alzheimer': 8,
 }
 
 
