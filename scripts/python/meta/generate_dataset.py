@@ -13,11 +13,13 @@ import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_statuses_datasets_dict
 from sklearn.feature_selection import VarianceThreshold
-from skfeature.function.similarity_based import lap_score
 from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
 from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
 import plotly.express as px
 from scripts.python.routines.betas import betas_drop_na
+import json
+import hashlib
+import pickle
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -36,22 +38,33 @@ include_controls = True
 #     'Mild cognitive impairment': 8,
 #     'Alzheimer': 9,
 # }
+# statuses = {
+#     'Schizophrenia': 0,
+#     'First episode psychosis': 1,
+#     'Parkinson': 2,
+#     'Depression': 3,
+#     'Intellectual disability and congenital anomalies': 4,
+#     'Frontotemporal dementia': 5,
+#     'Sporadic Creutzfeldt-Jakob disease': 6,
+#     'Mild cognitive impairment': 7,
+#     'Alzheimer': 8,
+# }
 statuses = {
     'Schizophrenia': 0,
     'First episode psychosis': 1,
     'Parkinson': 2,
-    'Depression': 3,
-    'Intellectual disability and congenital anomalies': 4,
-    'Frontotemporal dementia': 5,
-    'Sporadic Creutzfeldt-Jakob disease': 6,
-    'Mild cognitive impairment': 7,
-    'Alzheimer': 8,
+    'Intellectual disability and congenital anomalies': 3,
+    'Frontotemporal dementia': 4,
+    'Sporadic Creutzfeldt-Jakob disease': 5,
+    'Mild cognitive impairment': 6,
+    'Alzheimer': 7,
 }
 
+check_sum = hashlib.md5(pickle.dumps(statuses)).hexdigest()
 
 target_features = ['Status']
 metric = 'variance' # 'list' 'variance'
-thld = 0.01
+thld = 0.0
 
 statuses_datasets_dict = get_statuses_datasets_dict()
 datasets = set()
@@ -60,7 +73,7 @@ for s in statuses.keys():
         for dataset in statuses_datasets_dict[s]:
             datasets.add(dataset)
 
-folder_name = f"classes_{len(statuses)}"
+folder_name = f"{check_sum}_{len(statuses)}"
 path_save = f"{path}/meta/{folder_name}"
 if not os.path.exists(f"{path_save}/figs"):
     os.makedirs(f"{path_save}/figs")

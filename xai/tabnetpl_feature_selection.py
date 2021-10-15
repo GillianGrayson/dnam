@@ -28,6 +28,7 @@ from pathlib import Path
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, ConfusionMatrixDisplay, RocCurveDisplay
 from glob import glob
 import plotly.express as px
+from sklearn.feature_selection import VarianceThreshold
 
 
 log = utils.get_logger(__name__)
@@ -54,6 +55,24 @@ def main(config: DictConfig):
 
     num_top_features = 100
 
+    # Init Lightning datamodule
+    log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
+    datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
+    datamodule.setup()
+    train_dataloader = datamodule.train_dataloader()
+    val_dataloader = datamodule.val_dataloader()
+    test_dataloader = datamodule.test_dataloader()
+    dataset = ConcatDataset([train_dataloader.dataset, val_dataloader.dataset, test_dataloader.dataset])
+    all_dataloader = DataLoader(
+        dataset,
+        batch_size=config.datamodule.batch_size,
+        num_workers=config.datamodule.num_workers,
+        pin_memory=config.datamodule.pin_memory,
+        shuffle=True
+    )
+    background_dataloader = train_dataloader
+    common_df = pd.merge(datamodule.pheno, datamodule.betas, left_index=True, right_index=True)
+
     runs = next(os.walk(folder_path))[1]
     runs.sort()
 
@@ -69,48 +88,28 @@ def main(config: DictConfig):
         model.eval()
         model.freeze()
 
-        # Init Lightning datamodule
-        log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
-        datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-        datamodule.setup()
-
-        train_dataloader = datamodule.train_dataloader()
-        val_dataloader = datamodule.val_dataloader()
-        test_dataloader = datamodule.test_dataloader()
-        dataset = ConcatDataset([train_dataloader.dataset, val_dataloader.dataset, test_dataloader.dataset])
-        all_dataloader = DataLoader(
-            dataset,
-            batch_size=config.datamodule.batch_size,
-            num_workers=config.datamodule.num_workers,
-            pin_memory=config.datamodule.pin_memory,
-            shuffle=True
-        )
-
         if run_id == 0:
             feat_importances.loc[:, 'feat'] = datamodule.betas.columns.values
-
-        background_dataloader = train_dataloader
 
         fis = np.zeros((model.hparams.input_dim))
         for data, targets, indexes in tqdm(background_dataloader):
             M_explain, masks = model.forward_masks(data)
             fis += M_explain.sum(dim=0).cpu().detach().numpy()
-
         fis = fis / np.sum(fis)
         feat_importances.loc[:, run] = fis
 
-        if run_id == 0:
-            common_df = pd.merge(datamodule.pheno, datamodule.betas, left_index=True, right_index=True)
-
     feat_importances.set_index('feat', inplace=True)
     feat_importances['average'] = feat_importances.mean(numeric_only=True, axis=1)
+    vt = VarianceThreshold(0.0)
+    vt.fit(datamodule.betas)
+    vt_metrics = vt.variances_
+    feat_importances.loc[:, 'variance'] = vt_metrics
+
     feat_importances.sort_values(['average'], ascending=[False], inplace=True)
     feat_importances.to_excel("./feat_importances.xlsx", index=True)
 
     for feat_id, feat in enumerate(feat_importances.index.values[0:num_top_features]):
-
         curr_var = np.var(common_df.loc[:, feat].values)
-
         fig = go.Figure()
         for status, code_status in statuses.items():
             add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, True)
@@ -119,6 +118,23 @@ def main(config: DictConfig):
         fig.update_xaxes(showticklabels=False)
         Path(f"features/violin").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/violin/{feat_id}_{feat}")
+
+    thresholds = [0.001, 0.005, 0.01]
+    for th in thresholds:
+        curr_feat_imp = feat_importances.loc[feat_importances['variance'] > th, :]
+        curr_feat_imp.sort_values(['average'], ascending=[False], inplace=True)
+        for feat_id, feat in enumerate(curr_feat_imp.index.values[0:num_top_features]):
+            curr_var = np.var(common_df.loc[:, feat].values)
+            fig = go.Figure()
+            for status, code_status in statuses.items():
+                add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, True)
+            add_layout(fig, f"variance = {curr_var:0.2e}", f"{feat}", "")
+            fig.update_layout({'colorway': px.colors.qualitative.Set1})
+            fig.update_xaxes(showticklabels=False)
+            Path(f"features/{th}/violin").mkdir(parents=True, exist_ok=True)
+            save_figure(fig, f"features/{th}/violin/{feat_id}_{feat}")
+
+
 
 
 if __name__ == "__main__":
