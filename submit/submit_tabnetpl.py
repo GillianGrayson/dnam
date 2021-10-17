@@ -2,10 +2,10 @@ import os
 
 project_name = 'tabnetpl_unnhpc'
 
-data_segment = 'SchizophreniaDepressionParkinsonCases'
-input_dim = 17
-output_dim = 3
-data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{data_segment}/{input_dim}"
+check_sum = '56727e67034ec72e6e3e66a00f1f841a'
+input_dim = 380649
+output_dim = 7
+data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}_{output_dim}/{input_dim}"
 
 n_d_n_a = [8, 16]
 n_steps = [3]
