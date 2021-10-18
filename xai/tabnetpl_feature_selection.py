@@ -29,6 +29,7 @@ from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, Confusio
 from glob import glob
 import plotly.express as px
 from sklearn.feature_selection import VarianceThreshold
+import hashlib
 
 
 log = utils.get_logger(__name__)
@@ -42,16 +43,18 @@ def main(config: DictConfig):
         'Schizophrenia': 0,
         'First episode psychosis': 1,
         'Parkinson': 2,
-        'Depression': 3,
-        'Intellectual disability and congenital anomalies': 4,
-        'Frontotemporal dementia': 5,
-        'Sporadic Creutzfeldt-Jakob disease': 6,
-        'Mild cognitive impairment': 7,
+        'Intellectual disability and congenital anomalies': 3,
+        'Frontotemporal dementia': 4,
+        'Sporadic Creutzfeldt-Jakob disease': 5,
+        'Mild cognitive impairment': 6,
     }
 
+    check_sum = hashlib.md5(pickle.dumps(statuses)).hexdigest()
+    folder_name = f"{check_sum}_{len(statuses)}"
+
     model = "tabnetpl_unnhpc"
-    num_feat = 374853
-    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/classes_8/{num_feat}/models/{model}/logs/multiruns/2021-10-07_14-28-58"
+    num_feat = 380649
+    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{folder_name}/{num_feat}/models/{model}/logs/multiruns/2021-10-16_01-19-04"
 
     num_top_features = 100
 

@@ -10,7 +10,7 @@ defaults:
     - override /trainer: null
     - override /logger: null
 
-checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/classes_9/374853/models/tabnetpl_unnhpc/logs/multiruns/2021-09-30_16-11-30/4/checkpoints"
+checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/56727e67034ec72e6e3e66a00f1f841a_7/380649/models/tabnetpl_unnhpc/logs/multiruns/2021-10-16_01-19-04/4/checkpoints"
 checkpoint_name: "080.ckpt"
 num_top_features: 17
 num_examples: 10
