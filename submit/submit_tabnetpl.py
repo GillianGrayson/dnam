@@ -30,7 +30,7 @@ args = f"--multirun project_name={project_name} " \
        f"datamodule.path=\"{data_path}\" " \
        f"datamodule.cpgs_fn=\"{cpgs_fn}\" " \
        f"datamodule.statuses_fn=\"{statuses_fn}\" " \
-       f"datamodule.train_val_test_split={train_val_test_split} " \
+       f"datamodule.train_val_test_split=\"{train_val_test_split}\" " \
        f"datamodule.weighted_sampler={weighted_sampler} " \
        f"model.input_dim={input_dim} " \
        f"model.output_dim={output_dim} " \
