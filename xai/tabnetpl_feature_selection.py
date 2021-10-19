@@ -138,7 +138,5 @@ def main(config: DictConfig):
             save_figure(fig, f"features/{th}/violin/{feat_id}_{feat}")
 
 
-
-
 if __name__ == "__main__":
     main()

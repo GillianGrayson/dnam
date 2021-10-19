@@ -2,10 +2,15 @@ import os
 
 project_name = 'tabnetpl_unnhpc'
 
-check_sum = '56727e67034ec72e6e3e66a00f1f841a'
-input_dim = 380649
-output_dim = 7
-data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}_{output_dim}/{input_dim}"
+check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
+input_dim = 375614
+output_dim = 6
+data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
+
+cpgs_fn = f"{data_path}/cpgs/{input_dim}.xlsx"
+statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"
+train_val_test_split = [0.8, 0.1, 0.1]
+weighted_sampler = True
 
 n_d_n_a = [8, 16]
 n_steps = [3]
@@ -17,14 +22,15 @@ optimizer_weight_decay = [0.0]
 scheduler_step_size = [50]
 scheduler_gamma = [0.9]
 
-weighted_sampler = True
-
 args = f"--multirun project_name={project_name} " \
        f"logger.wandb.offline=True " \
        f"experiment=tabnetpl " \
        f"work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
        f"datamodule.path=\"{data_path}\" " \
+       f"datamodule.cpgs_fn=\"{cpgs_fn}\" " \
+       f"datamodule.statuses_fn=\"{statuses_fn}\" " \
+       f"datamodule.train_val_test_split={train_val_test_split} " \
        f"datamodule.weighted_sampler={weighted_sampler} " \
        f"model.input_dim={input_dim} " \
        f"model.output_dim={output_dim} " \
