@@ -9,7 +9,6 @@ data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
 
 cpgs_fn = f"{data_path}/cpgs/{input_dim}.xlsx"
 statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"
-train_val_test_split = [0.8, 0.1, 0.1]
 weighted_sampler = True
 
 n_d_n_a = [8, 16]
@@ -30,7 +29,6 @@ args = f"--multirun project_name={project_name} " \
        f"datamodule.path=\"{data_path}\" " \
        f"datamodule.cpgs_fn=\"{cpgs_fn}\" " \
        f"datamodule.statuses_fn=\"{statuses_fn}\" " \
-       f"datamodule.train_val_test_split=\"{train_val_test_split}\" " \
        f"datamodule.weighted_sampler={weighted_sampler} " \
        f"model.input_dim={input_dim} " \
        f"model.output_dim={output_dim} " \
