@@ -8,6 +8,7 @@ def add_bar_trace(fig, x, y, name=""):
             x=x,
             y=y,
             name=name,
+            text=y,
             textposition='auto',
             showlegend=showlegend
         )

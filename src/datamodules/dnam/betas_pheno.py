@@ -9,6 +9,11 @@ from collections import Counter
 from src.utils import utils
 import matplotlib.pyplot as plt
 import os
+from scripts.python.routines.plot.save import save_figure
+from scripts.python.routines.plot.bar import add_bar_trace
+import plotly.express as px
+from scripts.python.routines.plot.layout import add_layout
+import plotly.graph_objects as go
 
 
 log = utils.get_logger(__name__)
@@ -42,6 +47,8 @@ class BetasPhenoDataModule(LightningDataModule):
     def __init__(
             self,
             path: str = "",
+            cpgs_fn: str = "",
+            statuses_fn: str = "",
             outcome: str = "Status",
             train_val_test_split: Tuple[float, float, float] = (0.8, 0.1, 0.1),
             batch_size: int = 64,
@@ -54,6 +61,8 @@ class BetasPhenoDataModule(LightningDataModule):
         super().__init__()
 
         self.path = path
+        self.cpgs_fn = cpgs_fn
+        self.statuses_fn = statuses_fn
         self.outcome = outcome
         self.train_val_test_split = train_val_test_split
         self.batch_size = batch_size
@@ -75,6 +84,21 @@ class BetasPhenoDataModule(LightningDataModule):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
         self.betas = pd.read_pickle(f"{self.path}/betas.pkl")
         self.pheno = pd.read_pickle(f"{self.path}/pheno.pkl")
+        cpgs_df = pd.read_excel(self.cpgs_fn)
+        self.cpgs = cpgs_df.loc[:, 'CpG'].values
+
+        statuses_df = pd.read_excel(self.statuses_fn)
+        self.statuses = {}
+        for st_id, st in enumerate(statuses_df.loc[:, self.outcome].values):
+            self.statuses[st] = st_id
+        self.pheno = self.pheno.loc[self.pheno[self.outcome].isin(self.statuses)]
+        self.pheno['Status_Origin'] = self.pheno[self.outcome]
+        self.pheno[self.outcome].replace(self.statuses, inplace=True)
+
+        self.betas = self.betas.loc[self.pheno.index.values, self.cpgs]
+        if not list(self.pheno.index.values) == list(self.betas.index.values):
+            log.info(f"Error! In pheno and betas subjects have different order")
+            raise ValueError(f"Error! In pheno and betas subjects have different order")
 
         # self.dims is returned when you call datamodule.size()
         self.dims = (1, self.betas.shape[1])
@@ -108,17 +132,16 @@ class BetasPhenoDataModule(LightningDataModule):
                          "test": self.ids_test}.items():
             if not os.path.exists(f"{self.path}/figs"):
                 os.makedirs(f"{self.path}/figs")
-            status_counts = pd.DataFrame(Counter(self.dataset.ys[ids]), index=[0])
-            status_counts = status_counts.reindex(sorted(status_counts.columns), axis=1)
-            plot = status_counts.plot.bar()
-            plt.xlabel("Status", fontsize=15)
-            plt.ylabel("Count", fontsize=15)
-            plt.xticks([])
-            plt.axis('auto')
-            fig = plot.get_figure()
-            fig.savefig(f"bar_{name}.pdf")
-            fig.savefig(f"bar_{name}.png")
-            plt.close()
+
+            status_counts = pd.DataFrame(Counter(self.pheno['Status_Origin'].values[ids]), index=[0])
+            status_counts = status_counts.reindex(statuses_df.loc[:, self.outcome].values, axis=1)
+            fig = go.Figure()
+            for st, st_id in self.statuses.items():
+                add_bar_trace(fig, [st], [status_counts.at[0, st]], st)
+            add_layout(fig, f"", f"Count", "")
+            fig.update_layout({'colorway': px.colors.qualitative.Set1})
+            fig.update_xaxes(showticklabels=False)
+            save_figure(fig, f"bar_{name}")
 
         self.dataset_train = Subset(self.dataset, self.ids_train)
         self.dataset_val = Subset(self.dataset, self.ids_val)
