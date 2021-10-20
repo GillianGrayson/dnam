@@ -39,29 +39,23 @@ dotenv.load_dotenv(override=True)
 @hydra.main(config_path="../configs/", config_name="main_xai.yaml")
 def main(config: DictConfig):
 
-    statuses = {
-        'Schizophrenia': 0,
-        'First episode psychosis': 1,
-        'Parkinson': 2,
-        'Intellectual disability and congenital anomalies': 3,
-        'Frontotemporal dementia': 4,
-        'Sporadic Creutzfeldt-Jakob disease': 5,
-        'Mild cognitive impairment': 6,
-    }
-
-    check_sum = hashlib.md5(pickle.dumps(statuses)).hexdigest()
-    folder_name = f"{check_sum}_{len(statuses)}"
-
-    model = "tabnetpl_unnhpc"
-    num_feat = 380649
-    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{folder_name}/{num_feat}/models/{model}/logs/multiruns/2021-10-16_01-19-04"
-
     num_top_features = 100
+
+    input_dim = 375614
+    output_dim = 6
+    check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
+    model = "tabnetpl_unnhpc"
+    date_time = '2021-10-19_11-41-18'
+
+    folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{check_sum}/models/{model}/logs/multiruns/{date_time}"
 
     # Init Lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.setup()
+
+    statuses = datamodule.statuses
+
     train_dataloader = datamodule.train_dataloader()
     val_dataloader = datamodule.val_dataloader()
     test_dataloader = datamodule.test_dataloader()
@@ -79,7 +73,7 @@ def main(config: DictConfig):
     runs = next(os.walk(folder_path))[1]
     runs.sort()
 
-    feat_importances = pd.DataFrame(data=np.zeros(shape=(num_feat, len(runs)), dtype=float), columns=runs)
+    feat_importances = pd.DataFrame(data=np.zeros(shape=(input_dim, len(runs)), dtype=float), columns=runs)
     for run_id, run in enumerate(runs):
         checkpoint_fn = glob(f"{folder_path}/{run}/checkpoints/*.ckpt")
 
@@ -115,7 +109,7 @@ def main(config: DictConfig):
         curr_var = np.var(common_df.loc[:, feat].values)
         fig = go.Figure()
         for status, code_status in statuses.items():
-            add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, True)
+            add_violin_trace(fig, common_df.loc[common_df['Status_Origin'] == status, feat].values, status, True)
         add_layout(fig, f"variance = {curr_var:0.2e}", f"{feat}", "")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
         fig.update_xaxes(showticklabels=False)
@@ -130,7 +124,7 @@ def main(config: DictConfig):
             curr_var = np.var(common_df.loc[:, feat].values)
             fig = go.Figure()
             for status, code_status in statuses.items():
-                add_violin_trace(fig, common_df.loc[common_df['StatusFull'] == status, feat].values, status, True)
+                add_violin_trace(fig, common_df.loc[common_df['Status_Origin'] == status, feat].values, status, True)
             add_layout(fig, f"variance = {curr_var:0.2e}", f"{feat}", "")
             fig.update_layout({'colorway': px.colors.qualitative.Set1})
             fig.update_xaxes(showticklabels=False)
