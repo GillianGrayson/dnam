@@ -16,11 +16,13 @@ from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.betas import betas_drop_na
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from pathlib import Path
+from statsmodels.stats.multitest import multipletests
 
 
+path = f"E:/YandexDisk/Work/pydnameth/datasets"
 dataset = "GSEUNN"
 platform = "GPL21145"
-path = f"E:/YandexDisk/Work/pydnameth/datasets"
+
 
 # features_type = ['immuno', 'cytokines']
 # features = []
@@ -80,7 +82,9 @@ for suff in ['all', 'control', 'esrd']:
         for cpg_id, cpg in enumerate(cpgs):
             corr, pval = spearmanr(curr_df[f], curr_df[cpg])
             corr_mtx.loc[f, cpgs_to_show[cpg_id]] = corr
-            pval_mtx.loc[f, cpgs_to_show[cpg_id]] = -np.log10(pval)
+            pval_mtx.loc[f, cpgs_to_show[cpg_id]] = pval
+        reject, pvals_corr, alphacSidak, alphacBonf = multipletests(pval_mtx.loc[f, :].values, 0.05, method='fdr_bh')
+        pval_mtx.loc[f, :] = -np.log10(pvals_corr)
     mtx_to_plot = corr_mtx.to_numpy()
     cmap = plt.get_cmap("coolwarm")
     divnorm = colors.TwoSlopeNorm(vcenter=0, vmin=-1, vmax=1)
@@ -122,7 +126,9 @@ for suff in ['all', 'control', 'esrd']:
 pval_mtx = pd.DataFrame(data=np.zeros(shape=(1, len(cpgs))), index=[0], columns=cpgs_to_show)
 for cpg_id, cpg in enumerate(cpgs):
     statistic, pvalue = mannwhitneyu(df_ctrl[cpg].values, df_case[cpg].values)
-    pval_mtx.loc[0, cpgs_to_show[cpg_id]] = -np.log10(pvalue)
+    pval_mtx.loc[0, cpgs_to_show[cpg_id]] = pvalue
+reject, pvals_corr, alphacSidak, alphacBonf = multipletests(pval_mtx.loc[0, :].values, 0.05, method='fdr_bh')
+pval_mtx.loc[0, :] = -np.log10(pvals_corr)
 mtx_to_plot = pval_mtx.to_numpy()
 cmap = plt.get_cmap("Oranges").copy()
 cmap.set_under('#d7bfd7')

@@ -13,10 +13,10 @@ from scripts.python.pheno.datasets.filter import filter_pheno
 from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
     get_sex_dict
 
-
+path = f"E:/YandexDisk/Work/pydnameth/datasets"
 dataset = "GSE53740"
 platform = "GPL13534"
-path = f"E:/YandexDisk/Work/pydnameth/datasets"
+
 
 is_rerun = True
 num_cpgs_to_plot = 10
