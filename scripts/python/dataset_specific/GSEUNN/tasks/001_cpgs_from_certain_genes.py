@@ -119,6 +119,28 @@ for suff in ['all', 'control', 'esrd']:
     plt.savefig(f"{path_save}/pval_mtx_{suff}.png")
     plt.savefig(f"{path_save}/pval_mtx_{suff}.pdf")
 
+pval_mtx = pd.DataFrame(data=np.zeros(shape=(1, len(cpgs))), index=[0], columns=cpgs_to_show)
+for cpg_id, cpg in enumerate(cpgs):
+    statistic, pvalue = mannwhitneyu(df_ctrl[cpg].values, df_case[cpg].values)
+    pval_mtx.loc[0, cpgs_to_show[cpg_id]] = -np.log10(pvalue)
+mtx_to_plot = pval_mtx.to_numpy()
+cmap = plt.get_cmap("Oranges").copy()
+cmap.set_under('#d7bfd7')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top')
+cbar.set_label(r"$-\log_{10}(\mathrm{p-val})$", horizontalalignment='center', fontsize=16)
+ax.set_xticks(np.arange(len(cpgs_to_show)))
+ax.set_yticks(np.arange(1))
+ax.set_xticklabels(cpgs_to_show)
+ax.set_yticklabels(['MW'])
+plt.setp(ax.get_xticklabels(), rotation=90)
+for j in range(len(cpgs_to_show)):
+    text = ax.text(j, 0, f"{mtx_to_plot[0, j]:0.2f}", ha="center", va="center", color="black", fontsize=5)
+fig.tight_layout()
+plt.savefig(f"{path_save}/mw_pval_mtx_{suff}.png")
+plt.savefig(f"{path_save}/mw_pval_mtx_{suff}.pdf")
+
 for cpg_id, cpg in enumerate(cpgs):
     statistic, pvalue = mannwhitneyu(df_ctrl[cpg].values, df_case[cpg].values)
     vio = go.Figure()
