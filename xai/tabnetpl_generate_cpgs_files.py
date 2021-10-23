@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 
 
-counts = np.linspace(10, 200, 20, dtype=int)
+counts = np.linspace(10, 500, 50, dtype=int)
 
 check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
 path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{check_sum}"

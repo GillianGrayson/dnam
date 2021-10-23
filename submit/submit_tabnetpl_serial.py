@@ -10,14 +10,14 @@ n_steps = [3]
 gamma = [1.3, 1.7]
 n_independent = [1]
 n_shared = [2]
-optimizer_lr = [0.05, 0.01, 0.005, 0.001, 0.0005]
+optimizer_lr = [0.01, 0.005, 0.001]
 optimizer_weight_decay = [0.0]
 scheduler_step_size = [50]
 scheduler_gamma = [0.9]
 
 weighted_sampler = True
 
-cpgs_type = '0.001'
+cpgs_type = 'all'
 counts = np.linspace(10, 200, 20, dtype=int)
 
 for c in counts:
