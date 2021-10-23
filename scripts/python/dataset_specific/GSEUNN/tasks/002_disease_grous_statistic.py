@@ -14,6 +14,7 @@ from scripts.python.routines.plot.violin import add_violin_trace
 from scripts.python.routines.plot.box import add_box_trace
 from scripts.python.routines.plot.layout import add_layout
 import pathlib
+import seaborn as sns
 
 
 dataset = "GSEUNN"
@@ -25,11 +26,19 @@ manifest = get_manifest(platform)
 
 
 features = {
+    'biomarkers3_milli_Age_Control_Acc': 'EstimatedAgeAcc',
     'FGF21_milli': 'FGF21',
     'GDF15_milli': 'GDF15',
     'CXCL9_milli': 'CXCL9',
     'biomarkers3_milli_Age_Control': 'EstimatedAge',
-    'biomarkers3_milli_Age_Control_Acc': 'EstimatedAgeAcc'
+}
+
+feat_ranges = {
+    'biomarkers3_milli_Age_Control_Acc': [-40, 400],
+    'FGF21_milli': [0, 1.2],
+    'GDF15_milli': [0, 7],
+    'CXCL9_milli': [-2, 35],
+    'biomarkers3_milli_Age_Control': [0, 400],
 }
 
 status_col = get_column_name(dataset, 'Status').replace(' ','_')
@@ -62,10 +71,12 @@ for feat_column, feat_show in features.items():
 
     statistic_cause, pvalue_cause = mannwhitneyu(df_cause_inf[feat_column].values, df_cause_gen[feat_column].values)
     box_cause = go.Figure()
-    add_box_trace(box_cause, df_cause_inf[feat_column].values, f"Inflammatory ({df_cause_inf.shape[0]})", boxpoints=False)
-    add_box_trace(box_cause, df_cause_gen[feat_column].values, f"Genetic ({df_cause_gen.shape[0]})", boxpoints=False)
+    add_box_trace(box_cause, df_cause_inf[feat_column].values, f"Inflammatory ({df_cause_inf.shape[0]})")
+    add_box_trace(box_cause, df_cause_gen[feat_column].values, f"Genetic ({df_cause_gen.shape[0]})")
     add_layout(box_cause, "", feat_show, f"Mann-Whitney p-value: {pvalue_cause:0.2e}")
     box_cause.update_layout({'colorway': ['blue', 'red']})
+    box_cause.update_yaxes(autorange=False)
+    box_cause.update_layout(yaxis_range=feat_ranges[feat_column])
     save_figure(box_cause, f"{path_save}/figs/box/cause_{feat_show}")
     vio_cause = go.Figure()
     add_violin_trace(vio_cause, df_cause_inf[feat_column].values, f"Inflammatory ({df_cause_inf.shape[0]})")
@@ -77,10 +88,12 @@ for feat_column, feat_show in features.items():
 
     statistic_outcome, pvalue_outcome = mannwhitneyu(df_outcome_alive[feat_column].values, df_outcome_dead[feat_column].values)
     box_outcome = go.Figure()
-    add_box_trace(box_outcome, df_outcome_alive[feat_column].values, f"Alive ({df_outcome_alive.shape[0]})", boxpoints=False)
-    add_box_trace(box_outcome, df_outcome_dead[feat_column].values, f"Dead ({df_outcome_dead.shape[0]})", boxpoints=False)
+    add_box_trace(box_outcome, df_outcome_alive[feat_column].values, f"Alive ({df_outcome_alive.shape[0]})")
+    add_box_trace(box_outcome, df_outcome_dead[feat_column].values, f"Dead ({df_outcome_dead.shape[0]})")
     add_layout(box_outcome, "", feat_show, f"Mann-Whitney p-value: {pvalue_outcome:0.2e}")
     box_outcome.update_layout({'colorway': ['blue', 'red']})
+    box_outcome.update_yaxes(autorange=False)
+    box_outcome.update_layout(yaxis_range=feat_ranges[feat_column])
     save_figure(box_outcome, f"{path_save}/figs/box/outcome_{feat_show}")
     vio_outcome = go.Figure()
     add_violin_trace(vio_outcome, df_outcome_alive[feat_column].values, f"Alive ({df_outcome_alive.shape[0]})")
