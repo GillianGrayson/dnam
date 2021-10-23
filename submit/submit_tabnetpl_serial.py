@@ -17,7 +17,7 @@ scheduler_gamma = [0.9]
 
 weighted_sampler = True
 
-cpgs_type = 'all'
+cpgs_type = '0.001'
 counts = np.linspace(10, 200, 20, dtype=int)
 
 for c in counts:
