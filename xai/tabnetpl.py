@@ -28,6 +28,7 @@ from omegaconf import DictConfig
 import shap
 from pathlib import Path
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, ConfusionMatrixDisplay, RocCurveDisplay
+import plotly.figure_factory as ff
 
 
 log = utils.get_logger(__name__)
@@ -53,14 +54,17 @@ def main(config: DictConfig):
     #     "Parkinson"
     # ]
 
-    class_names = [
-        "Schizophrenia",
-        "Depression",
-        "Parkinson"
+    statuses = [
+        'Schizophrenia',
+        'First episode psychosis',
+        'Depression',
+        'Frontotemporal dementia',
+        'Sporadic Creutzfeldt-Jakob disease',
+        'Mild cognitive impairment',
     ]
 
-    for cl in class_names:
-        Path(f"{cl}").mkdir(parents=True, exist_ok=True)
+    for st in statuses:
+        Path(f"{st}").mkdir(parents=True, exist_ok=True)
 
     num_top_features = config.num_top_features
     num_examples = config.num_examples
@@ -84,25 +88,6 @@ def main(config: DictConfig):
 
     manifest = pd.read_excel(f"{datamodule.path}/manifest.xlsx", index_col='CpG')
 
-    for name, ids in {"all": datamodule.ids_all,
-                      "train_val": datamodule.ids_train_val,
-                      "train": datamodule.ids_train,
-                      "val": datamodule.ids_val,
-                      "test": datamodule.ids_test}.items():
-        status_counts = pd.DataFrame(Counter(datamodule.dataset.ys[ids]), index=[0])
-        status_counts.rename({x_id: x for x_id, x in enumerate(class_names)}, inplace=True)
-        status_counts = pd.DataFrame(Counter([class_names[x] for x in datamodule.dataset.ys[ids]]), index=[0])
-        status_counts = status_counts.reindex(sorted(status_counts.columns), axis=1)
-        plot = status_counts.plot.bar(color={x:plt.get_cmap("Set1").colors[x_id] for x_id, x in enumerate(class_names)})
-        plt.xlabel("Status", fontsize=15)
-        plt.ylabel("Count", fontsize=15)
-        plt.xticks([])
-        plt.axis('auto')
-        fig = plot.get_figure()
-        fig.savefig(f"bar_{name}.pdf")
-        fig.savefig(f"bar_{name}.png")
-        plt.close()
-
     train_dataloader = datamodule.train_dataloader()
     val_dataloader = datamodule.val_dataloader()
     test_dataloader = datamodule.test_dataloader()
@@ -118,7 +103,7 @@ def main(config: DictConfig):
 
     outs_real_all = np.empty(0, dtype=int)
     outs_pred_all = np.empty(0, dtype=int)
-    outs_prob_all = np.empty(shape=(0, len(class_names)), dtype=int)
+    outs_prob_all = np.empty(shape=(0, len(statuses)), dtype=int)
     for x, outs_real, indexes in tqdm(test_dataloader):
         outs_real = outs_real.cpu().detach().numpy()
         outs_prob = model(x).cpu().detach().numpy()
@@ -128,14 +113,25 @@ def main(config: DictConfig):
         outs_prob_all = np.append(outs_prob_all, outs_prob, axis=0)
 
     conf_mtx = confusion_matrix(outs_real_all, outs_pred_all)
-    disp = ConfusionMatrixDisplay(conf_mtx, display_labels=[x.replace(' ', '\n') for x in class_names])
-    disp.plot()
-    fig = plt.gcf()
-    fig.set_size_inches(8, 6, forward=True)
-    plt.savefig('test_confusion_matrix.png')
-    plt.savefig('test_confusion_matrix.pdf')
-    plt.close()
-
+    fig = ff.create_annotated_heatmap(conf_mtx, x=statuses, y=statuses, colorscale='Viridis')
+    fig.add_annotation(dict(font=dict(color="black", size=14),
+                            x=0.5,
+                            y=-0.15,
+                            showarrow=False,
+                            text="Predicted value",
+                            xref="paper",
+                            yref="paper"))
+    fig.add_annotation(dict(font=dict(color="black", size=14),
+                            x=-0.45,
+                            y=0.5,
+                            showarrow=False,
+                            text="Real value",
+                            textangle=-90,
+                            xref="paper",
+                            yref="paper"))
+    fig.update_layout(margin=dict(t=50, l=200))
+    fig['data'][0]['showscale'] = True
+    save_figure(fig, 'test_confusion_matrix')
     roc_auc = roc_auc_score(outs_real_all, outs_prob_all, average='macro', multi_class='ovr')
     log.info(f"roc_auc for test set: {roc_auc}")
 
@@ -182,9 +178,9 @@ def main(config: DictConfig):
         features=background_np,
         feature_names=datamodule.betas.columns.values,
         max_display=num_top_features,
-        class_names=class_names,
-        class_inds=list(range(len(class_names))),
-        plot_size=(12, 8),
+        class_names=statuses,
+        class_inds=list(range(len(statuses))),
+        plot_size=(14, 10),
         show=False,
         color=plt.get_cmap("Set1")
     )
@@ -192,39 +188,39 @@ def main(config: DictConfig):
     plt.savefig('SHAP_bar.pdf')
     plt.close()
 
-    for cl_id, cl in enumerate(class_names):
+    for st_id, st in enumerate(statuses):
         shap.summary_plot(
-            shap_values=shap_values[cl_id],
+            shap_values=shap_values[st_id],
             features=background_np,
             feature_names=datamodule.betas.columns.values,
             max_display=num_top_features,
-            plot_size=(12, 8),
+            plot_size=(14, 10),
             plot_type="violin",
-            title=cl,
+            title=st,
             show=False
         )
-        plt.savefig(f"{cl}/beeswarm.png")
-        plt.savefig(f"{cl}/beeswarm.pdf")
+        plt.savefig(f"{st}/beeswarm.png")
+        plt.savefig(f"{st}/beeswarm.pdf")
         plt.close()
 
-    passed_examples = {x: 0 for x in range(len(class_names))}
+    passed_examples = {x: 0 for x in range(len(statuses))}
     for subj_id in range(background_np.shape[0]):
         subj_cl = outs_real_np[subj_id]
         if passed_examples[subj_cl] < num_examples:
             subj_global_id = indexes_np[subj_id]
             subj_name = datamodule.betas.index.values[subj_global_id]
 
-            for cl_id, cl in enumerate(class_names):
+            for st_id, st in enumerate(statuses):
 
-                probs_real = probs_np[subj_id, cl_id]
-                probs_expl = explainer.expected_value[cl_id] + sum(shap_values[cl_id][subj_id])
+                probs_real = probs_np[subj_id, st_id]
+                probs_expl = explainer.expected_value[st_id] + sum(shap_values[st_id][subj_id])
                 if abs(probs_real - probs_expl) > 1e-8:
                     print(f"diff between prediction: {abs(probs_real - probs_expl)}")
 
                 shap.waterfall_plot(
                     shap.Explanation(
-                        values=shap_values[cl_id][subj_id],
-                        base_values=explainer.expected_value[cl_id],
+                        values=shap_values[st_id][subj_id],
+                        base_values=explainer.expected_value[st_id],
                         data=background_np[subj_id],
                         feature_names=datamodule.betas.columns.values
                     ),
@@ -232,14 +228,14 @@ def main(config: DictConfig):
                     show=False
                 )
                 fig = plt.gcf()
-                fig.set_size_inches(18, 8, forward=True)
-                Path(f"{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}").mkdir(parents=True, exist_ok=True)
-                fig.savefig(f"{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}/waterfall_{cl}.pdf")
-                fig.savefig(f"{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}/waterfall_{cl}.png")
+                fig.set_size_inches(18, 10, forward=True)
+                Path(f"{statuses[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}").mkdir(parents=True, exist_ok=True)
+                fig.savefig(f"{statuses[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}/waterfall_{st}.pdf")
+                fig.savefig(f"{statuses[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}/waterfall_{st}.png")
                 plt.close()
             passed_examples[subj_cl] += 1
 
-    mean_abs_shap_vals = np.sum([np.mean(np.absolute(shap_values[cl_id]), axis=0) for cl_id, cl in enumerate(class_names)], axis=0)
+    mean_abs_shap_vals = np.sum([np.mean(np.absolute(shap_values[cl_id]), axis=0) for cl_id, cl in enumerate(statuses)], axis=0)
     order = np.argsort(mean_abs_shap_vals)[::-1]
     features = datamodule.betas.columns.values[order]
     features_best = features[0:num_top_features]
@@ -247,25 +243,26 @@ def main(config: DictConfig):
     for feat_id, feat in enumerate(features_best):
 
         fig = go.Figure()
-        for cl_id, cl in enumerate(class_names):
-            class_shap_values = shap_values[cl_id][:, order[feat_id]]
+        for st_id, st in enumerate(statuses):
+            class_shap_values = shap_values[st_id][:, order[feat_id]]
             real_values = background_np[:, order[feat_id]]
-            add_scatter_trace(fig, real_values, class_shap_values, cl)
-        add_layout(fig, f"Methylation level", f"SHAP values", f"{feat} ({manifest.at[feat, 'Gene']})")
+            add_scatter_trace(fig, real_values, class_shap_values, st)
+        add_layout(fig, f"{feat} ({manifest.at[feat, 'Gene']})", f"SHAP values", f"")
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
         Path(f"features/scatter").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/scatter/{feat_id}_{feat}")
 
         fig = go.Figure()
-        for cl_id, cl in enumerate(class_names):
-            add_violin_trace(fig, common_df.loc[common_df['Status'] == cl_id, feat].values, cl)
+        for st_id, st in enumerate(statuses):
+            add_violin_trace(fig, common_df.loc[common_df['Status'] == st_id, feat].values, st)
         add_layout(fig, "", f"{feat} ({manifest.at[feat, 'Gene']})", f"")
+        fig.update_xaxes(showticklabels=False)
         fig.update_layout({'colorway': px.colors.qualitative.Set1})
         Path(f"features/violin").mkdir(parents=True, exist_ok=True)
         save_figure(fig, f"features/violin/{feat_id}_{feat}")
 
-    for cl_id, cl in enumerate(class_names):
-        class_shap_values = shap_values[cl_id]
+    for st_id, st in enumerate(statuses):
+        class_shap_values = shap_values[st_id]
         shap_abs = np.absolute(class_shap_values)
         shap_mean_abs = np.mean(shap_abs, axis=0)
         order = np.argsort(shap_mean_abs)[::-1]
@@ -281,7 +278,7 @@ def main(config: DictConfig):
             d[f"{feat}_beta"] = curr_beta
             d[f"{feat}_shap"] = curr_shap
         df_features = pd.DataFrame(d)
-        df_features.to_excel(f"{cl}/shap.xlsx", index=False)
+        df_features.to_excel(f"{st}/shap.xlsx", index=False)
 
 
 if __name__ == "__main__":
