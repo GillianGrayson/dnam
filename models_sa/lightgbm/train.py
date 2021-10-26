@@ -8,11 +8,12 @@ from pytorch_lightning import (
 import pandas as pd
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_tabnet.tab_model import TabNetClassifier
-from tabnet.metrics import get_metrics_dict
-from tabnet.logging import log_hyperparameters
-from tabnet.callbacks import get_custom_callback
+from models_sa.metrics_multiclass import get_metrics_dict
+from models_sa.tabnet.logging import log_hyperparameters
+from models_sa.tabnet.callbacks import get_custom_callback
 from src.utils import utils
 from typing import List
+import lightgbm as lgb
 
 
 log = utils.get_logger(__name__)
@@ -29,20 +30,60 @@ def train_tabnet(config: DictConfig):
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.setup()
-
-    # Init lightning loggers
-    loggers: List[LightningLoggerBase] = []
-    if "logger" in config:
-        for _, lg_conf in config.logger.items():
-            if "_target_" in lg_conf:
-                log.info(f"Instantiating logger <{lg_conf._target_}>")
-                loggers.append(hydra.utils.instantiate(lg_conf))
-
     data = pd.merge(datamodule.pheno.loc[:, datamodule.outcome], datamodule.betas, left_index=True, right_index=True)
-
     train_data = data.iloc[datamodule.ids_train]
     val_data = data.iloc[datamodule.ids_val]
     test_data = data.iloc[datamodule.ids_test]
+    X_train = train_data.loc[:, datamodule.betas.columns.values].values
+    y_train = train_data.loc[:, datamodule.outcome].values
+    X_val = val_data.loc[:, datamodule.betas.columns.values].values
+    y_val = val_data.loc[:, datamodule.outcome].values
+    X_test = test_data.loc[:, datamodule.betas.columns.values].values
+    y_test = test_data.loc[:, datamodule.outcome].values
+    ds_train = lgb.Dataset(X_train, label=y_train, feature_name=datamodule.betas.columns.values)
+    ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_train, feature_name=datamodule.betas.columns.values)
+    ds_test = lgb.Dataset(X_test, label=y_test, reference=ds_train, feature_name=datamodule.betas.columns.values)
+
+    metrics_dict = get_metrics_dict(config.model.n_output, object)
+    metrics = [
+        metrics_dict["accuracy_macro"],
+        metrics_dict["accuracy_weighted"],
+        metrics_dict["f1_macro"],
+        metrics_dict["cohen_kappa"],
+        metrics_dict["matthews_corrcoef"],
+        metrics_dict["f1_weighted"],
+    ]
+
+    model_params = {
+        'boosting_type': 'gbdt',
+        'objective': 'multiclass',
+        'metric': {'multi_logloss'},
+        'num_class': config.model.output_dim,
+        'max_depth': 7,
+        'num_leaves': 31,
+        'learning_rate': 0.05,
+        'feature_fraction': 0.9,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'verbose': 0
+    }
+
+    max_epochs = config.trainer.max_epochs
+    patience = config.trainer.patience
+
+    bst = lgb.train(
+        params=model_params,
+        train_set=ds_train,
+        num_boost_round=max_epochs,
+        valid_sets=[ds_val],
+        valid_names=['val'],
+        early_stopping_rounds=patience,
+        verbose_eval=True
+    )
+
+    bst.save_model(f"epoch_{bst.best_iteration}.txt", num_iteration=bst.best_iteration)
+
+    y_test_pred_probs = bst.predict(ds_test, num_iteration=bst.best_iteration)
 
     # Init model
     model = TabNetClassifier(
@@ -63,27 +104,10 @@ def train_tabnet(config: DictConfig):
         device_name=config.model.device_name
     )
 
-    log.info("Logging hyperparameters!")
-    log_hyperparameters(loggers, config)
 
-    X_train = train_data.loc[:, datamodule.betas.columns.values].values
-    y_train = train_data.loc[:, datamodule.outcome].values
 
-    X_val = val_data.loc[:, datamodule.betas.columns.values].values
-    y_val = val_data.loc[:, datamodule.outcome].values
 
-    X_test = test_data.loc[:, datamodule.betas.columns.values].values
-    y_test = test_data.loc[:, datamodule.outcome].values
 
-    metrics_dict = get_metrics_dict(config.model.n_output)
-    eval_metric = [
-        metrics_dict["accuracy_macro"],
-        metrics_dict["accuracy_weighted"],
-        metrics_dict["f1_macro"],
-        metrics_dict["cohen_kappa"],
-        metrics_dict["matthews_corrcoef"],
-        metrics_dict["f1_weighted"],
-    ]
 
     TabNetCallback = get_custom_callback()
 

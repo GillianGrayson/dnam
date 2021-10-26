@@ -81,13 +81,6 @@ class TabNetModel(pl.LightningModule):
             # 'auroc_weighted': 'max',
         }
 
-        # self.reducing_matrix = create_explain_matrix(
-        #     self.hparams.input_dim,
-        #     [],
-        #     [],
-        #     self.hparams.input_dim,
-        # )
-
         self.metrics_train = MetricCollection(self.metrics_dict)
         self.metrics_train_prob = MetricCollection(self.metrics_prob_dict)
         self.metrics_val = self.metrics_train.clone()

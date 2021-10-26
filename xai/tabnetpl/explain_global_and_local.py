@@ -35,7 +35,7 @@ log = utils.get_logger(__name__)
 
 dotenv.load_dotenv(override=True)
 
-@hydra.main(config_path="../configs/", config_name="main_xai.yaml")
+@hydra.main(config_path="../../configs/", config_name="main_xai.yaml")
 def main(config: DictConfig):
 
     # class_names = [
