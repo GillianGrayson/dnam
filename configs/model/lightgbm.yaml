@@ -11,4 +11,4 @@ min_data_in_leaf: 20
 feature_fraction: 0.9
 bagging_fraction: 0.8
 bagging_freq: 5
-verbose: 1
+verbose: 0

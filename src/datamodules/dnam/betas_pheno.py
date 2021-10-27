@@ -137,7 +137,7 @@ class BetasPhenoDataModule(LightningDataModule):
             status_counts = status_counts.reindex(statuses_df.loc[:, self.outcome].values, axis=1)
             fig = go.Figure()
             for st, st_id in self.statuses.items():
-                add_bar_trace(fig, [st], [status_counts.at[0, st]], st)
+                add_bar_trace(fig, x=[st], y=[status_counts.at[0, st]], text=[status_counts.at[0, st]], name=st)
             add_layout(fig, f"", f"Count", "")
             fig.update_layout({'colorway': px.colors.qualitative.Set1})
             fig.update_xaxes(showticklabels=False)
