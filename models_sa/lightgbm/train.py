@@ -77,7 +77,7 @@ def train_lightgbm(config: DictConfig):
         params=model_params,
         train_set=ds_train,
         num_boost_round=max_epochs,
-        valid_sets=[ds_val, ds_test],
+        valid_sets=[ds_val, ds_train],
         valid_names=['val', 'train'],
         evals_result=evals_result,
         early_stopping_rounds=patience,
@@ -87,7 +87,7 @@ def train_lightgbm(config: DictConfig):
     bst.save_model(f"epoch_{bst.best_iteration}.txt", num_iteration=bst.best_iteration)
 
     print('Plotting metrics recorded during training...')
-    ax = lgb.plot_metric(evals_result, metric='l1')
+    ax = lgb.plot_metric(evals_result)
     plt.show()
 
     print('Plotting feature importances...')
@@ -98,7 +98,7 @@ def train_lightgbm(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("./feature_importances.xlsx", index=True)
 
-    metrics_dict = get_metrics_dict(config.model.n_output, object)
+    metrics_dict = get_metrics_dict(config.model.output_dim, object)
     metrics = [
         metrics_dict["accuracy_macro"],
         metrics_dict["accuracy_weighted"],
@@ -108,9 +108,9 @@ def train_lightgbm(config: DictConfig):
         metrics_dict["f1_weighted"],
     ]
 
-    y_train_pred_probs = bst.predict(ds_train, num_iteration=bst.best_iteration)
-    y_val_pred_probs = bst.predict(ds_val, num_iteration=bst.best_iteration)
-    y_test_pred_probs = bst.predict(ds_test, num_iteration=bst.best_iteration)
+    y_train_pred_probs = bst.predict(X_train, num_iteration=bst.best_iteration)
+    y_val_pred_probs = bst.predict(X_val, num_iteration=bst.best_iteration)
+    y_test_pred_probs = bst.predict(X_test, num_iteration=bst.best_iteration)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
