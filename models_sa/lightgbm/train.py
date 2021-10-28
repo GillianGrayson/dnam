@@ -35,7 +35,6 @@ def train_lightgbm(config: DictConfig):
         'num_class': config.model.output_dim,
         'objective': config.model.objective,
         'boosting': config.model.boosting,
-        'num_iterations': config.model.num_iterations,
         'learning_rate': config.model.learning_rate,
         'num_leaves': config.model.num_leaves,
         'device': config.model.device,

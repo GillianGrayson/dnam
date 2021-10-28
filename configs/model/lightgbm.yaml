@@ -2,10 +2,9 @@ input_dim: 375614
 output_dim: 6
 objective: 'multiclass'
 boosting: 'gbdt'
-num_iterations: 100
 learning_rate: 0.05
 num_leaves: 31
-device: 'cpu'
+device: 'gpu'
 max_depth: -1
 min_data_in_leaf: 20
 feature_fraction: 0.9
