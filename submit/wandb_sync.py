@@ -1,12 +1,12 @@
 import os
 from glob import glob
 
-model = "tabnetpl_unnhpc"
+model = "tabnetpl_unnhpc_0.005_200"
 
 check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
-input_dim = 375614
+input_dim = 200
 output_dim = 6
-date_time = "2021-10-16_01-17-59"
+date_time = "2021-10-24_17-07-35"
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/models/{model}/logs/multiruns/{date_time}"
 
 project = f"{input_dim}_{output_dim}_{check_sum}_{date_time}"

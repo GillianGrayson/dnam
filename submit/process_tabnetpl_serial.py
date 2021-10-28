@@ -12,10 +12,10 @@ model = "tabnetpl_unnhpc"
 check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
 output_dim = 6
 
-cpgs_type = '0.01'
-counts = np.linspace(10, 200, 20, dtype=int)
+cpgs_type = '0.005'
+counts = np.linspace(10, 250, 25, dtype=int)
 
-num_realizations = 20
+num_realizations = 12
 
 metrics = ["f1_macro", "f1_weighted"]
 parts = ["train", "val", "test"]
@@ -27,7 +27,8 @@ for c in counts:
     files = glob(f"{data_path}/logs/multiruns/*/*/csv/version_0/metrics.csv")
 
     if len(files) != num_realizations:
-        print("Available files:")
+        print(len(files))
+        print(f"Available files for {c}:")
         for f in files:
             print(f)
         raise ValueError("Some files are missed!")
