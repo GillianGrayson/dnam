@@ -9,7 +9,7 @@ import pandas as pd
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_tabnet.tab_model import TabNetClassifier
 from models_sa.tabnet.metrics import get_metrics_dict
-from models_sa.tabnet.logging import log_hyperparameters
+from models_sa.logging import log_hyperparameters
 from models_sa.tabnet.callbacks import get_custom_callback
 from src.utils import utils
 from typing import List

@@ -5,7 +5,8 @@ from pytorch_lightning import (
     LightningDataModule,
     seed_everything,
 )
-import matplotlib.pyplot as plt
+from models_sa.logging import log_hyperparameters
+from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from models_sa.metrics_multiclass import get_metrics_dict
 from src.utils import utils
@@ -18,7 +19,9 @@ from scripts.python.routines.plot.layout import add_layout
 import plotly.express as px
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
+from typing import List
 import pathlib
+import wandb
 
 
 log = utils.get_logger(__name__)
@@ -28,6 +31,15 @@ def train_lightgbm(config: DictConfig):
     # Set seed for random number generators in pytorch, numpy and python.random
     if "seed" in config:
         seed_everything(config.seed, workers=True)
+
+    config.logger.wandb["project"] = config.project_name
+    # Init lightning loggers
+    loggers: List[LightningLoggerBase] = []
+    if "logger" in config:
+        for _, lg_conf in config.logger.items():
+            if "_target_" in lg_conf:
+                log.info(f"Instantiating logger <{lg_conf._target_}>")
+                loggers.append(hydra.utils.instantiate(lg_conf))
 
     num_top_features = 20
 
@@ -45,6 +57,9 @@ def train_lightgbm(config: DictConfig):
         'bagging_freq': config.model.bagging_freq,
         'verbose': config.model.verbose
     }
+
+    log.info("Logging hyperparameters!")
+    log_hyperparameters(loggers, config)
 
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -84,9 +99,9 @@ def train_lightgbm(config: DictConfig):
     bst.save_model(f"epoch_{bst.best_iteration}.txt", num_iteration=bst.best_iteration)
 
     parts = list(evals_result.keys())
-    metrics = list(evals_result[parts[0]].keys())
-    epochs = np.linspace(1, len(evals_result[parts[0]][metrics[0]]), len(evals_result[parts[0]][metrics[0]]))
-    for m in metrics:
+    evo_metrics = list(evals_result[parts[0]].keys())
+    epochs = np.linspace(1, len(evals_result[parts[0]][evo_metrics[0]]), len(evals_result[parts[0]][evo_metrics[0]]))
+    for m in evo_metrics:
         fig = go.Figure()
         m_dict = {'Epochs': epochs}
         for p in parts:
@@ -113,16 +128,6 @@ def train_lightgbm(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("feature_importances.xlsx", index=True)
 
-    metrics_dict = get_metrics_dict(config.model.output_dim, object)
-    metrics = [
-        metrics_dict["accuracy_macro"](),
-        metrics_dict["accuracy_weighted"](),
-        metrics_dict["f1_macro"](),
-        metrics_dict["cohen_kappa"](),
-        metrics_dict["matthews_corrcoef"](),
-        metrics_dict["f1_weighted"](),
-    ]
-
     y_train_pred_probs = bst.predict(X_train, num_iteration=bst.best_iteration)
     y_train_pred = np.argmax(y_train_pred_probs, 1)
     y_val_pred_probs = bst.predict(X_val, num_iteration=bst.best_iteration)
@@ -130,20 +135,43 @@ def train_lightgbm(config: DictConfig):
     y_test_pred_probs = bst.predict(X_test, num_iteration=bst.best_iteration)
     y_test_pred = np.argmax(y_test_pred_probs, 1)
 
+    metrics_classes_dict = get_metrics_dict(config.model.output_dim, object)
+    metrics_summary = {
+        'accuracy_macro': 'max',
+        'accuracy_weighted': 'max',
+        'f1_macro': 'max',
+        'cohen_kappa': 'max',
+        'matthews_corrcoef': 'max',
+        'f1_weighted': 'max',
+    }
+    metrics = [metrics_classes_dict[m]() for m in metrics_summary]
+    for p in parts:
+        for m, sum in metrics_summary.items():
+            wandb.define_metric(f"{p}/{m}", summary=sum)
+        for m in evo_metrics:
+            wandb.define_metric(f"{p}/{m}", summary='min')
+
     metrics_dict = {'metric': [m._name for m in metrics]}
-    for part in ['train', 'val', 'test']:
-        if part == 'train':
+    for p in parts:
+        if p == 'train':
             y_real = y_train
             y_pred = y_train_pred
-        elif part == 'val':
+        elif p == 'val':
             y_real = y_val
             y_pred = y_val_pred
         else:
             y_real = y_test
             y_pred = y_test_pred
-        metrics_dict[part] = []
+        metrics_dict[p] = []
+        log_dict = {}
         for m in metrics:
-            metrics_dict[part].append(m(y_real, y_pred))
+            m_val = m(y_real, y_pred)
+            metrics_dict[p].append(m_val)
+            log_dict[f"{p}/{m._name}"] = [m_val]
+        for m in evo_metrics:
+            m_val = evals_result[p][m]
+            log_dict[f"{p}/{m}"] = m_val
+        wandb.log(log_dict)
 
         conf_mtx = confusion_matrix(y_real, y_pred)
         statuses = list(datamodule.statuses.keys())
@@ -165,7 +193,8 @@ def train_lightgbm(config: DictConfig):
                                 yref="paper"))
         fig.update_layout(margin=dict(t=50, l=200))
         fig['data'][0]['showscale'] = True
-        save_figure(fig, f"confusion_matrix_{part}")
+        save_figure(fig, f"confusion_matrix_{p}")
+    wandb.finish()
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
