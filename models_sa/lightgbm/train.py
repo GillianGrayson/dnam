@@ -167,7 +167,7 @@ def train_lightgbm(config: DictConfig):
         for m in metrics:
             m_val = m(y_real, y_pred)
             metrics_dict[p].append(m_val)
-            log_dict[f"{p}/{m._name}"] = [m_val]
+            log_dict[f"{p}/{m._name}"] = m_val
         for m in evo_metrics:
             m_val = evals_result[p][m]
             log_dict[f"{p}/{m}"] = m_val

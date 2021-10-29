@@ -18,6 +18,7 @@ feature_fraction = [0.9]
 bagging_fraction = [0.8]
 
 args = f"--multirun project_name={project_name} " \
+       f"logger.wandb.offline=True " \
        f"experiment=lightgbm " \
        f"work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
