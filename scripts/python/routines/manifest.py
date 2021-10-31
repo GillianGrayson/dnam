@@ -21,6 +21,7 @@ def get_manifest(platform="GPL13534"):
         fn = f"E:/YandexDisk/Work/pydnameth/datasets/{platform}/manifest/manifest.xlsx"
         manifest = pd.read_excel(fn, index_col="CpG")
         manifest['Gene'] = manifest['Gene'].apply(process_str_elem)
+        manifest['UCSC_RefGene_Group'] = manifest['UCSC_RefGene_Group'].apply(process_str_elem)
         manifest.to_pickle(fn_pkl)
 
     return manifest
