@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
-    get_sex_dict
+from scripts.python.pheno.datasets.features import get_column_name, get_sex_dict
 
 dataset = "GSE156994"
 platform = "GPL13534"

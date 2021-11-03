@@ -177,6 +177,36 @@ def get_status_dict(dataset: str):
 
     return d
 
+def get_default_statuses(dataset: str):
+    statuses = None
+    if dataset == "GSE152027":
+        statuses = ["Control", "Schizophrenia" "First episode psychosis"]
+    elif dataset == "GSE145361":
+        statuses = ["Control", "Parkinson"]
+    elif dataset == "GSE111629":
+        statuses = ["Control", "Parkinson"]
+    elif dataset == "GSE72774":
+        statuses = ["Control", "Parkinson"]
+    elif dataset == "GSE84727":
+        statuses = ["Control", "Schizophrenia"]
+    elif dataset == "GSE80417":
+        statuses = ["Control", "Schizophrenia"]
+    elif dataset == "GSE125105":
+        statuses = ["Control", "Depression"]
+    elif dataset == "GSE113725":
+        statuses = ["Control", "Depression", "Inflammatory disorder"]
+    elif dataset == "GSE89353":
+        statuses = ["Control", "Intellectual disability and congenital anomalies"]
+    elif dataset == "GSE53740":
+        statuses = ["Control", "Progressive supranuclear palsy"]
+    elif dataset == "GSE156994":
+        statuses = ["Control", "Sporadic Creutzfeldt-Jakob disease"]
+    elif dataset == "GSE144858":
+        statuses = ["Control", "Alzheimer", "Mild cognitive impairment"]
+    elif dataset == "GSEUNN":
+        statuses = ["Control", "ESRD"]
+    return statuses
+
 
 def get_statuses_datasets_dict():
     d = {

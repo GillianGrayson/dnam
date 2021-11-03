@@ -9,35 +9,46 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.box import add_box_trace
-from scripts.python.pheno.datasets.filter import filter_pheno
-from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
-    get_sex_dict
+from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
+from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
+from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
+from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses, get_sex_dict
+from scripts.python.routines.betas import betas_drop_na
+
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 dataset = "GSE53740"
-platform = "GPL13534"
-
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
+platform = datasets_info.loc[dataset, 'platform']
+manifest = get_manifest(platform)
 
 is_rerun = True
 num_cpgs_to_plot = 10
-
-status_col = get_column_name(dataset, 'Status').replace(' ','_')
-age_col = get_column_name(dataset, 'Age').replace(' ','_')
-sex_col = get_column_name(dataset, 'Sex').replace(' ','_')
-status_dict = get_status_dict(dataset)
-status_names_dict = get_status_names_dict(dataset)
-sex_dict = get_sex_dict(dataset)
 
 path_save = f"{path}/{platform}/{dataset}/EWAS/mann_whitney_u_test"
 if not os.path.exists(f"{path_save}/figs"):
     os.makedirs(f"{path_save}/figs")
 
+statuses = get_default_statuses(dataset)
+status_col = get_column_name(dataset, 'Status').replace(' ','_')
+status_dict = get_status_dict(dataset)
+status_passed_fields = get_passed_fields(status_dict, statuses)
+
+age_col = get_column_name(dataset, 'Age').replace(' ','_')
+
+sex_col = get_column_name(dataset, 'Sex').replace(' ','_')
+sex_dict = get_sex_dict(dataset)
+
 continuous_vars = {'Age': age_col}
-categorical_vars = {status_col: status_dict, sex_col: sex_dict}
+categorical_vars = {
+    status_col: [x.column for x in status_passed_fields],
+    sex_col: [sex_dict[x] for x in sex_dict]
+}
+
 pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
 pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
-
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
+betas = betas_drop_na(betas)
 
 df = pd.merge(pheno, betas, left_index=True, right_index=True)
 df_1 = df.loc[(df[status_col] == status_dict['Control']), :]
