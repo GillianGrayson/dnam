@@ -177,34 +177,44 @@ def get_status_dict(dataset: str):
 
     return d
 
-def get_default_statuses(dataset: str):
+def get_default_statuses_ids(dataset: str):
     statuses = None
     if dataset == "GSE152027":
-        statuses = ["Control", "Schizophrenia" "First episode psychosis"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE145361":
-        statuses = ["Control", "Parkinson"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE111629":
-        statuses = ["Control", "Parkinson"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE72774":
-        statuses = ["Control", "Parkinson"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE84727":
-        statuses = ["Control", "Schizophrenia"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE80417":
-        statuses = ["Control", "Schizophrenia"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE125105":
-        statuses = ["Control", "Depression"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE113725":
-        statuses = ["Control", "Depression", "Inflammatory disorder"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE89353":
-        statuses = ["Control", "Intellectual disability and congenital anomalies"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE53740":
-        statuses = ["Control", "Progressive supranuclear palsy"]
+        statuses = {"Control": [0], "Case": [1]}
     elif dataset == "GSE156994":
-        statuses = ["Control", "Sporadic Creutzfeldt-Jakob disease"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE144858":
-        statuses = ["Control", "Alzheimer", "Mild cognitive impairment"]
+        statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSEUNN":
-        statuses = ["Control", "ESRD"]
+        statuses = {"Control": [0], "Case": [0]}
+    return statuses
+
+
+def get_default_statuses(dataset: str):
+    status_dict = get_status_dict(dataset)
+    default_statuses_ids = get_default_statuses_ids(dataset)
+    statuses = []
+    for part, indices in default_statuses_ids.items():
+        for i in indices:
+            statuses.append(status_dict[part][i].label)
     return statuses
 
 

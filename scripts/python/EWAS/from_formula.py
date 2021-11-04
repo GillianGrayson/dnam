@@ -10,54 +10,65 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
 import os
 import numpy as np
-from scripts.python.pheno.datasets.filter import filter_pheno
-from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
-    get_sex_dict
+from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
+from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses_ids, get_default_statuses, get_sex_dict
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
-datasets = ["GSE128235", "GSE72774", "GSE53740", "GSE144858", "GSE147221", "GSE84727", "GSE125105", "GSE111629"]
+datasets = ["GSE53740"]
 
 is_rerun = True
 num_cpgs_to_plot = 10
 
 for dataset in datasets:
     print(dataset)
-
     platform = datasets_info.loc[dataset, 'platform']
     manifest = get_manifest(platform)
 
+    statuses = get_default_statuses(dataset)
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
-    age_col = get_column_name(dataset, 'Age').replace(' ', '_')
-    sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
+    statuses_ids = get_default_statuses_ids(dataset)
     status_dict = get_status_dict(dataset)
-    status_names_dict = get_status_names_dict(dataset)
-    sex_dict = get_sex_dict(dataset)
+    status_passed_fields = get_passed_fields(status_dict, statuses)
+    field_label_dict = {f.column: f.label for f in status_passed_fields}
 
-    status_vals = sorted(list(status_dict.values()))
+    age_col = get_column_name(dataset, 'Age').replace(' ', '_')
+
+    sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
+    sex_dict = get_sex_dict(dataset)
+    for k, v in sex_dict.items():
+        field_label_dict[v] = k
+
+    status_vals = sorted([x.column for x in status_passed_fields])
     sex_vals = sorted(list(sex_dict.values()))
 
     dnam_acc_type = 'DNAmGrimAgeAcc'
 
-    formula = f"C({status_col})" #f"{age_col} + C({status_col})"
-    terms = [f"C({status_col})[T.{status_vals[-1]}]"] #[f"{age_col}", f"C({status_col})[T.{status_vals[-1]}]"]
-    aim = f"Status" #f"Age_Status"
+    formula = f"{age_col} + C({status_col})" # f"C({status_col})"
+    terms = [f"{age_col}", f"C({status_col})[T.{status_vals[-1]}]"] # [f"C({status_col})[T.{status_vals[-1]}]"]
+    aim = f"Age_Status" # f"Status"
+
+    continuous_vars = {'Age': age_col, dnam_acc_type: dnam_acc_type}
+    categorical_vars = {
+        status_col: [x.column for x in status_passed_fields],
+        sex_col: [sex_dict[x] for x in sex_dict]
+    }
+    categorical_vars_label = {
+        status_col: [x.label for x in status_passed_fields],
+        sex_col: [x for x, y in sex_dict.items()]
+    }
+    pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
+    pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
+    betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
+    betas = betas_drop_na(betas)
+    df = pd.merge(pheno, betas, left_index=True, right_index=True)
 
     path_save = f"{path}/{platform}/{dataset}/EWAS/from_formula/{aim}"
     if not os.path.exists(f"{path_save}/figs"):
         os.makedirs(f"{path_save}/figs")
 
-    continuous_vars = {'Age': age_col, dnam_acc_type: dnam_acc_type}
-    categorical_vars = {status_col: status_dict, sex_col: sex_dict}
-    pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
-    pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
-    betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
-    betas = betas_drop_na(betas)
-
-    df = pd.merge(pheno, betas, left_index=True, right_index=True)
-
-    cpgs = betas.columns.values
+    cpgs = betas.columns.values[0:10]
 
     if is_rerun:
         result = {'CpG': cpgs}
@@ -90,10 +101,10 @@ for dataset in datasets:
         for name_cont, feat_cont in continuous_vars.items():
             fig = go.Figure()
             for feat, groups in categorical_vars.items():
-                for group_show, group_val in groups.items():
+                for group_val in groups:
                     df_curr = df.loc[df[feat] == group_val, :]
                     reg = smf.ols(formula=f"{cpg} ~ {feat_cont}", data=df_curr).fit()
-                    add_scatter_trace(fig, df_curr[feat_cont].values, df_curr[cpg].values, group_show)
+                    add_scatter_trace(fig, df_curr[feat_cont].values, df_curr[cpg].values, field_label_dict[group_val])
                     add_scatter_trace(fig, df_curr[feat_cont].values, reg.fittedvalues.values, "", "lines")
                 add_layout(fig, name_cont, 'Methylation Level', f"{cpg} ({manifest.loc[cpg, 'Gene']})")
                 fig.update_layout({'colorway': ['blue', 'blue', "red", "red"]})

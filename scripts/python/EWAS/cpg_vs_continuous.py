@@ -11,13 +11,12 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
-from scripts.python.pheno.datasets.filter import filter_pheno
-from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
-    get_sex_dict
+from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
+from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses, get_sex_dict
 
 
-platform = "GPL13534"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 datasets = ["GSE42861", "GSE80417", "GSE84727", "GSE125105", "GSE147221"]
 
 is_rerun = True
@@ -29,29 +28,36 @@ feats = {
 }
 
 for dataset in datasets:
+    print(dataset)
+    platform = datasets_info.loc[dataset, 'platform']
+    manifest = get_manifest(platform)
 
     path_save = f"{path}/{platform}/{dataset}/EWAS/cpg_vs_continuous/control"
 
+    statuses = get_default_statuses(dataset)
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
-    age_col = get_column_name(dataset, 'Age').replace(' ', '_')
-    sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
     status_dict = get_status_dict(dataset)
-    status_vals = sorted(list(status_dict.values()))
-    status_names_dict = get_status_names_dict(dataset)
+    status_passed_fields = get_passed_fields(status_dict, statuses)
+
+    age_col = get_column_name(dataset, 'Age').replace(' ', '_')
+
+    sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
     sex_dict = get_sex_dict(dataset)
 
     continuous_vars = {'Age': age_col}
-    categorical_vars = {status_col: status_dict, sex_col: sex_dict}
+    categorical_vars = {
+        status_col: [x.column for x in status_passed_fields],
+        sex_col: [sex_dict[x] for x in sex_dict]
+    }
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
-    df_1 = df.loc[(df[status_col] == status_dict['Control']), :]
-    df_2 = df.loc[(df[status_col] == status_dict['Case']), :]
+
+    df_1 = df.loc[(df[status_col] == status_dict['Control'][0].column), :]
+    df_2 = df.loc[(df[status_col] == status_dict['Case'][0].column), :]
 
     cpgs = betas.columns.values
-
-    manifest = get_manifest(platform)
 
     for k, v in feats.items():
         df_1_curr = df_1[df_1[k].notnull()]
@@ -95,9 +101,9 @@ for dataset in datasets:
         for cpg_id, (cpg, row) in enumerate(result.iterrows()):
             reg = smf.ols(formula=f"{cpg} ~ {k}", data=df_1_curr).fit()
             fig = go.Figure()
-            add_scatter_trace(fig, df_1_curr[k].values, df_1_curr[cpg].values, status_names_dict['Control'])
+            add_scatter_trace(fig, df_1_curr[k].values, df_1_curr[cpg].values, status_dict['Control'][0].label)
             add_scatter_trace(fig, df_1_curr[k].values, reg.fittedvalues.values, "", "lines")
-            add_scatter_trace(fig, df_2_curr[k].values, df_2_curr[cpg].values, status_names_dict['Case'])
+            add_scatter_trace(fig, df_2_curr[k].values, df_2_curr[cpg].values, status_dict['Case'][0].label)
             add_layout(fig, f"{v}", 'Methylation Level', f"{cpg} ({row['Gene']})")
             fig.update_layout({'colorway': ['blue', 'blue', "red"]})
             save_figure(fig, f"{path_curr}/{cpg_id}_{cpg}")

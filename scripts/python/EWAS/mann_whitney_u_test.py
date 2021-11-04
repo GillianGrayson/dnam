@@ -10,9 +10,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.box import add_box_trace
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
-from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
-from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
-from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses, get_sex_dict
+from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses, get_default_statuses_ids, get_sex_dict
 from scripts.python.routines.betas import betas_drop_na
 
 
@@ -29,10 +27,16 @@ path_save = f"{path}/{platform}/{dataset}/EWAS/mann_whitney_u_test"
 if not os.path.exists(f"{path_save}/figs"):
     os.makedirs(f"{path_save}/figs")
 
-statuses = get_default_statuses(dataset)
 status_col = get_column_name(dataset, 'Status').replace(' ','_')
 status_dict = get_status_dict(dataset)
+statuses_ids = get_default_statuses_ids(dataset)
+statuses = get_default_statuses(dataset)
 status_passed_fields = get_passed_fields(status_dict, statuses)
+
+status_1_cols = [status_dict['Control'][x].column for x in statuses_ids['Control']]
+status_1_label = ', '.join([status_dict['Control'][x].label for x in statuses_ids['Control']])
+status_2_cols = [status_dict['Case'][x].column for x in statuses_ids['Case']]
+status_2_label = ', '.join([status_dict['Case'][x].label for x in statuses_ids['Case']])
 
 age_col = get_column_name(dataset, 'Age').replace(' ','_')
 
@@ -45,14 +49,14 @@ categorical_vars = {
     sex_col: [sex_dict[x] for x in sex_dict]
 }
 
-pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
+pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")
 pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
 betas = betas_drop_na(betas)
 
 df = pd.merge(pheno, betas, left_index=True, right_index=True)
-df_1 = df.loc[(df[status_col] == status_dict['Control']), :]
-df_2 = df.loc[(df[status_col] == status_dict['Case']), :]
+df_1 = df.loc[df[status_col].isin(status_1_cols), :]
+df_2 = df.loc[df[status_col].isin(status_2_cols), :]
 
 cpgs = betas.columns.values
 
@@ -84,8 +88,8 @@ else:
 result = result.head(num_cpgs_to_plot)
 for cpg_id, (cpg, row) in enumerate(result.iterrows()):
     fig = go.Figure()
-    add_box_trace(fig, df_1[cpg].values, status_names_dict['Control'])
-    add_box_trace(fig, df_2[cpg].values, status_names_dict['Case'])
+    add_box_trace(fig, df_1[cpg].values, status_1_label)
+    add_box_trace(fig, df_2[cpg].values, status_2_label)
     add_layout(fig, '', "Methylation Level", f"{cpg} ({manifest.loc[cpg, 'Gene']}): {row['pval']:0.4e}")
     fig.update_layout({'colorway': ['blue', "red"]})
     save_figure(fig, f"{path_save}/figs/{cpg_id}_{cpg}")

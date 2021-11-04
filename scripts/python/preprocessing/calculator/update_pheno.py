@@ -1,9 +1,10 @@
 import pandas as pd
 
 
-dataset = "GSEUNN"
-platform = "GPL21145"
+dataset = "GSE84727"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
+platform = datasets_info.loc[dataset, 'platform']
 features = ["DNAmAge", "CD8T", "CD4T", "NK", "Bcell", "Mono", "Gran", "DNAmAgeHannum", "DNAmPhenoAge", "DNAmGDF15", "DNAmGrimAge", "IEAA", "EEAA",	"IEAA.Hannum"]
 
 pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")
@@ -13,5 +14,5 @@ calcs = pd.read_csv(f"{path}/{platform}/{dataset}/calculator/betas.output.csv", 
 calcs = calcs[features]
 
 df = pd.merge(pheno, calcs, left_index=True, right_index=True)
-df.to_excel(f"{path}/{platform}/{dataset}/pheno_tmp.xlsx")
-df.to_pickle(f"{path}/{platform}/{dataset}/pheno_tmp.pkl")
+df.to_excel(f"{path}/{platform}/{dataset}/pheno_xtd.xlsx")
+df.to_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
