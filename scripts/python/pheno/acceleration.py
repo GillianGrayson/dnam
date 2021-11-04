@@ -15,7 +15,7 @@ from scripts.python.pheno.datasets.features import get_column_name, get_default_
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
-datasets = ["GSE53740"]
+datasets = ["GSEUNN"]
 
 is_update = True
 
