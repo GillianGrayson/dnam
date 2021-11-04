@@ -2,7 +2,6 @@ import pandas as pd
 from scripts.python.routines.manifest import get_manifest
 import plotly.graph_objects as go
 import numpy as np
-import os
 from tqdm import tqdm
 from scipy.stats import mannwhitneyu
 from scripts.python.EWAS.routines.correction import correct_pvalues
@@ -12,6 +11,7 @@ from scripts.python.routines.plot.box import add_box_trace
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses, get_default_statuses_ids, get_sex_dict
 from scripts.python.routines.betas import betas_drop_na
+from pathlib import Path
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -24,15 +24,13 @@ is_rerun = True
 num_cpgs_to_plot = 10
 
 path_save = f"{path}/{platform}/{dataset}/EWAS/mann_whitney_u_test"
-if not os.path.exists(f"{path_save}/figs"):
-    os.makedirs(f"{path_save}/figs")
+Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
 
 status_col = get_column_name(dataset, 'Status').replace(' ','_')
 status_dict = get_status_dict(dataset)
 statuses_ids = get_default_statuses_ids(dataset)
 statuses = get_default_statuses(dataset)
 status_passed_fields = get_passed_fields(status_dict, statuses)
-
 status_1_cols = [status_dict['Control'][x].column for x in statuses_ids['Control']]
 status_1_label = ', '.join([status_dict['Control'][x].label for x in statuses_ids['Control']])
 status_2_cols = [status_dict['Case'][x].column for x in statuses_ids['Case']]
@@ -48,7 +46,6 @@ categorical_vars = {
     status_col: [x.column for x in status_passed_fields],
     sex_col: [sex_dict[x] for x in sex_dict]
 }
-
 pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")
 pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
@@ -59,8 +56,6 @@ df_1 = df.loc[df[status_col].isin(status_1_cols), :]
 df_2 = df.loc[df[status_col].isin(status_2_cols), :]
 
 cpgs = betas.columns.values
-
-manifest = get_manifest(platform)
 
 if is_rerun:
     result = {'CpG': cpgs}

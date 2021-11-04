@@ -8,8 +8,8 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
-import os
 import numpy as np
+from pathlib import Path
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses_ids, get_default_statuses, get_sex_dict
 
@@ -31,14 +31,11 @@ for dataset in datasets:
     statuses_ids = get_default_statuses_ids(dataset)
     status_dict = get_status_dict(dataset)
     status_passed_fields = get_passed_fields(status_dict, statuses)
-    field_label_dict = {f.column: f.label for f in status_passed_fields}
 
     age_col = get_column_name(dataset, 'Age').replace(' ', '_')
 
     sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
     sex_dict = get_sex_dict(dataset)
-    for k, v in sex_dict.items():
-        field_label_dict[v] = k
 
     status_vals = sorted([x.column for x in status_passed_fields])
     sex_vals = sorted(list(sex_dict.values()))
@@ -54,10 +51,6 @@ for dataset in datasets:
         status_col: [x.column for x in status_passed_fields],
         sex_col: [sex_dict[x] for x in sex_dict]
     }
-    categorical_vars_label = {
-        status_col: [x.label for x in status_passed_fields],
-        sex_col: [x for x, y in sex_dict.items()]
-    }
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
@@ -65,10 +58,9 @@ for dataset in datasets:
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
 
     path_save = f"{path}/{platform}/{dataset}/EWAS/from_formula/{aim}"
-    if not os.path.exists(f"{path_save}/figs"):
-        os.makedirs(f"{path_save}/figs")
+    Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
 
-    cpgs = betas.columns.values[0:10]
+    cpgs = betas.columns.values
 
     if is_rerun:
         result = {'CpG': cpgs}
@@ -99,15 +91,14 @@ for dataset in datasets:
     result = result.head(num_cpgs_to_plot)
     for cpg_id, (cpg, row) in enumerate(result.iterrows()):
         for name_cont, feat_cont in continuous_vars.items():
-            fig = go.Figure()
             for feat, groups in categorical_vars.items():
+                fig = go.Figure()
                 for group_val in groups:
                     df_curr = df.loc[df[feat] == group_val, :]
                     reg = smf.ols(formula=f"{cpg} ~ {feat_cont}", data=df_curr).fit()
-                    add_scatter_trace(fig, df_curr[feat_cont].values, df_curr[cpg].values, field_label_dict[group_val])
+                    add_scatter_trace(fig, df_curr[feat_cont].values, df_curr[cpg].values, group_val)
                     add_scatter_trace(fig, df_curr[feat_cont].values, reg.fittedvalues.values, "", "lines")
                 add_layout(fig, name_cont, 'Methylation Level', f"{cpg} ({manifest.loc[cpg, 'Gene']})")
                 fig.update_layout({'colorway': ['blue', 'blue', "red", "red"]})
-                if not os.path.exists(f"{path_save}/figs/{name_cont}"):
-                    os.makedirs(f"{path_save}/figs/{name_cont}")
-                save_figure(fig, f"{path_save}/figs/{name_cont}/{cpg_id}_{cpg}")
+                Path(f"{path_save}/figs/{name_cont}_{feat}").mkdir(parents=True, exist_ok=True)
+                save_figure(fig, f"{path_save}/figs/{name_cont}_{feat}/{cpg_id}_{cpg}")

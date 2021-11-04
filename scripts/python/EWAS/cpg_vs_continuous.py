@@ -1,6 +1,5 @@
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
-import os
 import numpy as np
 from tqdm import tqdm
 import plotly.graph_objects as go
@@ -12,12 +11,13 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
-from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_default_statuses, get_sex_dict
+from scripts.python.pheno.datasets.features import get_column_name, get_default_statuses_ids, get_status_dict, get_default_statuses, get_sex_dict
+from pathlib import Path
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
-datasets = ["GSE42861", "GSE80417", "GSE84727", "GSE125105", "GSE147221"]
+datasets = ["GSE53740"]
 
 is_rerun = True
 num_cpgs_to_plot = 10
@@ -32,12 +32,15 @@ for dataset in datasets:
     platform = datasets_info.loc[dataset, 'platform']
     manifest = get_manifest(platform)
 
-    path_save = f"{path}/{platform}/{dataset}/EWAS/cpg_vs_continuous/control"
-
     statuses = get_default_statuses(dataset)
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
+    statuses_ids = get_default_statuses_ids(dataset)
     status_dict = get_status_dict(dataset)
     status_passed_fields = get_passed_fields(status_dict, statuses)
+    status_1_cols = [status_dict['Control'][x].column for x in statuses_ids['Control']]
+    status_1_label = ', '.join([status_dict['Control'][x].label for x in statuses_ids['Control']])
+    status_2_cols = [status_dict['Case'][x].column for x in statuses_ids['Case']]
+    status_2_label = ', '.join([status_dict['Case'][x].label for x in statuses_ids['Case']])
 
     age_col = get_column_name(dataset, 'Age').replace(' ', '_')
 
@@ -52,10 +55,12 @@ for dataset in datasets:
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
-    df = pd.merge(pheno, betas, left_index=True, right_index=True)
 
-    df_1 = df.loc[(df[status_col] == status_dict['Control'][0].column), :]
-    df_2 = df.loc[(df[status_col] == status_dict['Case'][0].column), :]
+    df = pd.merge(pheno, betas, left_index=True, right_index=True)
+    df_1 = df.loc[df[status_col].isin(status_1_cols), :]
+    df_2 = df.loc[df[status_col].isin(status_2_cols), :]
+
+    path_save = f"{path}/{platform}/{dataset}/EWAS/cpg_vs_continuous/{status_1_label}"
 
     cpgs = betas.columns.values
 
@@ -64,8 +69,7 @@ for dataset in datasets:
         df_2_curr = df_2[df_2[k].notnull()]
 
         path_curr = f"{path_save}/{v}/figs"
-        if not os.path.exists(path_curr):
-            os.makedirs(path_curr)
+        Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
 
         if is_rerun:
             result = {'CpG': cpgs}
@@ -97,13 +101,12 @@ for dataset in datasets:
             result = pd.read_excel(f"{path_save}/{v}/table.xlsx", index_col="CpG")
 
         result = result.head(num_cpgs_to_plot)
-
         for cpg_id, (cpg, row) in enumerate(result.iterrows()):
             reg = smf.ols(formula=f"{cpg} ~ {k}", data=df_1_curr).fit()
             fig = go.Figure()
-            add_scatter_trace(fig, df_1_curr[k].values, df_1_curr[cpg].values, status_dict['Control'][0].label)
+            add_scatter_trace(fig, df_1_curr[k].values, df_1_curr[cpg].values, status_1_label)
             add_scatter_trace(fig, df_1_curr[k].values, reg.fittedvalues.values, "", "lines")
-            add_scatter_trace(fig, df_2_curr[k].values, df_2_curr[cpg].values, status_dict['Case'][0].label)
+            add_scatter_trace(fig, df_2_curr[k].values, df_2_curr[cpg].values, status_2_label)
             add_layout(fig, f"{v}", 'Methylation Level', f"{cpg} ({row['Gene']})")
             fig.update_layout({'colorway': ['blue', 'blue', "red"]})
             save_figure(fig, f"{path_curr}/{cpg_id}_{cpg}")
