@@ -81,6 +81,12 @@ def get_columns_dict(dataset: str):
             'Age': 'Age',
             'Sex': 'Sex',
         }
+    elif dataset == "GSE87571":
+        d = {
+            'Status': 'Sample_Group',
+            'Age': 'age',
+            'Sex': 'gender',
+        }
 
 
     elif dataset == "GSE42861":
@@ -155,6 +161,8 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'control')], "Case": [Field('Alzheimer', "Alzheimer's disease"), Field('Mild cognitive impairment', "mild cognitive impairment")]}
     elif dataset == "GSEUNN":
         d = {"Control": [Field('Control', 'Control')], "Case": [Field("ESRD", "ESRD")] }
+    elif dataset == "GSEUNN":
+        d = {"Control": [Field('Control', 'C')]}
 
     elif dataset == "GSE42861":
         d = {"Control": "Normal", "Cases": ["Patient"]}
@@ -205,6 +213,8 @@ def get_default_statuses_ids(dataset: str):
         statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSEUNN":
         statuses = {"Control": [0], "Case": [0]}
+    elif dataset == "GSE87571":
+        statuses = {"Control": [0]}
     return statuses
 
 
@@ -229,7 +239,8 @@ def get_statuses_datasets_dict():
         'Frontotemporal dementia': ['GSE53740'],
         'Sporadic Creutzfeldt-Jakob disease': ['GSE156994'],
         'Mild cognitive impairment': ['GSE144858'],
-        'Alzheimer': ['GSE144858']
+        'Alzheimer': ['GSE144858'],
+        'Healthy': ['GSE87571']
     }
     return d
 
@@ -284,7 +295,8 @@ def get_sex_dict(dataset: str):
         d = {"F": "Female", "M": "Male"}
     elif dataset == "GSEUNN":
         d = {"F": "F", "M": "M"}
-
+    elif dataset == "GSE87571":
+        d = {"F": "Female", "M": "Male"}
 
     elif dataset == "GSE42861":
         d = {"F": "f", "M": "m"}

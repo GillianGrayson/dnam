@@ -4,16 +4,16 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 import os
 from scipy.stats import norm
 import numpy as np
-from scripts.python.pheno.datasets.filter import filter_pheno
+from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 import upsetplot as upset
 from matplotlib import pyplot
-from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
-    get_sex_dict
+from scripts.python.pheno.datasets.features import get_column_name, get_default_statuses_ids, get_status_dict, get_default_statuses, get_sex_dict
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
-datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE72774"]
+# datasets = ["GSE84727", "GSE147221", "GSE125105", "GSE111629", "GSE72774"]
+datasets = ["GSE84727", "GSE125105"]
 
 dnam_acc_type = 'DNAmGrimAgeAcc'
 
@@ -43,13 +43,24 @@ meta_cols = {'meta':
 single_cols = {}
 for dataset in datasets:
     print(dataset)
+
+    statuses = get_default_statuses(dataset)
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
-    age_col = get_column_name(dataset, 'Age').replace(' ', '_')
-    sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
+    statuses_ids = get_default_statuses_ids(dataset)
     status_dict = get_status_dict(dataset)
-    status_vals = sorted(list(status_dict.values()))
-    status_names_dict = get_status_names_dict(dataset)
+    status_passed_fields = get_passed_fields(status_dict, statuses)
+    status_1_cols = [status_dict['Control'][x].column for x in statuses_ids['Control']]
+    status_1_label = ', '.join([status_dict['Control'][x].label for x in statuses_ids['Control']])
+    status_2_cols = [status_dict['Case'][x].column for x in statuses_ids['Case']]
+    status_2_label = ', '.join([status_dict['Case'][x].label for x in statuses_ids['Case']])
+
+    age_col = get_column_name(dataset, 'Age').replace(' ', '_')
+
+    sex_col = get_column_name(dataset, 'Sex').replace(' ', '_')
     sex_dict = get_sex_dict(dataset)
+
+    status_vals = sorted([x.column for x in status_passed_fields])
+    sex_vals = sorted(list(sex_dict.values()))
 
     meta_cols[dataset] = [
         f"{age_col}_pvalue",
@@ -62,13 +73,16 @@ for dataset in datasets:
     ]
 
     continuous_vars = {'Age': age_col, dnam_acc_type: dnam_acc_type}
-    categorical_vars = {status_col: status_dict, sex_col: sex_dict}
+    categorical_vars = {
+        status_col: [x.column for x in status_passed_fields],
+        sex_col: [sex_dict[x] for x in sex_dict]
+    }
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     sizes[dataset] = pheno.shape[0]
     print(f'Number of subjects: {pheno.shape[0]}')
-    print(f"Number of Control: {pheno.loc[pheno[status_col] == status_dict['Control'], :].shape[0]}")
-    print(f"Number of Case: {pheno.loc[pheno[status_col] == status_dict['Case'], :].shape[0]}")
+    print(f"Number of Control: {pheno.loc[pheno[status_col].isin(status_1_cols), :].shape[0]}")
+    print(f"Number of Case: {pheno.loc[pheno[status_col].isin(status_2_cols), :].shape[0]}")
 
     signs[dataset] = 1
 
