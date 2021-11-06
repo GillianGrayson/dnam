@@ -18,6 +18,7 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from pathlib import Path
 from statsmodels.stats.multitest import multipletests
 import glob
+import upsetplot as upset
 
 
 is_plot = False
@@ -29,11 +30,11 @@ platform = datasets_info.loc[dataset, 'platform']
 manifest = get_manifest(platform)
 
 intxn_files = {
-    "Alzheimer: Roubroeks (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Alzheimer/Roubroeks_2020.xlxs",
-    "Chronic Fatigue Syndrome: Herrera (2018)": f"{path}/lists/cpgs/neurodegenerative/Blood/Chronic Fatigue Syndrome/Herrera_2018.xlxs",
-    "Parkinson: Chuang (2017)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Chuang_2017.xlxs",
-    "Parkinson: Vallerga, Method 1 (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Vallerga_2020_MOA.xlxs",
-    "Parkinson: Vallerga, Method 2 (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Vallerga_2020_MOMENT.xlxs"
+    "Alzheimer: Roubroeks (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Alzheimer/Roubroeks_2020.xlsx",
+    "     Chronic Fatigue Syndrome: Herrera (2018)": f"{path}/lists/cpgs/neurodegenerative/Blood/Chronic Fatigue Syndrome/Herrera_2018.xlsx",
+    "Parkinson: Chuang (2017)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Chuang_2017.xlsx",
+    "Parkinson: Vallerga, Method 1 (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Vallerga_2020_MOA.xlsx",
+    "Parkinson: Vallerga, Method 2 (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Vallerga_2020_MOMENT.xlsx"
 }
 
 features = {'Age': 'age'}
@@ -92,7 +93,7 @@ for f_key, f_val in features.items():
         save_df.loc[cpg, 'Region'] = manifest_trgt.loc[cpg, 'UCSC_RefGene_Group']
     reject, pvals_corr, alphacSidak, alphacBonf = multipletests(pval_mtx.loc[f_key, :].values, 0.05, method='fdr_bh')
     save_df.loc[:, f"{f_key}_spearman_p_value"] = pvals_corr
-    pval_mtx.loc[f, :] = -np.log10(pvals_corr)
+    pval_mtx.loc[f_key, :] = -np.log10(pvals_corr)
 
 save_df.sort_values([f"{list(features.keys())[0]}_spearman_p_value"], ascending=[True], inplace=True)
 save_df.to_excel(f"{path_save}/{genes_name}.xlsx", index=True)
@@ -100,54 +101,22 @@ save_df.to_excel(f"{path_save}/{genes_name}.xlsx", index=True)
 target_f = f"{list(features.keys())[0]}_spearman_corr_coeff"
 filtered_df = save_df.loc[(save_df[target_f] >= 0.5) | (save_df[target_f] <= -0.5), :]
 filtered_df.sort_values(['Gene', 'Region'], ascending=[True, True], inplace=True)
-save_df.to_excel(f"{path_save}/{genes_name}_filtered.xlsx", index=True)
+filtered_df.to_excel(f"{path_save}/{genes_name}_filtered.xlsx", index=True)
 
-upset_df = pd.DataFrame(index=tables_single.index)
-for dataset in datasets:
-    upset_df[dataset] = (tables_single[single_cols[dataset][0]] < pval_thld)
-    for col in  single_cols[dataset][1::]:
-        upset_df[dataset] =  upset_df[dataset] & (tables_single[col] < pval_thld)
-upset_df = upset_df.set_index(datasets)
-plt = upset.UpSet(upset_df, subset_size='count', show_counts=True).plot()
-pyplot.savefig(f"{path_save}/single.png", bbox_inches='tight')
-pyplot.savefig(f"{path_save}/single.pdf", bbox_inches='tight')
+cpgs_lists = {
+    "Associated with age": filtered_df.index.values,
+}
+for k, v in intxn_files.items():
+    cpgs_df = pd.read_excel(v, header=None)
+    cpgs_lists[k] = cpgs_df.iloc[:, 0].values
+    print(len(cpgs_lists[k]))
+    print(len(set(cpgs_lists[k]).intersection(set(filtered_df.index.values))))
 
-if is_plot:
-    mtx_to_plot = corr_mtx.to_numpy()
-    cmap = plt.get_cmap("coolwarm")
-    divnorm = colors.TwoSlopeNorm(vcenter=0, vmin=-1, vmax=1)
-    fig, ax = plt.subplots()
-    im = ax.imshow(mtx_to_plot, cmap=cmap, norm=divnorm)
-    cbar = ax.figure.colorbar(im, ax=ax, location='top')
-    cbar.set_label("Spearman correlation", horizontalalignment='center', fontsize=16)
-    ax.set_xticks(np.arange(len(cpgs_to_show)))
-    ax.set_yticks(np.arange(len(features)))
-    ax.set_xticklabels(cpgs_to_show)
-    ax.set_yticklabels(features)
-    plt.setp(ax.get_xticklabels(), rotation=90)
-    for i in range(len(features)):
-        for j in range(len(cpgs_to_show)):
-            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color="black", fontsize=5)
-    fig.tight_layout()
-    plt.savefig(f"{path_save}/figs/corr_mtx.png")
-    plt.savefig(f"{path_save}/figs/corr_mtx.pdf")
-
-    mtx_to_plot = pval_mtx.to_numpy()
-    cmap = plt.get_cmap("Oranges").copy()
-    cmap.set_under('#d7bfd7')
-    fig, ax = plt.subplots()
-    im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
-    cbar = ax.figure.colorbar(im, ax=ax, location='top')
-    cbar.set_label(r"$-\log_{10}(\mathrm{p-val})$", horizontalalignment='center', fontsize=16)
-    ax.set_xticks(np.arange(len(cpgs_to_show)))
-    ax.set_yticks(np.arange(len(features)))
-    ax.set_xticklabels(cpgs_to_show)
-    ax.set_yticklabels(features)
-    plt.setp(ax.get_xticklabels(), rotation=90)
-    for i in range(len(features)):
-        for j in range(len(cpgs_to_show)):
-            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color="black", fontsize=5)
-    fig.tight_layout()
-    plt.savefig(f"{path_save}/figs/pval_mtx.png")
-    plt.savefig(f"{path_save}/figs/pval_mtx.pdf")
+upset_df = pd.DataFrame(index=betas.columns.values)
+for k, v in cpgs_lists.items():
+    upset_df[k] = upset_df.index.isin(v)
+upset_df = upset_df.set_index(list(cpgs_lists.keys()))
+fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=2).plot()
+plt.savefig(f"{path_save}/upset.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/upset.pdf", bbox_inches='tight')
 
