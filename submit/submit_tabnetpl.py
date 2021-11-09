@@ -2,10 +2,12 @@ import os
 
 project_name = 'tabnetpl_unnhpc'
 
-check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
-input_dim = 375614
-output_dim = 6
+check_sum = 'cbfdd0bab9805d1c5d5ecdebec2943dc'
+input_dim = 390485
+output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
+
+seed = 1
 
 cpgs_fn = f"{data_path}/cpgs/{input_dim}.xlsx"
 statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"
@@ -26,6 +28,8 @@ args = f"--multirun project_name={project_name} " \
        f"experiment=tabnetpl " \
        f"work_dir=\"{data_path}/models/{project_name}\" " \
        f"data_dir=\"{data_path}\" " \
+       f"seed={seed} " \
+       f"datamodule.seed={seed} " \
        f"datamodule.path=\"{data_path}\" " \
        f"datamodule.cpgs_fn=\"{cpgs_fn}\" " \
        f"datamodule.statuses_fn=\"{statuses_fn}\" " \
