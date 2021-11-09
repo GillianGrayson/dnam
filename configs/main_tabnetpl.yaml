@@ -2,7 +2,7 @@
 
 project_name: tabnetpl_1
 
-seed: 1337
+seed: 322
 
 is_cv: False
 is_stratified: True

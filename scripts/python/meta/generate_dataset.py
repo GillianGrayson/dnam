@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
 import numpy as np
@@ -18,17 +20,20 @@ path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 
 statuses = [
-    'Control',
     'Schizophrenia',
     'First episode psychosis',
     'Depression',
-    'Frontotemporal dementia',
-    'Sporadic Creutzfeldt-Jakob disease',
-    'Mild cognitive impairment',
 ]
-# 'Alzheimer', 'Parkinson', 'Intellectual disability and congenital anomalies',
+include_controls = True
+datasets_control = ['GSE87571']
 
-check_sum = hashlib.md5(pickle.dumps(statuses)).hexdigest()
+# 'Control',
+# 'Alzheimer',
+# 'Parkinson',
+# 'Intellectual disability and congenital anomalies',
+# 'Frontotemporal dementia',
+# 'Sporadic Creutzfeldt-Jakob disease',
+# 'Mild cognitive impairment'
 
 target_features = ['Status']
 metric = 'variance' # 'list' 'variance'
@@ -40,13 +45,22 @@ for s in statuses:
     if s in statuses_datasets_dict:
         for dataset in statuses_datasets_dict[s]:
             datasets.add(dataset)
+datasets.update(set(datasets_control))
+datasets = list(datasets)
+datasets.sort()
+
+if include_controls:
+    statuses.append('Control')
+
+info = {"statuses": statuses, "datasets": datasets, 'include_controls': include_controls}
+check_sum = hashlib.md5(pickle.dumps(info)).hexdigest()
 
 folder_name = f"{check_sum}"
 path_save = f"{path}/meta/{folder_name}"
 if not os.path.exists(f"{path_save}/figs"):
     os.makedirs(f"{path_save}/figs")
-with open(f"{path_save}/statuses.json", 'w', encoding='utf-8') as f:
-    json.dump(statuses, f, ensure_ascii=False, indent=4)
+with open(f"{path_save}/info.json", 'w', encoding='utf-8') as f:
+    json.dump(info, f, ensure_ascii=False, indent=4)
 
 pheno_all = pd.DataFrame(columns=target_features + ['Dataset'])
 pheno_all.index.name = 'subject_id'

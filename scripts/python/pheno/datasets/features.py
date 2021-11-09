@@ -161,7 +161,7 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'control')], "Case": [Field('Alzheimer', "Alzheimer's disease"), Field('Mild cognitive impairment', "mild cognitive impairment")]}
     elif dataset == "GSEUNN":
         d = {"Control": [Field('Control', 'Control')], "Case": [Field("ESRD", "ESRD")] }
-    elif dataset == "GSEUNN":
+    elif dataset == "GSE87571":
         d = {"Control": [Field('Control', 'C')]}
 
     elif dataset == "GSE42861":
