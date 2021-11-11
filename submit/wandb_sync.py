@@ -3,13 +3,14 @@ from glob import glob
 
 model = "lightgbm_unnhpc"
 
-check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
-input_dim = 375614
-output_dim = 6
-date_time = "2021-11-01_10-19-52"
+check_sum = 'cbfdd0bab9805d1c5d5ecdebec2943dc'
+seed = 4
+input_dim = 390485
+output_dim = 4
+date_time = "2021-11-09_15-39-35"
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/models/{model}/logs/multiruns/{date_time}"
 
-project = f"{input_dim}_{output_dim}_{check_sum}_{date_time}"
+project = f"{model}_{seed}_{input_dim}_{output_dim}_{check_sum}_{date_time}"
 
 folders_to_sync = glob(f"{data_path}/*/wandb/offline-run-*")
 folders_to_sync.sort()
