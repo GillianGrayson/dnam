@@ -143,6 +143,8 @@ def train_lightgbm(config: DictConfig):
         'cohen_kappa': 'max',
         'matthews_corrcoef': 'max',
         'f1_weighted': 'max',
+        'auroc_weighted': 'max',
+        'auroc_macro': 'max',
     }
     metrics = [metrics_classes_dict[m]() for m in metrics_summary]
     for p in parts:
@@ -156,16 +158,22 @@ def train_lightgbm(config: DictConfig):
         if p == 'train':
             y_real = y_train
             y_pred = y_train_pred
+            y_pred_probs = y_train_pred_probs
         elif p == 'val':
             y_real = y_val
             y_pred = y_val_pred
+            y_pred_probs = y_val_pred_probs
         else:
             y_real = y_test
             y_pred = y_test_pred
+            y_pred_probs = y_test_pred_probs
         metrics_dict[p] = []
         log_dict = {}
         for m in metrics:
-            m_val = m(y_real, y_pred)
+            if m._name in ['auroc_weighted', 'auroc_macro']:
+                m_val = m(y_real, y_pred_probs)
+            else:
+                m_val = m(y_real, y_pred)
             metrics_dict[p].append(m_val)
             log_dict[f"{p}/{m._name}"] = m_val
         for m in evo_metrics:

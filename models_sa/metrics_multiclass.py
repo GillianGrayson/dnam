@@ -16,7 +16,7 @@ def calc_metric(self, y_true, y_score):
     if self.metric_type == "accuracy":
         value = torchmetrics.functional.accuracy(y_score_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
     elif self.metric_type == "f1":
-        value = torchmetrics.functional.accuracy(y_score_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
+        value = torchmetrics.functional.f1(y_score_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
     elif self.metric_type == "precision":
         value = torchmetrics.functional.precision(y_score_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
     elif self.metric_type == "recall":
@@ -25,6 +25,17 @@ def calc_metric(self, y_true, y_score):
         value = torchmetrics.functional.cohen_kappa(y_score_torch, y_true_torch, num_classes=self.num_classes)
     elif self.metric_type == "matthews_corrcoef":
         value = torchmetrics.functional.matthews_corrcoef(y_score_torch, y_true_torch, num_classes=self.num_classes)
+    else:
+        raise ValueError("Unsupported metrics")
+    value = float(value.numpy())
+    return value
+
+
+def calc_metric_prob(self, y_true, y_prob):
+    y_true_torch = torch.from_numpy(y_true)
+    y_prob_torch = torch.from_numpy(y_prob)
+    if self.metric_type == "auroc":
+        value = torchmetrics.functional.auroc(y_prob_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
     else:
         raise ValueError("Unsupported metrics")
     value = float(value.numpy())
@@ -98,7 +109,29 @@ def get_metrics_dict(num_classes, base_class):
                 "__init__": init_metric,
                 "__call__": calc_metric
             }
-        )
+        ),
+        "auroc_macro": type(
+            "auroc_macro",
+            (base_class,),
+            {
+                "metric_type": "auroc",
+                "average": "macro",
+                "num_classes": num_classes,
+                "__init__": init_metric,
+                "__call__": calc_metric_prob
+            }
+        ),
+        "auroc_weighted": type(
+            "auroc_weighted",
+            (base_class,),
+            {
+                "metric_type": "auroc",
+                "average": "weighted",
+                "num_classes": num_classes,
+                "__init__": init_metric,
+                "__call__": calc_metric_prob
+            }
+        ),
     }
 
     return d

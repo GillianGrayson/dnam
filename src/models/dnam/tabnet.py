@@ -1,6 +1,6 @@
 from typing import Any, List
 from torch import nn
-from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, CohenKappa, MatthewsCorrcoef
+from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, CohenKappa, MatthewsCorrcoef, AUROC
 import wandb
 from typing import Dict
 import pytorch_lightning as pl
@@ -73,12 +73,12 @@ class TabNetModel(pl.LightningModule):
             'matthews_corr': 'max',
         }
         self.metrics_prob_dict = {
-            # 'auroc_macro': AUROC(num_classes=self.n_output, average='macro'),
-            # 'auroc_weighted': AUROC(num_classes=self.n_output, average='weighted'),
+            'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
+            'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
         }
         self.metrics_prob_summary = {
-            # 'auroc_macro': 'max',
-            # 'auroc_weighted': 'max',
+            'auroc_macro': 'max',
+            'auroc_weighted': 'max',
         }
 
         self.metrics_train = MetricCollection(self.metrics_dict)
@@ -149,13 +149,22 @@ class TabNetModel(pl.LightningModule):
             non_logs["targets"] = y
             if stage == "train":
                 logs.update(self.metrics_train(preds, y))
-                logs.update(self.metrics_train_prob(probs, y))
+                try:
+                    logs.update(self.metrics_train_prob(probs, y))
+                except ValueError:
+                    pass
             elif stage == "val":
                 logs.update(self.metrics_val(preds, y))
-                logs.update(self.metrics_val_prob(probs, y))
+                try:
+                    logs.update(self.metrics_val_prob(probs, y))
+                except ValueError:
+                    pass
             elif stage == "test":
                 logs.update(self.metrics_test(preds, y))
-                logs.update(self.metrics_test_prob(probs, y))
+                try:
+                    logs.update(self.metrics_val_prob(probs, y))
+                except ValueError:
+                    pass
 
         return loss, logs, non_logs
 
