@@ -24,7 +24,7 @@ statuses = [
     'First episode psychosis',
     'Depression',
 ]
-include_controls = True
+include_controls = False
 datasets_control = ['GSE87571']
 
 # 'Control',
@@ -40,17 +40,20 @@ metric = 'variance' # 'list' 'variance'
 thld = 0.0
 
 statuses_datasets_dict = get_statuses_datasets_dict()
-datasets = set()
+datasets = {}
 for s in statuses:
     if s in statuses_datasets_dict:
         for dataset in statuses_datasets_dict[s]:
-            datasets.add(dataset)
-datasets.update(set(datasets_control))
-datasets = list(datasets)
-datasets.sort()
-
-if include_controls:
-    statuses.append('Control')
+            if dataset not in datasets:
+                if include_controls:
+                    datasets[dataset] = ['Control', s]
+                else:
+                    datasets[dataset] = [s]
+            else:
+                datasets[dataset].append(s)
+for ds in datasets_control:
+    datasets[ds] = ['Control']
+datasets = dict(sorted(datasets.items()))
 
 info = {"statuses": statuses, "datasets": datasets, 'include_controls': include_controls}
 check_sum = hashlib.md5(pickle.dumps(info)).hexdigest()
@@ -68,9 +71,11 @@ for d_id, dataset in enumerate(datasets):
     print(dataset)
     platform = datasets_info.loc[dataset, 'platform']
 
+    curr_statuses = datasets[dataset]
+
     status_col = get_column_name(dataset, 'Status').replace(' ', '_')
     status_dict = get_status_dict(dataset)
-    status_passed_fields = get_passed_fields(status_dict, statuses)
+    status_passed_fields = get_passed_fields(status_dict, curr_statuses)
     continuous_vars = {}
     categorical_vars = {status_col: [x.column for x in status_passed_fields]}
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")

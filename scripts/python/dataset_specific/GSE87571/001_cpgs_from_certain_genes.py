@@ -36,6 +36,13 @@ intxn_files = {
     "Parkinson: Vallerga, Method 1 (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Vallerga_2020_MOA.xlsx",
     "Parkinson: Vallerga, Method 2 (2020)": f"{path}/lists/cpgs/neurodegenerative/Blood/Parkinson/Vallerga_2020_MOMENT.xlsx"
 }
+save_files = {
+    "Alzheimer: Roubroeks (2020)": "Alzheimer_Roubroeks_2020",
+    "     Chronic Fatigue Syndrome: Herrera (2018)": "Chronic_Fatigue_Syndrome_Herrera_2018",
+    "Parkinson: Chuang (2017)": "Parkinson_Chuang_2017",
+    "Parkinson: Vallerga, Method 1 (2020)": "Parkinson_Vallerga_Method_1_2020",
+    "Parkinson: Vallerga, Method 2 (2020)": "Parkinson_Vallerga_Method_2_2020"
+}
 
 features = {'Age': 'age'}
 
@@ -109,6 +116,10 @@ cpgs_lists = {
 for k, v in intxn_files.items():
     cpgs_df = pd.read_excel(v, header=None)
     cpgs_lists[k] = cpgs_df.iloc[:, 0].values
+    tmp_df = filtered_df.loc[filtered_df.index.isin(cpgs_lists[k]), :]
+    if tmp_df.shape[0] > 0:
+        tmp_df.sort_values(['Gene', 'Region'], ascending=[True, True], inplace=True)
+        tmp_df.to_excel(f"{path_save}/{save_files[k]}.xlsx", index=True)
     print(len(cpgs_lists[k]))
     print(len(set(cpgs_lists[k]).intersection(set(filtered_df.index.values))))
 
