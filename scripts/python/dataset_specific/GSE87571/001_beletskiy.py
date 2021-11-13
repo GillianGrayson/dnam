@@ -52,7 +52,7 @@ genes_df = pd.read_csv(genes_fn, encoding="ISO-8859-1")
 genes = [x.upper() for x in genes_df['Gene Symbol'].to_list()]
 # genes = ['HLA-A', 'HLA-B', 'HLA-C']
 
-path_save = f"{path}/{platform}/{dataset}/special/001_cpgs_from_certain_genes/{genes_name}"
+path_save = f"{path}/{platform}/{dataset}/special/001_beletskiy/{genes_name}"
 Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
 
 age_col = get_column_name(dataset, 'Age').replace(' ','_')
@@ -109,6 +109,8 @@ target_f = f"{list(features.keys())[0]}_spearman_corr_coeff"
 filtered_df = save_df.loc[(save_df[target_f] >= 0.5) | (save_df[target_f] <= -0.5), :]
 filtered_df.sort_values(['Gene', 'Region'], ascending=[True, True], inplace=True)
 filtered_df.to_excel(f"{path_save}/{genes_name}_filtered.xlsx", index=True)
+filtered_genes = list(set(filtered_df.loc[:, 'Gene'].tolist()))
+np.savetxt(f"{path_save}/filtered_genes.txt", filtered_genes, delimiter="\n", fmt="%s", encoding="utf-8")
 
 cpgs_lists = {
     "Associated with age": filtered_df.index.values,
