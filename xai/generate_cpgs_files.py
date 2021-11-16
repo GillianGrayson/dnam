@@ -7,9 +7,9 @@ counts = np.linspace(10, 500, 50, dtype=int)
 
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{check_sum}"
-xai_path = f"{path}/models/xai/logs/runs/2021-11-16_17-08-18"
+xai_path = f"{path}/models/xai/logs/runs/2021-11-16_17-35-53"
 
-feat_imp = pd.read_excel(f"{xai_path}/feat_importances.xlsx", index_col="feature")
+feat_imp = pd.read_excel(f"{xai_path}/feat_importances_best_run_17.xlsx", index_col="feature")
 feat_imp.index.name = "CpG"
 feat_imp.sort_values(['average'], ascending=[False], inplace=True)
 

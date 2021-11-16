@@ -86,7 +86,7 @@ def main(config: DictConfig):
         model.freeze()
 
         if run_id == 0:
-            feat_importances.loc[:, 'feat'] = datamodule.betas.columns.values
+            feat_importances.loc[:, 'feature'] = datamodule.betas.columns.values
 
         fis = np.zeros((model.hparams.input_dim))
         for data, targets, indexes in tqdm(background_dataloader):
@@ -95,7 +95,7 @@ def main(config: DictConfig):
         fis = fis / np.sum(fis)
         feat_importances.loc[:, run] = fis
 
-    feat_importances.set_index('feat', inplace=True)
+    feat_importances.set_index('feature', inplace=True)
     feat_importances['average'] = feat_importances.mean(numeric_only=True, axis=1)
     vt = VarianceThreshold(0.0)
     vt.fit(datamodule.betas)
