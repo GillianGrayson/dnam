@@ -7,7 +7,7 @@ input_dim = 390485
 output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
 
-seed = 4
+seed = 2
 
 cpgs_fn = f"{data_path}/cpgs/{input_dim}.xlsx"
 statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"

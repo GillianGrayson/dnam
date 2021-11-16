@@ -11,7 +11,7 @@ cpgs_fn = f"{data_path}/cpgs/{input_dim}.xlsx"
 statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"
 weighted_sampler = True
 
-seed = 4
+seed = 1
 
 learning_rate = [0.05, 0.005]
 num_leaves = [31, 63]
