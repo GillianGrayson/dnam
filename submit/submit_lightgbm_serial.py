@@ -3,10 +3,11 @@ import numpy as np
 
 
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
+seed = 2
+
 output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
 
-seed = 2
 
 learning_rate = [0.05, 0.005]
 num_leaves = [31, 63]

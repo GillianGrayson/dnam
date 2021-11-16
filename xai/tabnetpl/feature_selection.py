@@ -45,7 +45,7 @@ def main(config: DictConfig):
     output_dim = 4
     check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
     model = "tabnetpl_unnhpc"
-    date_time = '2021-11-11_08-14-09'
+    date_time = '2021-11-15_14-55-05'
 
     folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{check_sum}/models/{model}/logs/multiruns/{date_time}"
 

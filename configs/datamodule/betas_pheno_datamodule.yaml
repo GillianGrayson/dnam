@@ -8,5 +8,5 @@ batch_size: 30
 train_val_test_split: [0.7, 0.15, 0.15]
 num_workers: 0
 pin_memory: False
-seed: 322
+seed: 2
 weighted_sampler: False

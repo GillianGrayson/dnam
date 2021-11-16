@@ -2,7 +2,7 @@
 
 project_name: xai
 
-seed: 322
+seed: 2
 
 is_cv: False
 is_stratified: True

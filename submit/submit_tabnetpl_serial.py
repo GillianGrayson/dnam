@@ -3,10 +3,10 @@ import numpy as np
 
 
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
+seed = 2
+
 output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
-
-seed = 1
 
 n_d_n_a = [8, 16]
 n_steps = [3]

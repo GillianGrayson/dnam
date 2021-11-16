@@ -3,11 +3,11 @@ import os
 project_name = 'tabnetpl_unnhpc'
 
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
+seed = 2
+
 input_dim = 390485
 output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
-
-seed = 2
 
 cpgs_fn = f"{data_path}/cpgs/{input_dim}.xlsx"
 statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"
