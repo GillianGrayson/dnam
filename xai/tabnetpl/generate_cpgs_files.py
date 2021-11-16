@@ -5,11 +5,11 @@ from pathlib import Path
 
 counts = np.linspace(10, 500, 50, dtype=int)
 
-check_sum = 'd11b5f9b6efd089db42a3d5e6b375430'
+check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{check_sum}"
-xai_path = f"{path}/models/xai/logs/runs/2021-10-20_19-39-23"
+xai_path = f"{path}/models/xai/logs/runs/2021-11-15_15-35-54"
 
-feat_imp = pd.read_excel(f"{xai_path}/feat_importances.xlsx", index_col="feat")
+feat_imp = pd.read_excel(f"{xai_path}/feat_importances_best_run_16.xlsx", index_col="feat")
 feat_imp.index.name = "CpG"
 feat_imp.sort_values(['average'], ascending=[False], inplace=True)
 

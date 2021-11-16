@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from scipy.sparse import csc_matrix
 from scipy.special import log_softmax
 from scipy.special import softmax
+import lightgbm as lgb
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.violin import add_violin_trace
@@ -44,8 +45,8 @@ def main(config: DictConfig):
     input_dim = 390485
     output_dim = 4
     check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
-    model = "tabnetpl_unnhpc"
-    date_time = '2021-11-11_08-14-09'
+    model = "lightgbm_unnhpc"
+    date_time = '2021-11-11_08-17-30'
 
     folder_path = f"E:/YandexDisk/Work/pydnameth/datasets/meta/{check_sum}/models/{model}/logs/multiruns/{date_time}"
 
@@ -73,35 +74,24 @@ def main(config: DictConfig):
     runs = next(os.walk(folder_path))[1]
     runs.sort()
 
-    feat_importances = pd.DataFrame(data=np.zeros(shape=(input_dim, len(runs)), dtype=float), columns=runs)
+    feat_importances = pd.DataFrame(index=datamodule.betas.columns.values)
+    feat_importances.index.name =  'feature'
     for run_id, run in enumerate(runs):
-        checkpoint_fn = glob(f"{folder_path}/{run}/checkpoints/*.ckpt")
-
+        checkpoint_fn = glob(f"{folder_path}/{run}/epoch_*.txt")
+        bst = lgb.Booster(model_file=checkpoint_fn[0])
         if "seed" in config:
             seed_everything(config.seed)
 
-        model = TabNetModel.load_from_checkpoint(checkpoint_path=checkpoint_fn[0])
-        model.produce_probabilities = True
-        model.eval()
-        model.freeze()
+        fi = pd.read_excel(f"{folder_path}/{run}/feature_importances.xlsx", index_col='feature')
+        fi.rename(columns={'importance': run}, inplace=True)
+        feat_importances = feat_importances.merge(fi, how='inner', left_index=True, right_index=True)
 
-        if run_id == 0:
-            feat_importances.loc[:, 'feat'] = datamodule.betas.columns.values
-
-        fis = np.zeros((model.hparams.input_dim))
-        for data, targets, indexes in tqdm(background_dataloader):
-            M_explain, masks = model.forward_masks(data)
-            fis += M_explain.sum(dim=0).cpu().detach().numpy()
-        fis = fis / np.sum(fis)
-        feat_importances.loc[:, run] = fis
-
-    feat_importances.set_index('feat', inplace=True)
+    print(feat_importances.shape)
     feat_importances['average'] = feat_importances.mean(numeric_only=True, axis=1)
     vt = VarianceThreshold(0.0)
     vt.fit(datamodule.betas)
     vt_metrics = vt.variances_
     feat_importances.loc[:, 'variance'] = vt_metrics
-
     feat_importances.sort_values(['average'], ascending=[False], inplace=True)
     feat_importances.to_excel("./feat_importances.xlsx", index=True)
 
