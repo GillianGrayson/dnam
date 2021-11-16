@@ -2,7 +2,7 @@ import os
 
 project_name = 'lightgbm_unnhpc'
 
-check_sum = 'cbfdd0bab9805d1c5d5ecdebec2943dc'
+check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 input_dim = 390485
 output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
