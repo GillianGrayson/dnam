@@ -9,12 +9,12 @@ import plotly.express as px
 
 
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
-output_dim = 4
+seed = 2
 
 cpgs_from_model = 'tabnetpl'
 cpgs_from_run = 'average'
 cpgs_from_variance = 'all'
-counts = np.linspace(10, 250, 25, dtype=int)
+counts = np.linspace(10, 300, 30, dtype=int)
 
 num_realizations = 12
 
@@ -24,6 +24,7 @@ main_metric = "test/f1_weighted"
 
 metrics_vals_glob = {f"{p}/{m}": [] for p in parts for m in metrics}
 for c in counts:
+    print(c)
     project_name = f'{cpgs_from_model}_unnhpc_{cpgs_from_run}_{cpgs_from_variance}_{c}'
     data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/models/{project_name}"
     files = glob(f"{data_path}/logs/multiruns/*/*/csv/version_0/metrics.csv")
@@ -37,6 +38,7 @@ for c in counts:
 
     metrics_vals = {f"{p}/{m}": [] for p in parts for m in metrics}
     for f in files:
+        print(f)
         df = pd.read_csv(f)
         for p in parts:
             curr_metrics = [f"{p}/" + x for x in metrics]
@@ -61,4 +63,3 @@ for m in metrics:
     add_layout(fig, f"Number of features in model", f"{m}", "")
     fig.update_layout({'colorway': px.colors.qualitative.Set1})
     save_figure(fig, f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/cpgs/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/{m}")
-

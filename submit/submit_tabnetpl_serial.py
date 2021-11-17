@@ -21,10 +21,10 @@ scheduler_gamma = [0.9]
 weighted_sampler = True
 
 cpgs_from_model = 'tabnetpl'
-cpgs_from_run = 'average'
+cpgs_from_run = 'best_run_17'
 cpgs_from_variance = 'all'
 counts = np.linspace(10, 500, 50, dtype=int)
-# counts = [340]
+#counts = [310, 350]
 
 for c in counts:
 

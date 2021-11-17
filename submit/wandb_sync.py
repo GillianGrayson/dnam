@@ -1,14 +1,14 @@
 import os
 from glob import glob
 
-model = "lightgbm_unnhpc"
+model = "tabnetpl_unnhpc_average_all_120"
 
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 seed = 2
 
 input_dim = 390485
 output_dim = 4
-date_time = "2021-11-11_08-17-30"
+date_time = "2021-11-16_18-49-46"
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/models/{model}/logs/multiruns/{date_time}"
 
 project = f"{model}_{seed}_{input_dim}_{output_dim}_{check_sum}_{date_time}"
