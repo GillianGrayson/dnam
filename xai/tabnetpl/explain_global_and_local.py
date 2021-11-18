@@ -38,29 +38,11 @@ dotenv.load_dotenv(override=True)
 @hydra.main(config_path="../../configs/", config_name="main_xai.yaml")
 def main(config: DictConfig):
 
-    # class_names = [
-    #     "Control",
-    #     "Schizophrenia",
-    #     "Depression",
-    #     "Parkinson"
-    # ]
-
-    # class_names = [
-    #     "Schizophrenia Control",
-    #     "Schizophrenia",
-    #     "Depression Control",
-    #     "Depression",
-    #     "Parkinson Control",
-    #     "Parkinson"
-    # ]
-
     statuses = [
         'Schizophrenia',
         'First episode psychosis',
         'Depression',
-        'Frontotemporal dementia',
-        'Sporadic Creutzfeldt-Jakob disease',
-        'Mild cognitive impairment',
+        'Control',
     ]
 
     for st in statuses:
@@ -116,13 +98,13 @@ def main(config: DictConfig):
     fig = ff.create_annotated_heatmap(conf_mtx, x=statuses, y=statuses, colorscale='Viridis')
     fig.add_annotation(dict(font=dict(color="black", size=14),
                             x=0.5,
-                            y=-0.15,
+                            y=-0.1,
                             showarrow=False,
                             text="Predicted value",
                             xref="paper",
                             yref="paper"))
     fig.add_annotation(dict(font=dict(color="black", size=14),
-                            x=-0.45,
+                            x=-0.33,
                             y=0.5,
                             showarrow=False,
                             text="Real value",
