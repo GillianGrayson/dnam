@@ -20,6 +20,7 @@ scheduler_gamma = [0.9]
 
 weighted_sampler = True
 
+cpgs_list_origin = "390485"
 cpgs_from_model = 'tabnetpl'
 cpgs_from_run = 'average'
 cpgs_from_variance = '0.005'
@@ -30,7 +31,7 @@ for c in counts:
 
        project_name = f'{cpgs_from_model}_unnhpc_{cpgs_from_run}_{cpgs_from_variance}_{c}'
 
-       cpgs_fn = f"{data_path}/cpgs/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/{c}.xlsx"
+       cpgs_fn = f"{data_path}/cpgs/{cpgs_list_origin}/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/{c}.xlsx"
        statuses_fn = f"{data_path}/statuses/{output_dim}.xlsx"
 
        args = f"--multirun project_name={project_name} " \

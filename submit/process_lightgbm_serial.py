@@ -11,6 +11,7 @@ import plotly.express as px
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 seed = 2
 
+cpgs_list_origin = "390485"
 cpgs_from_model = 'lightgbm'
 cpgs_from_run = 'average'
 cpgs_from_variance = '0.005'
@@ -50,7 +51,7 @@ for c in counts:
 metrics_vals_glob['counts'] = list(counts)
 metrics_vals_glob_df = pd.DataFrame.from_dict(metrics_vals_glob)
 metrics_vals_glob_df.set_index("counts", inplace=True)
-metrics_vals_glob_df.to_excel(f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/cpgs/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/metrics.xlsx", index=True)
+metrics_vals_glob_df.to_excel(f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/cpgs/{cpgs_list_origin}/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/metrics.xlsx", index=True)
 
 for m in metrics:
     fig = go.Figure()
@@ -58,4 +59,4 @@ for m in metrics:
         add_scatter_trace(fig, counts, metrics_vals_glob_df.loc[:, f"{p}/{m}"], f"{p}", mode='lines+markers')
     add_layout(fig, f"Number of features in model", f"{m}", "")
     fig.update_layout({'colorway': px.colors.qualitative.Set1})
-    save_figure(fig, f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/cpgs/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/{m}")
+    save_figure(fig, f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/cpgs/{cpgs_list_origin}/{cpgs_from_model}/{cpgs_from_run}/{cpgs_from_variance}/{m}")
