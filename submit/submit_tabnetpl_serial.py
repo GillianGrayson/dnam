@@ -37,7 +37,7 @@ for c in counts:
        args = f"--multirun project_name={project_name} " \
               f"logger.wandb.offline=True " \
               f"experiment=tabnetpl " \
-              f"work_dir=\"{data_path}/models/{project_name}\" " \
+              f"work_dir=\"{data_path}/models/{cpgs_list_origin}/{project_name}\" " \
               f"data_dir=\"{data_path}\" " \
               f"seed={seed} " \
               f"datamodule.seed={seed} " \
