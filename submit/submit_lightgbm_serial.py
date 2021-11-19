@@ -20,8 +20,8 @@ weighted_sampler = True
 cpgs_from_model = 'lightgbm'
 cpgs_from_run = 'average'
 cpgs_from_variance = '0.005'
-counts = np.linspace(10, 500, 50, dtype=int)
-# counts = [340]
+# counts = np.linspace(10, 500, 50, dtype=int)
+counts = [330]
 
 for c in counts:
 
