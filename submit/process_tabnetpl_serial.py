@@ -13,8 +13,8 @@ seed = 2
 
 cpgs_from_model = 'tabnetpl'
 cpgs_from_run = 'average'
-cpgs_from_variance = 'all'
-counts = np.linspace(10, 300, 30, dtype=int)
+cpgs_from_variance = '0.005'
+counts = np.linspace(10, 500, 50, dtype=int)
 
 num_realizations = 12
 
@@ -42,6 +42,10 @@ for c in counts:
         df = pd.read_csv(f)
         for p in parts:
             curr_metrics = [f"{p}/" + x for x in metrics]
+            set_cols = set(curr_metrics).intersection(set(df.columns.values))
+            if len(set_cols) != len(curr_metrics):
+                print(set_cols)
+                raise ValueError("Missed columns in csv logger")
             curr_df = df.loc[:, curr_metrics]
             curr_df.dropna(inplace=True)
             for m in curr_metrics:

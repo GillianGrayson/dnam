@@ -5,7 +5,7 @@ project_name = 'lightgbm_unnhpc'
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 seed = 2
 
-input_dim = 390485
+input_dim = 24829
 output_dim = 4
 data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}"
 
