@@ -11,23 +11,23 @@ import plotly.express as px
 check_sum = '121da597d6d3fe7b3b1b22a0ddc26e61'
 seed = 2
 
-cpgs_list_origin = "390485"
+cpgs_list_origin = "24829"
 cpgs_from_model = 'tabnetpl'
 cpgs_from_run = 'average'
-cpgs_from_variance = '0.005'
+cpgs_from_variance = 'all'
 counts = np.linspace(10, 500, 50, dtype=int)
 
 num_realizations = 12
 
 metrics = ["f1_macro", "f1_weighted"]
-parts = ["train", "val", "test"]
+parts = ["test"] # "train", "val"
 main_metric = "test/f1_weighted"
 
 metrics_vals_glob = {f"{p}/{m}": [] for p in parts for m in metrics}
 for c in counts:
     print(c)
     project_name = f'{cpgs_from_model}_unnhpc_{cpgs_from_run}_{cpgs_from_variance}_{c}'
-    data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/models/{project_name}"
+    data_path = f"/home/yusipov_i/data/dnam/datasets/meta/{check_sum}/models/{cpgs_list_origin}/{project_name}"
     files = glob(f"{data_path}/logs/multiruns/*/*/csv/version_0/metrics.csv")
 
     if len(files) != num_realizations:
