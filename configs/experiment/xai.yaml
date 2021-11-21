@@ -10,8 +10,8 @@ defaults:
     - override /trainer: null
     - override /logger: null
 
-checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/121da597d6d3fe7b3b1b22a0ddc26e61/models/tabnetpl_unnhpc_average_all_120/logs/multiruns/2021-11-16_18-49-46/7/checkpoints"
-checkpoint_name: "090.ckpt"
+checkpoint_path: "E:/YandexDisk/Work/pydnameth/datasets/meta/121da597d6d3fe7b3b1b22a0ddc26e61/models/24829/tabnetpl_unnhpc_average_all_340/logs/multiruns/2021-11-19_20-26-52/2/checkpoints"
+checkpoint_name: "414.ckpt"
 num_top_features: 30
 num_examples: 10
 explainer_type: kernel
@@ -19,5 +19,5 @@ explainer_type: kernel
 datamodule:
     batch_size: 500
     path: "E:/YandexDisk/Work/pydnameth/datasets/meta/121da597d6d3fe7b3b1b22a0ddc26e61"
-    cpgs_fn: "E:/YandexDisk/Work/pydnameth/datasets/meta/121da597d6d3fe7b3b1b22a0ddc26e61/cpgs/tabnetpl/average/all/120.xlsx"
+    cpgs_fn: "E:/YandexDisk/Work/pydnameth/datasets/meta/121da597d6d3fe7b3b1b22a0ddc26e61/cpgs/24829/tabnetpl/average/all/340.xlsx"
     statuses_fn: "E:/YandexDisk/Work/pydnameth/datasets/meta/121da597d6d3fe7b3b1b22a0ddc26e61/statuses/4.xlsx"
