@@ -52,3 +52,4 @@ pytorch-tabnet>=3.1.1
 openpyxl>=3.0.7
 shap>=0.39.0
 lightgbm>=3.3.0
+catboost>=1.0.3
