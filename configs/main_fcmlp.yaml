@@ -2,7 +2,7 @@
 
 project_name: fcmlp_2
 
-seed: 322
+seed: 2
 
 is_cv: False
 is_stratified: True

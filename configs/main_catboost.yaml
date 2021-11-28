@@ -1,6 +1,6 @@
 # @package _global_
 
-project_name: tabnetpl_1
+project_name: catboost
 
 seed: 2
 
@@ -10,10 +10,10 @@ n_splits: 5
 
 # specify here default training configuration
 defaults:
-  - trainer: default.yaml
-  - model: tabnetpl.yaml
+  - trainer: catboost.yaml
+  - model: catboost.yaml
   - datamodule: betas_pheno_datamodule.yaml
-  - callbacks: classification.yaml # set this to null if you don't want to use callbacks
+  - callbacks: none.yaml
   - logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
 
   - experiment: null
@@ -29,10 +29,10 @@ defaults:
 # hydra hijacks working directory by changing it to the current log directory,
 # so it's useful to have this path as a special variable
 # learn more here: https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
-work_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinson/full/models/${project_name}" #${hydra:runtime.cwd}
+work_dir: "" #${hydra:runtime.cwd}
 
 # path to folder with data
-data_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/SchizophreniaDepressionParkinson/full"
+data_dir: ""
 
 # use `python run.py debug=true` for easy debugging!
 # this will run 1 train, val and test loop with only 1 batch

@@ -1,0 +1,9 @@
+input_dim: 375614
+output_dim: 6
+loss_function: 'MultiClass'
+learning_rate: 0.03
+depth: 6
+min_data_in_leaf: 1
+max_leaves: 31
+task_type: 'GPU'
+verbose: 1

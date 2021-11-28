@@ -2,17 +2,17 @@
 
 # specify here default training configuration
 defaults:
-  - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
-  - override /model: tabnetpl.yaml
+  - override /trainer: catboost.yaml # choose trainer from 'configs/trainer/'
+  - override /model: catboost.yaml
   - override /datamodule: betas_pheno_datamodule.yaml
-  - override /callbacks: regular.yaml
+  - override /callbacks: none.yaml
   - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
 
 trainer:
-  min_epochs: 1
   max_epochs: 500
+  patience: 100
 
 datamodule:
   batch_size: 64
