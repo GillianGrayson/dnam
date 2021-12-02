@@ -132,7 +132,7 @@ def main(config: DictConfig):
     feature_importances_df.set_index('feature', inplace=True)
     feature_importances_df.to_excel("./feature_importances.xlsx", index=True)
 
-    background_dataloader = train_dataloader
+    background_dataloader = test_dataloader
 
     background, outs_real, indexes = next(iter(background_dataloader))
     probs = model(background)
@@ -140,6 +140,10 @@ def main(config: DictConfig):
     outs_real_np = outs_real.cpu().detach().numpy()
     indexes_np = indexes.cpu().detach().numpy()
     probs_np = probs.cpu().detach().numpy()
+    outs_pred_np = np.argmax(probs_np, axis=1)
+
+    is_correct_pred = (outs_real_np == outs_pred_np)
+    mistakes_ids = np.where(is_correct_pred == False)[0]
 
     if explainer_type == "deep":
         explainer = shap.DeepExplainer(model, background)
@@ -185,6 +189,34 @@ def main(config: DictConfig):
         plt.savefig(f"{st}/beeswarm.pdf")
         plt.close()
 
+    print(f"Number of errors: {len(mistakes_ids)}")
+    for m_id in mistakes_ids:
+        subj_cl = outs_real_np[m_id]
+        subj_pred_cl = outs_pred_np[m_id]
+        subj_global_id = indexes_np[m_id]
+        subj_name = datamodule.betas.index.values[subj_global_id]
+        for st_id, st in enumerate(statuses):
+            probs_real = probs_np[m_id, st_id]
+            probs_expl = explainer.expected_value[st_id] + sum(shap_values[st_id][m_id])
+            if abs(probs_real - probs_expl) > 1e-6:
+                print(f"diff between prediction: {abs(probs_real - probs_expl)}")
+            shap.waterfall_plot(
+                shap.Explanation(
+                    values=shap_values[st_id][m_id],
+                    base_values=explainer.expected_value[st_id],
+                    data=background_np[m_id],
+                    feature_names=datamodule.betas.columns.values
+                ),
+                max_display=num_top_features,
+                show=False
+            )
+            fig = plt.gcf()
+            fig.set_size_inches(18, 10, forward=True)
+            Path(f"errors/real({statuses[subj_cl]})_pred({statuses[subj_pred_cl]})/{subj_name}").mkdir(parents=True, exist_ok=True)
+            fig.savefig(f"errors/real({statuses[subj_cl]})_pred({statuses[subj_pred_cl]})/{subj_name}/waterfall_{st}.pdf")
+            fig.savefig(f"errors/real({statuses[subj_cl]})_pred({statuses[subj_pred_cl]})/{subj_name}/waterfall_{st}.png")
+            plt.close()
+
     passed_examples = {x: 0 for x in range(len(statuses))}
     for subj_id in range(background_np.shape[0]):
         subj_cl = outs_real_np[subj_id]
@@ -196,7 +228,7 @@ def main(config: DictConfig):
 
                 probs_real = probs_np[subj_id, st_id]
                 probs_expl = explainer.expected_value[st_id] + sum(shap_values[st_id][subj_id])
-                if abs(probs_real - probs_expl) > 1e-8:
+                if abs(probs_real - probs_expl) > 1e-6:
                     print(f"diff between prediction: {abs(probs_real - probs_expl)}")
 
                 shap.waterfall_plot(
@@ -223,7 +255,6 @@ def main(config: DictConfig):
     features_best = features[0:num_top_features]
 
     for feat_id, feat in enumerate(features_best):
-
         fig = go.Figure()
         for st_id, st in enumerate(statuses):
             class_shap_values = shap_values[st_id][:, order[feat_id]]
