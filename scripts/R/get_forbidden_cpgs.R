@@ -3,12 +3,17 @@ rm(list=ls())
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
+BiocManager::install("org.Hs.eg.db")
+BiocManager::install("DMRcate")
+BiocManager::install("GO.db")
+BiocManager::install("geneLenDataBase")
 BiocManager::install("ChAMP")
+install.packages('xlsx')
 
 library(ChAMP)
 library("xlsx")
 
-path <- "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSE168739/raw/idat"
+path <- "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSE168739/raw/idat"
 chip_type = "EPIC"
 setwd(path)
 
