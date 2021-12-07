@@ -69,26 +69,35 @@ for feat in features:
 df_ctrl = df.loc[(df[status_col] == 'Control'), :]
 df_case = df.loc[(df[status_col] == 'ESRD'), :]
 
-df_outcome_alive = df_case.loc[(df_case['Disease_outcome'] == 'alive'), list(features.keys()) + ['HET']]
+df_outcome_alive = df_case.loc[(df_case['Disease_outcome'] == 'alive'), list(features.keys()) + ['ID', 'HET']]
 df_outcome_alive['Status'] = 'ESRD Alive'
-df_outcome_dead = df_case.loc[(df_case['Disease_outcome'] == 'dead'), list(features.keys()) + ['HET']]
+df_outcome_dead = df_case.loc[(df_case['Disease_outcome'] == 'dead'), list(features.keys()) + ['ID', 'HET']]
 df_outcome_dead['Status'] = 'ESRD Dead'
-df_outcome_ctrl = df_ctrl.loc[:, list(features.keys()) + ['HET']]
+df_outcome_ctrl = df_ctrl.loc[:, list(features.keys()) + ['ID', 'HET']]
 df_outcome_ctrl['Status'] = 'Control'
 
 df_res = pd.concat([df_outcome_alive, df_outcome_dead, df_outcome_ctrl])
 df_res.rename(columns=features, inplace=True)
 
 
-
-
-fig = px.scatter_matrix(
-    df_res,
-    dimensions=list(features.values()),
-    color=df_res["Status"]
-)
+index_vals = df_res['Status'].astype('category').cat.codes
+fig = go.Figure()
+for st in ['ESRD Dead', 'ESRD Alive', 'Control']:
+    fig.add_trace(
+        go.Splom(
+            dimensions=[dict(label='FGF21',
+                             values=df_res.loc[df_res['Status'] == st, 'FGF21'].values),
+                        dict(label='GDF15',
+                             values=df_res.loc[df_res['Status'] == st, 'GDF15'].values),
+                        dict(label='CXCL9',
+                             values=df_res.loc[df_res['Status'] == st, 'CXCL9'].values)],
+            text=df_res.loc[df_res['Status'] == st, 'ID'].values,
+            name=st
+        )
+    )
 fig.update_traces(diagonal_visible=False)
-fig.update_traces(marker_size=3, selector=dict(type='splom'))
+fig.update_layout({'colorway': px.colors.qualitative.Set1})
+fig.update_traces(hoverinfo='all', selector=dict(type='splom'))
 fig.update_layout(
     template="none",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
@@ -96,22 +105,31 @@ fig.update_layout(
     margin=go.layout.Margin(l=60, r=20, b=60, t=60, pad=0),
     showlegend=True
 )
+fig.update_layout({'colorway': px.colors.qualitative.Set1})
 save_figure(fig, f"{path_save}/scatter_mtx")
+plotly.offline.plot(fig, filename=f"{path_save}/scatter_mtx" + '.html', auto_open=False, show_link=True)
 
 pca = PCA()
 components = pca.fit_transform(df_res[list(features.values())])
-labels = {
-    str(i): f"PC {i+1} ({var:.1f}%)"
-    for i, var in enumerate(pca.explained_variance_ratio_ * 100)
-}
-fig = px.scatter_matrix(
-    components,
-    labels=labels,
-    dimensions=range(3),
-    color=df_res["Status"]
-)
+for pc_id in range(components.shape[1]):
+    df_res[f"PC {pc_id+1}"] = components[:, pc_id]
+fig = go.Figure()
+for st in ['ESRD Dead', 'ESRD Alive', 'Control']:
+    fig.add_trace(
+        go.Splom(
+            dimensions=[dict(label='PC 1',
+                             values=df_res.loc[df_res['Status'] == st, 'PC 1'].values),
+                        dict(label='PC 2',
+                             values=df_res.loc[df_res['Status'] == st, 'PC 2'].values),
+                        dict(label='PC 3',
+                             values=df_res.loc[df_res['Status'] == st, 'PC 3'].values)],
+            text=df_res.loc[df_res['Status'] == st, 'ID'].values,
+            name=st
+        )
+    )
 fig.update_traces(diagonal_visible=False)
-fig.update_traces(marker_size=3, selector=dict(type='splom'))
+fig.update_layout({'colorway': px.colors.qualitative.Set1})
+fig.update_traces(hoverinfo='all', selector=dict(type='splom'))
 fig.update_layout(
     template="none",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
@@ -120,6 +138,7 @@ fig.update_layout(
     showlegend=True
 )
 save_figure(fig, f"{path_save}/scatter_mtx_PCA")
+plotly.offline.plot(fig, filename=f"{path_save}/scatter_mtx_PCA" + '.html', auto_open=False, show_link=True)
 
 statistic_outcome, pvalue_outcome = mannwhitneyu(df_outcome_alive['HET'].values, df_outcome_dead['HET'].values)
 box_outcome = go.Figure()
