@@ -87,6 +87,14 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'gender',
         }
+    elif dataset == "GSE74193":
+        d = {
+            'Status': 'group',
+            'Age': 'age (in years)',
+            'Sex': 'sex (clinical gender)',
+        }
+
+
 
 
     elif dataset == "GSE42861":
@@ -297,6 +305,9 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE87571":
         d = {"F": "Female", "M": "Male"}
+    elif dataset == "GSE74193":
+        d = {"F": "F", "M": "M"}
+
 
     elif dataset == "GSE42861":
         d = {"F": "f", "M": "m"}

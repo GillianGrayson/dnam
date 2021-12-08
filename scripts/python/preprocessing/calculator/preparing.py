@@ -3,9 +3,11 @@ import pandas as pd
 import os
 from scripts.python.pheno.datasets.features import get_column_name, get_sex_dict
 
-dataset = "GSE156994"
-platform = "GPL13534"
+dataset = "GSE74193"
+tissue = "Brain FCTX" #"Blood WB"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
+datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
+platform = datasets_info.loc[dataset, 'platform']
 
 age_col = get_column_name(dataset, 'Age')
 sex_col = get_column_name(dataset, 'Sex')
@@ -19,10 +21,10 @@ pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")
 pheno = pheno[[age_col, sex_col]]
 pheno[sex_col] = pheno[sex_col].map({sex_dict["F"]: 1, sex_dict["M"]: 0})
 pheno.rename(columns={age_col: 'Age', sex_col: 'Female'}, inplace=True)
-pheno["Tissue"] = "Blood WB"
+pheno["Tissue"] = tissue
 pheno.to_csv(f"{save_path}/pheno.csv", na_rep="NA")
 
-with open(f"{path}/calculator/cpgs_horvath_calculator.txt") as f:
+with open(f"{path}/lists/cpgs/cpgs_horvath_calculator.txt") as f:
     cpgs_h = f.read().splitlines()
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
 cpgs_na = list(set(cpgs_h) - set(betas.columns.values))
