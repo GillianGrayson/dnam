@@ -93,6 +93,18 @@ def get_columns_dict(dataset: str):
             'Age': 'age (in years)',
             'Sex': 'sex (clinical gender)',
         }
+    elif dataset == "GSE48325":
+        d = {
+            'Status': 'group',
+            'Age': 'age',
+            'Sex': 'sex (1 - male, 2 - female)',
+        }
+    elif dataset == "GSE61258":
+        d = {
+            'Status': 'diseasestatus',
+            'Age': 'age',
+            'Sex': 'Sex',
+        }
 
 
 
@@ -171,6 +183,15 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'Control')], "Case": [Field("ESRD", "ESRD")] }
     elif dataset == "GSE87571":
         d = {"Control": [Field('Control', 'C')]}
+    elif dataset == "GSE74193":
+        d = {"Control": [Field('Control', 'C')], "Case": [Field('Schizophrenia', 'Schizo')]}
+    elif dataset == "GSE48325":
+        d = {"Control": [Field('Control', 'NORMAL'), Field('Healthy Obese', 'Healthy Obese')], "Case": [Field('Non-alcoholic fatty liver disease', 'NAFLD'), Field('Non-alcoholic steatohepatitis', 'NASH')]}
+    elif dataset == "GSE61258":
+        d = {"Control": [Field('Control', 'Control'), Field('Healthy Obese', 'HealthyObese')], "Case": [Field('Non-alcoholic fatty liver disease', 'NAFLD'), Field('Non-alcoholic steatohepatitis', 'NASH'), Field('Primary biliary cholangitis', 'PBC'), Field('Primary sclerosing cholangitis', 'PSC')]}
+
+
+
 
     elif dataset == "GSE42861":
         d = {"Control": "Normal", "Cases": ["Patient"]}
@@ -223,6 +244,12 @@ def get_default_statuses_ids(dataset: str):
         statuses = {"Control": [0], "Case": [0]}
     elif dataset == "GSE87571":
         statuses = {"Control": [0]}
+    elif dataset == "GSE74193":
+        statuses = {"Control": [0], 'Case': [0]}
+    elif dataset == "GSE48325":
+        statuses = {"Control": [0], 'Case': [0]}
+    elif dataset == "GSE61258":
+        statuses = {"Control": [0], 'Case': [0]}
     return statuses
 
 
@@ -251,28 +278,6 @@ def get_statuses_datasets_dict():
         'Healthy': ['GSE87571']
     }
     return d
-
-
-def get_status_names_dict22(dataset: str):
-    d = {
-        'GSE152027': {"Control": ["Control"], "Cases": ['Schizophrenia', 'First episode psychosis']},
-        'GSE42861': {"Control": "Control", "Case": 'Rheumatoid Arthritis'},
-        'GSE80417': {"Control": "Control", "Case": 'Schizophrenia'},
-        'GSE84727': {"Control": "Control", "Case": 'Schizophrenia'},
-        'GSE125105': {"Control": "Control", "Case": 'Depression'},
-        'GSE147221': {"Control": "Control", "Case": 'Schizophrenia'},
-        'GSE168739': {"Control": "Control", "Case": ''},
-        'GSE111629': {"Control": "Control", "Case": "Parkinson's disease"},
-        'GSE128235': {"Control": "Control", "Case": 'Depression'},
-        'GSE72774': {"Control": "Control", "Case": "Parkinson's disease"},
-        'GSE53740': {"Control": "Control", "Case": 'Frontotemporal dementia'},
-        'GSE87648': {"Control": "Control", "Case": "Crohn's disease"},
-        'GSE144858': {"Control": "Control", "Case": "Alzheimer's disease"},
-        'GSE106648': {"Control": "Control", "Case": "Multiple Sclerosis"},
-        'GSE156994': {"Control": "Control", "Case": "Sporadic Creutzfeldt-Jakob disease"},
-        'GSEUNN': {"Control": "Control", "Case": "ESRD"},
-    }
-    return d[dataset]
 
 
 def get_sex_dict(dataset: str):
@@ -307,6 +312,10 @@ def get_sex_dict(dataset: str):
         d = {"F": "Female", "M": "Male"}
     elif dataset == "GSE74193":
         d = {"F": "F", "M": "M"}
+    elif dataset == "GSE48325":
+        d = {"F": 2, "M": 1}
+    elif dataset == "GSE61258":
+        d = {"F": "female", "M": "male"}
 
 
     elif dataset == "GSE42861":
