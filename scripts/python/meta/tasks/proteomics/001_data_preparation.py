@@ -1,15 +1,8 @@
 import pandas as pd
-from scripts.python.routines.manifest import get_manifest
-import numpy as np
-import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scripts.python.pheno.datasets.features import get_column_name, get_default_statuses_ids, get_status_dict, get_default_statuses, get_sex_dict
-from sklearn.feature_selection import VarianceThreshold
 from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
-from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
 from scripts.python.routines.betas import betas_drop_na
-import hashlib
-import pickle
 import plotly.graph_objects as go
 from scripts.python.routines.manifest import get_manifest
 from scripts.python.routines.plot.save import save_figure
