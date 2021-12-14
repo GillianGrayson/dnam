@@ -13,6 +13,7 @@ from scripts.python.routines.plot.layout import add_layout
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scripts.python.pheno.datasets.features import get_column_name, get_default_statuses_ids, get_status_dict, get_default_statuses, get_sex_dict
 from pathlib import Path
+from scripts.python.routines.betas import betas_drop_na
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -55,7 +56,7 @@ for dataset in datasets:
     pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
-
+    betas = betas_drop_na(betas)
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
     df_1 = df.loc[df[status_col].isin(status_1_cols), :]
     df_2 = df.loc[df[status_col].isin(status_2_cols), :]

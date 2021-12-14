@@ -1,11 +1,11 @@
 import pandas as pd
 
 
-dataset = "GSE74193"
+dataset = "GSE61446"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 platform = datasets_info.loc[dataset, 'platform']
-features = ["DNAmAge", "CD8T", "CD4T", "NK", "Bcell", "Mono", "Gran", "propNeuron", "DNAmAgeHannum", "DNAmPhenoAge", "DNAmGDF15", "DNAmGrimAge", "IEAA", "EEAA",	"IEAA.Hannum"]
+features = ["DNAmAge", "CD8T", "CD4T", "NK", "Bcell", "Mono", "Gran", "propNeuron", "DNAmAgeHannum", "DNAmPhenoAge", "DNAmGDF15", "DNAmGrimAge", "IEAA", "EEAA", "IEAA.Hannum"]
 
 pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")
 pheno = pheno.drop(features, axis=1, errors='ignore')

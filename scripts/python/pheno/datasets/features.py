@@ -190,13 +190,13 @@ def get_status_dict(dataset: str):
     elif dataset == "GSE87571":
         d = {"Control": [Field('Control', 'C')]}
     elif dataset == "GSE74193":
-        d = {"Control": [Field('Control', 'C')], "Case": [Field('Schizophrenia', 'Schizo')]}
+        d = {"Control": [Field('Control', 'Control')], "Case": [Field('Schizophrenia', 'Schizo')]}
     elif dataset == "GSE48325":
         d = {"Control": [Field('Control', 'NORMAL'), Field('Healthy Obese', 'Healthy Obese')], "Case": [Field('Non-alcoholic fatty liver disease', 'NAFLD'), Field('Non-alcoholic steatohepatitis', 'NASH')]}
     elif dataset == "GSE61258":
         d = {"Control": [Field('Control', 'Control'), Field('Healthy Obese', 'HealthyObese')], "Case": [Field('Non-alcoholic fatty liver disease', 'NAFLD'), Field('Non-alcoholic steatohepatitis', 'NASH'), Field('Primary biliary cholangitis', 'PBC'), Field('Primary sclerosing cholangitis', 'PSC')]}
     elif dataset == "GSE61446":
-        d = {"Control": [Field('Control', 'severely obese patient')]}
+        d = {"Control": [Field('Healthy Obese', 'severely obese patient')]}
 
 
 
@@ -255,9 +255,9 @@ def get_default_statuses_ids(dataset: str):
     elif dataset == "GSE74193":
         statuses = {"Control": [0], 'Case': [0]}
     elif dataset == "GSE48325":
-        statuses = {"Control": [0], 'Case': [0]}
+        statuses = {"Control": [0, 1], 'Case': [0, 1]}
     elif dataset == "GSE61258":
-        statuses = {"Control": [0], 'Case': [0]}
+        statuses = {"Control": [0, 1], 'Case': [0, 1, 2, 3]}
     elif dataset == "GSE61446":
         statuses = {"Control": [0]}
     return statuses

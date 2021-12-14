@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import os
 import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.filter import filter_pheno
-from scripts.python.pheno.datasets.features import get_column_name, get_status_names_dict, get_status_dict, \
+from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, \
     get_sex_dict
 from sklearn.feature_selection import VarianceThreshold
 from skfeature.function.similarity_based import lap_score
@@ -173,7 +173,7 @@ if metric in ["variance"]:
 
     ololo = 1
 else:
-    with open(f"cpgs.txt") as f:
+    with open(f"../meta/cpgs.txt") as f:
         cpgs_target = f.read().splitlines()
     cpgs_target = list(set.intersection(set(betas_all.columns.values), set(cpgs_target)))
 
