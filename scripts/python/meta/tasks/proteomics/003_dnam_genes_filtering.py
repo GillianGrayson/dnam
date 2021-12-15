@@ -4,9 +4,12 @@ from scipy.stats import pearsonr, spearmanr, mannwhitneyu
 from scripts.python.routines.manifest import get_manifest
 from scripts.python.EWAS.routines.correction import correct_pvalues
 from tqdm import tqdm
+from scripts.python.routines.sections import get_sections
 import re
 import upsetplot as upset
 import matplotlib.pyplot as plt
+
+
 
 
 def plot_upset(genes_universe, dict_of_lists, path_save, suffix):
@@ -77,6 +80,7 @@ for tissue in tissues:
     genes_universe.update(set(get_genes_list(stats, 'Gene', ['non-genic'])))
 
     AA = stats.loc[(stats[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
+    #AA = stats.loc[(stats[f"spearman_r"] > 0.5) | (stats[f"spearman_r"] < -0.5), :]
     AA_genes = get_genes_list(AA, 'Gene', ['non-genic'])
     AA_lists[tissue] = AA_genes
     print(f"{tissue} AA genes: {len(AA_genes)}")
@@ -86,14 +90,41 @@ for tissue in tissues:
     SS_lists[tissue] = SS_genes
     print(f"{tissue} SS genes: {len(SS_genes)}")
 
-    SSAA = SS.loc[(SS[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
-    SSAA_genes = get_genes_list(SSAA, 'Gene', ['non-genic'])
+    print(f"{tissue} SSAA checking: {len(set(AA_genes).intersection(set(SS_genes)))}")
+
+    SSAA = stats.loc[(stats[f"mannwhitney_pval_{corr_type}"] < thld_sex) & (stats[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
+    #SSAA_genes = get_genes_list(SSAA, 'Gene', ['non-genic'])
+    SSAA_genes = list(set(AA_genes).intersection(set(SS_genes)))
     SSAA_lists[tissue] = SSAA_genes
     print(f"{tissue} SSAA genes: {len(SSAA_genes)}")
 
+common_genes = {}
+
+AA_sets = [set(x) for x in AA_lists.values()]
+AA_tags = [x for x in AA_lists.keys()]
+AA_sections = get_sections(AA_sets)
 plot_upset(genes_universe, AA_lists, path_save, 'AA')
+common_genes['AA'] = list(AA_sections['1'*len(AA_tags)])
+
+SS_sets = [set(x) for x in SS_lists.values()]
+SS_tags = [x for x in SS_lists.keys()]
+SS_sections = get_sections(SS_sets)
 plot_upset(genes_universe, SS_lists, path_save, 'SS')
+common_genes['SS'] = list(SS_sections['1'*len(SS_tags)])
+
+SSAA_sets = [set(x) for x in SSAA_lists.values()]
+SSAA_tags = [x for x in SSAA_lists.keys()]
+SSAA_sections = get_sections(SSAA_sets)
 plot_upset(genes_universe, SSAA_lists, path_save, 'SSAA')
+common_genes['SSAA'] = list(SSAA_sections['1'*len(SSAA_tags)])
+
+plot_upset(genes_universe, common_genes, path_save, 'common')
+
+# GTEX = pd.read_excel(f"{proteomic_path}/GTEx.xlsx", index_col='Description')
+
+# ololo = 1
+
+
 
 
 
