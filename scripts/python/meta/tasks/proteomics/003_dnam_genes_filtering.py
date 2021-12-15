@@ -5,6 +5,19 @@ from scripts.python.routines.manifest import get_manifest
 from scripts.python.EWAS.routines.correction import correct_pvalues
 from tqdm import tqdm
 import re
+import upsetplot as upset
+import matplotlib.pyplot as plt
+
+
+def plot_upset(genes_universe, dict_of_lists, path_save, suffix):
+    upset_df = pd.DataFrame(index=list(genes_universe))
+    for k, v in dict_of_lists.items():
+        upset_df[k] = upset_df.index.isin(v)
+    upset_df = upset_df.set_index(list(dict_of_lists.keys()))
+    fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
+    plt.savefig(f"{path_save}/figs/upset_{suffix}.png", bbox_inches='tight')
+    plt.savefig(f"{path_save}/figs/upset_{suffix}.pdf", bbox_inches='tight')
+
 
 def get_genes_list(df: pd.DataFrame, col: str, emptys):
     genes_raw = df.loc[:, col].values
@@ -14,6 +27,7 @@ def get_genes_list(df: pd.DataFrame, col: str, emptys):
             genes = set(re.split(r'[.;]+', genes_row))
             genes_all.update(genes)
     return list(genes_all)
+
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
@@ -52,12 +66,15 @@ SSAA_prot_genes = get_genes_list(SSAA_prot, 'EntrezGeneSymbol', [np.nan])
 SSAA_lists['Proteomic'] = SSAA_prot_genes
 print(f"Proteomic SS genes: {len(SSAA_prot_genes)}")
 
+genes_universe = set(get_genes_list(prot, 'EntrezGeneSymbol', [np.nan]))
+
 for tissue in tissues:
     tmp_path = f"{path_save}/{tissue}"
 
     metrics = ['pearson_r', 'pearson_pval', 'spearman_r', 'spearman_pval', 'mannwhitney_stat', 'mannwhitney_pval']
     corr_types = ['fdr_bh', 'bonferroni']
     stats = pd.read_pickle(f"{tmp_path}/stats.pkl")
+    genes_universe.update(set(get_genes_list(stats, 'Gene', ['non-genic'])))
 
     AA = stats.loc[(stats[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
     AA_genes = get_genes_list(AA, 'Gene', ['non-genic'])
@@ -73,5 +90,10 @@ for tissue in tissues:
     SSAA_genes = get_genes_list(SSAA, 'Gene', ['non-genic'])
     SSAA_lists[tissue] = SSAA_genes
     print(f"{tissue} SSAA genes: {len(SSAA_genes)}")
+
+plot_upset(genes_universe, AA_lists, path_save, 'AA')
+plot_upset(genes_universe, SS_lists, path_save, 'SS')
+plot_upset(genes_universe, SSAA_lists, path_save, 'SSAA')
+
 
 
