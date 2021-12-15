@@ -211,4 +211,13 @@ for x_type,y_type in [["Whole Blood", "Brain - Frontal Cortex BA9"], ["Whole Blo
     )
     add_layout(fig, f"log10(TPM + 1)", f"log10(TPM + 1)", f"")
     fig.update_layout({'colorway': ["blue", "green", "red"]})
+    fig.update_layout(
+        margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=80,
+        t=50,
+        pad=0
+        )
+    )
     save_figure(fig, f"{path_save}/figs/x({tissue_names[x_type]})_y({tissue_names[y_type]})")
