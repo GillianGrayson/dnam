@@ -1,15 +1,17 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import pearsonr, spearmanr, mannwhitneyu
 from scripts.python.routines.manifest import get_manifest
-from scripts.python.EWAS.routines.correction import correct_pvalues
-from tqdm import tqdm
 from scripts.python.routines.sections import get_sections
 import re
 import upsetplot as upset
+from upsetplot import UpSet
 import matplotlib.pyplot as plt
-
-
+import plotly.express as px
+import plotly.graph_objects as go
+from scripts.python.routines.plot.save import save_figure
+from scripts.python.routines.plot.scatter import add_scatter_trace
+from scripts.python.routines.plot.layout import add_layout
+from pathlib import Path
 
 
 def plot_upset(genes_universe, dict_of_lists, path_save, suffix):
@@ -118,13 +120,95 @@ SSAA_sections = get_sections(SSAA_sets)
 plot_upset(genes_universe, SSAA_lists, path_save, 'SSAA')
 common_genes['SSAA'] = list(SSAA_sections['1'*len(SSAA_tags)])
 
-plot_upset(genes_universe, common_genes, path_save, 'common')
+upset_df = pd.DataFrame(index=list(genes_universe))
+for k, v in common_genes.items():
+    upset_df[k] = upset_df.index.isin(v)
+upset_df = upset_df.set_index(list(common_genes.keys()))
+fig = UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None)
+fig.style_subsets(present="AA", absent="SS", facecolor='b')
+fig.style_subsets(present="SS", absent="AA", facecolor='g')
+fig.style_subsets(present=["SS", "AA"], facecolor='r')
+fig.plot()
+plt.savefig(f"{path_save}/figs/upset_common.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/figs/upset_common.pdf", bbox_inches='tight')
 
-# GTEX = pd.read_excel(f"{proteomic_path}/GTEx.xlsx", index_col='Description')
+common_sets = [set(x) for x in common_genes.values()]
+common_tags = [x for x in common_genes.keys()]
+common_sections = get_sections(common_sets)
 
-# ololo = 1
+if Path(f"{proteomic_path}/GTEx.pkl").is_file():
+    GTEx = pd.read_pickle(f"{proteomic_path}/GTEx.pkl")
+else:
+    GTEx = pd.read_excel(f"{proteomic_path}/GTEx.xlsx", index_col='Name')
+    GTEx.to_pickle(f"{proteomic_path}/GTEx.pkl")
 
+AA_genes = list(common_sections['100'])
+SS_genes = list(common_sections['010'])
+SSAA_genes = list(common_sections['111'])
 
+AA_GTEx = GTEx.loc[GTEx['Description'].isin(AA_genes), :]
+SS_GTEx = GTEx.loc[GTEx['Description'].isin(SS_genes), :]
+SSAA_GTEx = GTEx.loc[GTEx['Description'].isin(SSAA_genes), :]
 
-
-
+tissue_names = {
+    "Whole Blood": "Whole Blood",
+    "Brain - Frontal Cortex BA9": "Brain Frontal Cortex",
+    "Liver": "Liver"
+}
+for x_type,y_type in [["Whole Blood", "Brain - Frontal Cortex BA9"], ["Whole Blood", "Liver"], ["Brain - Frontal Cortex BA9", "Liver"]]:
+    fig = go.Figure()
+    xs = AA_GTEx.loc[:, x_type].values
+    ys = AA_GTEx.loc[:, y_type].values
+    fig.add_trace(
+        go.Scatter(
+            x=np.log10(AA_GTEx.loc[:, x_type].values + 1.0),
+            y=np.log10(AA_GTEx.loc[:, y_type].values + 1.0),
+            showlegend=True,
+            name="Age-Associated (AA)",
+            mode="markers",
+            marker=dict(
+                size=3,
+                opacity=0.25,
+                line=dict(
+                    width=0.1
+                )
+            )
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=np.log10(SS_GTEx.loc[:, x_type].values + 1.0),
+            y=np.log10(SS_GTEx.loc[:, y_type].values + 1.0),
+            showlegend=True,
+            name="Sex-Specific (SS)",
+            mode="markers",
+            marker=dict(
+                size=8,
+                opacity=0.8,
+                line=dict(
+                    width=1
+                )
+            )
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=np.log10(SSAA_GTEx.loc[:, x_type].values + 1.0),
+            y=np.log10(SSAA_GTEx.loc[:, y_type].values + 1.0),
+            showlegend=True,
+            name="Sex-Specific Age-Associated (SSAA)",
+            mode="markers+text",
+            text=SSAA_GTEx.loc[:, 'Description'].values,
+            textposition="middle right",
+            marker=dict(
+                size=10,
+                opacity=0.8,
+                line=dict(
+                    width=1
+                )
+            )
+        )
+    )
+    add_layout(fig, f"log10(TPM + 1)", f"log10(TPM + 1)", f"")
+    fig.update_layout({'colorway': ["blue", "green", "red"]})
+    save_figure(fig, f"{path_save}/figs/x({tissue_names[x_type]})_y({tissue_names[y_type]})")
