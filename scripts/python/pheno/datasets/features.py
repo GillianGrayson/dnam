@@ -111,6 +111,12 @@ def get_columns_dict(dataset: str):
             'Age': 'subject age',
             'Sex': 'gender',
         }
+    elif dataset == "GSE152026":
+        d = {
+            'Status': 'phenotype',
+            'Age': 'age',
+            'Sex': 'Sex',
+        }
 
 
 
@@ -197,6 +203,9 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'Control'), Field('Healthy Obese', 'HealthyObese')], "Case": [Field('Non-alcoholic fatty liver disease', 'NAFLD'), Field('Non-alcoholic steatohepatitis', 'NASH'), Field('Primary biliary cholangitis', 'PBC'), Field('Primary sclerosing cholangitis', 'PSC')]}
     elif dataset == "GSE61446":
         d = {"Control": [Field('Healthy Obese', 'severely obese patient')]}
+    elif dataset == "GSE152026":
+        d = {"Control": [Field('Control', 'Control')], "Case": [Field('First episode psychosis', 'Case')]}
+
 
 
 
@@ -260,6 +269,8 @@ def get_default_statuses_ids(dataset: str):
         statuses = {"Control": [0, 1], 'Case': [0, 1, 2, 3]}
     elif dataset == "GSE61446":
         statuses = {"Control": [0]}
+    elif dataset == "GSE152026":
+        statuses = {"Control": [0], 'Case': [0]}
     return statuses
 
 
@@ -328,6 +339,8 @@ def get_sex_dict(dataset: str):
         d = {"F": "female", "M": "male"}
     elif dataset == "GSE61446":
         d = {"F": "female", "M": "male"}
+    elif dataset == "GSE152026":
+        d = {"F": "Female", "M": "Male"}
 
 
     elif dataset == "GSE42861":
