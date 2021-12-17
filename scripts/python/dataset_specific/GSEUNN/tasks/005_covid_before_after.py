@@ -14,7 +14,7 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 from scripts.python.routines.manifest import get_genes_list
 
 
-path = f"E:/YandexDisk/Work/pydnameth/datasets"
+path = f"C:/YandexDisk/Work/pydnameth/datasets"
 dataset = "GSEUNN"
 
 features = ["DNAmAgeAcc", "DNAmAgeHannumAcc", "DNAmPhenoAgeAcc", "DNAmGrimAgeAcc"]
@@ -23,7 +23,7 @@ num_cpgs_to_plot = 10
 
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 platform = datasets_info.loc[dataset, 'platform']
-manifest = get_manifest(platform)
+manifest = get_manifest(platform, path=path)
 
 path_save = f"{path}/{platform}/{dataset}/special/005_covid_before_after"
 Path(f"{path_save}/cpgs").mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ result.to_excel(f"{path_save}/cpgs.xlsx", index=True)
 cols = ['mw_pval', 'mw_pval_fdr_bh', 'mw_pval_bonferroni']
 for c in cols:
     tmp_df = result.loc[(result[c] < 0.05), :]
-    tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'])
+    tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'], ';')
     np.savetxt(f"{path_save}/genes_{c}.txt", tmp_genes, fmt="%s")
 
 result = result.head(num_cpgs_to_plot)
