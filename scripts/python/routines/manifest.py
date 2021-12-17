@@ -8,8 +8,7 @@ def get_genes_list(df: pd.DataFrame, col: str, emptys, separators):
     genes_all = set()
     for genes_row in genes_raw:
         if genes_row not in emptys:
-            pattern = [f"[{separators}]+"]
-            genes = set(re.split(r"{}".format(pattern), genes_row))
+            genes = set(re.split(separators, genes_row))
             genes_all.update(genes)
     return list(genes_all)
 

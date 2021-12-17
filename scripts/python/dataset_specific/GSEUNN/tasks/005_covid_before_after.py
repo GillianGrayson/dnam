@@ -14,7 +14,7 @@ from scripts.python.EWAS.routines.correction import correct_pvalues
 from scripts.python.routines.manifest import get_genes_list
 
 
-path = f"C:/YandexDisk/Work/pydnameth/datasets"
+path = f"E:/YandexDisk/Work/pydnameth/datasets"
 dataset = "GSEUNN"
 
 features = ["DNAmAgeAcc", "DNAmAgeHannumAcc", "DNAmPhenoAgeAcc", "DNAmGrimAgeAcc"]
@@ -88,7 +88,7 @@ result.to_excel(f"{path_save}/cpgs.xlsx", index=True)
 cols = ['mw_pval', 'mw_pval_fdr_bh', 'mw_pval_bonferroni']
 for c in cols:
     tmp_df = result.loc[(result[c] < 0.05), :]
-    tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'], ';')
+    tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'], ';+')
     np.savetxt(f"{path_save}/genes_{c}.txt", tmp_genes, fmt="%s")
 
 result = result.head(num_cpgs_to_plot)
