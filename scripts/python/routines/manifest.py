@@ -1,5 +1,16 @@
 import pandas as pd
 import os
+import re
+
+
+def get_genes_list(df: pd.DataFrame, col: str, emptys):
+    genes_raw = df.loc[:, col].values
+    genes_all = set()
+    for genes_row in genes_raw:
+        if genes_row not in emptys:
+            genes = set(re.split(r'[.;]+', genes_row))
+            genes_all.update(genes)
+    return list(genes_all)
 
 
 def process_str_elem(x, delimiter: str = ';', missed: str = 'non-genic'):

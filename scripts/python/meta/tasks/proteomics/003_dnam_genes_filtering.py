@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
+from scripts.python.routines.manifest import get_genes_list
 from pathlib import Path
 
 
@@ -22,16 +23,6 @@ def plot_upset(genes_universe, dict_of_lists, path_save, suffix):
     fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
     plt.savefig(f"{path_save}/figs/upset_{suffix}.png", bbox_inches='tight')
     plt.savefig(f"{path_save}/figs/upset_{suffix}.pdf", bbox_inches='tight')
-
-
-def get_genes_list(df: pd.DataFrame, col: str, emptys):
-    genes_raw = df.loc[:, col].values
-    genes_all = set()
-    for genes_row in genes_raw:
-        if genes_row not in emptys:
-            genes = set(re.split(r'[.;]+', genes_row))
-            genes_all.update(genes)
-    return list(genes_all)
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"

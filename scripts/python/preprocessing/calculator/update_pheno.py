@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-dataset = "GSE61446"
+dataset = "GSE152026"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 platform = datasets_info.loc[dataset, 'platform']

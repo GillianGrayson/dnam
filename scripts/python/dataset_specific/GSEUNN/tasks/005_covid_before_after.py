@@ -11,6 +11,7 @@ from scripts.python.routines.betas import betas_drop_na
 from pathlib import Path
 from tqdm import tqdm
 from scripts.python.EWAS.routines.correction import correct_pvalues
+from scripts.python.routines.manifest import get_genes_list
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -34,6 +35,8 @@ betas = betas_drop_na(betas)
 df = pd.merge(pheno, betas, left_index=True, right_index=True)
 df_bef = df.loc[(df['COVID'] == 'before') & (df['Sample_Chronology'] == 1) & (df['ID'] != 'I64_1'), :]
 df_aft = df.loc[(df['COVID'] == 'after') & (df['Sample_Chronology'] == 2) & (df['ID'] != 'I64_2'), :]
+print(f"before: {df_bef.shape[0]}")
+print(f"after: {df_aft.shape[0]}")
 
 result = {'Feature': features}
 metrics = ['mw_stat', 'mw_pval']
@@ -81,8 +84,14 @@ result = pd.DataFrame(result)
 result.set_index("CpG", inplace=True)
 result.sort_values(['mw_pval'], ascending=[True], inplace=True)
 result.to_excel(f"{path_save}/cpgs.xlsx", index=True)
-result = result.head(num_cpgs_to_plot)
 
+cols = ['mw_pval', 'mw_pval_fdr_bh', 'mw_pval_bonferroni']
+for c in cols:
+    tmp_df = result.loc[(result[c] < 0.05), :]
+    tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'])
+    np.savetxt(f"{path_save}/genes_{c}.txt", tmp_genes, fmt="%s")
+
+result = result.head(num_cpgs_to_plot)
 for cpg_id, (cpg, row) in enumerate(result.iterrows()):
     fig = go.Figure()
     add_box_trace(fig, df_bef[cpg].values, 'Before')
