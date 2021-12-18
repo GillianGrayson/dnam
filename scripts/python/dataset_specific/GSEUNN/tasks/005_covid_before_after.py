@@ -34,7 +34,14 @@ betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
 betas = betas_drop_na(betas)
 df = pd.merge(pheno, betas, left_index=True, right_index=True)
 df_bef = df.loc[(df['COVID'] == 'before') & (df['Sample_Chronology'] == 1) & (df['ID'] != 'I64_1'), :]
+df_bef.sort_values(['ID'], ascending=[True], inplace=True)
+ids_bef = df_bef['ID'].values + '+'
 df_aft = df.loc[(df['COVID'] == 'after') & (df['Sample_Chronology'] == 2) & (df['ID'] != 'I64_2'), :]
+df_aft.sort_values(['ID'], ascending=[True], inplace=True)
+ids_aft = df_aft['ID'].values
+if list(ids_bef) != list(ids_aft):
+    raise ValueError("Wrong order of subjects in before and after")
+
 print(f"before: {df_bef.shape[0]}")
 print(f"after: {df_aft.shape[0]}")
 
@@ -56,13 +63,13 @@ for f_id, (f, row) in enumerate(result.iterrows()):
     fig = go.Figure()
     add_box_trace(fig, df_bef[f].values, 'Before')
     add_box_trace(fig, df_aft[f].values, 'After')
-    add_layout(fig, '', "Methylation Level", f"{f}: {row['mw_pval']:0.4e}")
+    add_layout(fig, '', f"{f}", f"MW p-value: {row['mw_pval']:0.4e}")
     fig.update_layout({'colorway': ['blue', "red"]})
     save_figure(fig, f"{path_save}/features/{f_id}_{f}_box")
     fig = go.Figure()
     add_violin_trace(fig, df_bef[f].values, 'Before')
     add_violin_trace(fig, df_aft[f].values, 'After')
-    add_layout(fig, '', "Methylation Level", f"{f}: {row['mw_pval']:0.4e}")
+    add_layout(fig, '', f"{f}", f"MW p-value: {row['mw_pval']:0.4e}")
     fig.update_layout({'colorway': ['blue', 'red']})
     save_figure(fig, f"{path_save}/features/{f_id}_{f}_vio")
 

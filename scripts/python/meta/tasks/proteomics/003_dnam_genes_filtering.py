@@ -50,19 +50,19 @@ t1 = pd.read_excel(f"{proteomic_path}/proteomic_data/T1.xlsx", index_col='ID')
 t4 = pd.read_excel(f"{proteomic_path}/proteomic_data/T4.xlsx", index_col='ID')
 prot = pd.merge(t1, t4, left_index=True, right_index=True)
 SS_prot = prot.loc[prot['q.Sex'] < 0.05, :]
-SS_prot_genes = get_genes_list(SS_prot, 'EntrezGeneSymbol', [np.nan])
+SS_prot_genes = get_genes_list(SS_prot, 'EntrezGeneSymbol', [np.nan], r'[.;]+')
 SS_lists['Proteomic'] = SS_prot_genes
 print(f"Proteomic SS genes: {len(SS_prot_genes)}")
 AA_prot = prot.loc[prot['q.Age'] < 0.05, :]
-AA_prot_genes = get_genes_list(AA_prot, 'EntrezGeneSymbol', [np.nan])
+AA_prot_genes = get_genes_list(AA_prot, 'EntrezGeneSymbol', [np.nan], r'[.;]+')
 AA_lists['Proteomic'] = AA_prot_genes
 print(f"Proteomic AA genes: {len(AA_prot_genes)}")
 SSAA_prot = prot.loc[(prot['q.Sex'] < 0.05) & (prot['q.Age'] < 0.05), :]
-SSAA_prot_genes = get_genes_list(SSAA_prot, 'EntrezGeneSymbol', [np.nan])
+SSAA_prot_genes = get_genes_list(SSAA_prot, 'EntrezGeneSymbol', [np.nan], r'[.;]+')
 SSAA_lists['Proteomic'] = SSAA_prot_genes
 print(f"Proteomic SS genes: {len(SSAA_prot_genes)}")
 
-genes_universe = set(get_genes_list(prot, 'EntrezGeneSymbol', [np.nan]))
+genes_universe = set(get_genes_list(prot, 'EntrezGeneSymbol', [np.nan], r'[.;]+'))
 
 for tissue in tissues:
     tmp_path = f"{path_save}/{tissue}"
@@ -70,16 +70,16 @@ for tissue in tissues:
     metrics = ['pearson_r', 'pearson_pval', 'spearman_r', 'spearman_pval', 'mannwhitney_stat', 'mannwhitney_pval']
     corr_types = ['fdr_bh', 'bonferroni']
     stats = pd.read_pickle(f"{tmp_path}/stats.pkl")
-    genes_universe.update(set(get_genes_list(stats, 'Gene', ['non-genic'])))
+    genes_universe.update(set(get_genes_list(stats, 'Gene', ['non-genic'], ';+')))
 
     AA = stats.loc[(stats[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
     #AA = stats.loc[(stats[f"spearman_r"] > 0.5) | (stats[f"spearman_r"] < -0.5), :]
-    AA_genes = get_genes_list(AA, 'Gene', ['non-genic'])
+    AA_genes = get_genes_list(AA, 'Gene', ['non-genic'], ';+')
     AA_lists[tissue] = AA_genes
     print(f"{tissue} AA genes: {len(AA_genes)}")
 
     SS = stats.loc[(stats[f"mannwhitney_pval_{corr_type}"] < thld_sex), :]
-    SS_genes = get_genes_list(SS, 'Gene', ['non-genic'])
+    SS_genes = get_genes_list(SS, 'Gene', ['non-genic'], ';+')
     SS_lists[tissue] = SS_genes
     print(f"{tissue} SS genes: {len(SS_genes)}")
 
