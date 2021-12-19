@@ -21,6 +21,11 @@ features = ["DNAmAgeAcc", "DNAmAgeHannumAcc", "DNAmPhenoAgeAcc", "DNAmGrimAgeAcc
 
 num_cpgs_to_plot = 10
 
+thlds = [0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001]
+
+covid_genes_df = pd.read_excel(f"{path}/lists/cpgs/covid/Balnis2021.xlsx")
+covid_genes = set(get_genes_list(covid_genes_df, 'Gene', [np.nan], ' +'))
+
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 platform = datasets_info.loc[dataset, 'platform']
 manifest = get_manifest(platform, path=path)
@@ -92,11 +97,21 @@ result.set_index("CpG", inplace=True)
 result.sort_values(['mw_pval'], ascending=[True], inplace=True)
 result.to_excel(f"{path_save}/cpgs.xlsx", index=True)
 
-cols = ['mw_pval', 'mw_pval_fdr_bh', 'mw_pval_bonferroni']
-for c in cols:
-    tmp_df = result.loc[(result[c] < 0.05), :]
-    tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'], ';+')
-    np.savetxt(f"{path_save}/genes_{c}.txt", tmp_genes, fmt="%s")
+for thld in thlds:
+    cols = ['mw_pval', 'mw_pval_fdr_bh', 'mw_pval_bonferroni']
+    for c in cols:
+        tmp_df = result.loc[(result[c] < thld), :]
+        tmp_genes = get_genes_list(tmp_df, 'Gene', ['non-genic'], ';+')
+        tmp_dict = {'Gene': tmp_genes}
+        tmp_dict['Is in Balnis2021?'] = []
+        for gene in tmp_genes:
+            if gene in covid_genes:
+                tmp_dict['Is in Balnis2021?'].append('Yes')
+            else:
+                tmp_dict['Is in Balnis2021?'].append('No')
+        tmp_save_df = pd.DataFrame(tmp_dict)
+        tmp_save_df.to_excel(f"{path_save}/genes_{c}_{thld}.xlsx", index=False)
+        # np.savetxt(f"{path_save}/genes_{c}_{thld}.txt", tmp_genes, fmt="%s")
 
 result = result.head(num_cpgs_to_plot)
 for cpg_id, (cpg, row) in enumerate(result.iterrows()):

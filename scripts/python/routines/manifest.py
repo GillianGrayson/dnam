@@ -4,7 +4,7 @@ import re
 
 
 def get_genes_list(df: pd.DataFrame, col: str, emptys, separators):
-    genes_raw = df.loc[:, col].values
+    genes_raw = df.loc[:, col].values.astype(str)
     genes_all = set()
     for genes_row in genes_raw:
         if genes_row not in emptys:
