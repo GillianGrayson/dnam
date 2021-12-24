@@ -23,7 +23,7 @@ num_cpgs_to_plot = 10
 
 thlds = [0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001]
 
-covid_genes_df = pd.read_excel(f"{path}/lists/cpgs/covid/Balnis2021.xlsx")
+covid_genes_df = pd.read_excel(f"{path}/lists/genes/covid/Balnis2021.xlsx")
 covid_genes = set(get_genes_list(covid_genes_df, 'Gene', [np.nan], ' +'))
 
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
@@ -49,6 +49,11 @@ if list(ids_bef) != list(ids_aft):
 
 print(f"before: {df_bef.shape[0]}")
 print(f"after: {df_aft.shape[0]}")
+
+df_diff = pd.DataFrame(index=df_aft.index)
+for f in features:
+    feat_name = f[0:-3]
+    df_diff[feat_name] = df_aft.loc[: ,feat_name].values - df_bef.loc[: ,feat_name].values
 
 result = {'Feature': features}
 metrics = ['mw_stat', 'mw_pval']
