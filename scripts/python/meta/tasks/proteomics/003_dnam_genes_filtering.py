@@ -13,6 +13,7 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.manifest import get_genes_list
 from pathlib import Path
+import scripts.python.routines.plot.venn as venn
 
 
 def plot_upset(genes_universe, dict_of_lists, path_save, suffix):
@@ -85,7 +86,7 @@ for tissue in tissues:
 
     print(f"{tissue} SSAA checking: {len(set(AA_genes).intersection(set(SS_genes)))}")
 
-    SSAA = stats.loc[(stats[f"mannwhitney_pval_{corr_type}"] < thld_sex) & (stats[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
+    #SSAA = stats.loc[(stats[f"mannwhitney_pval_{corr_type}"] < thld_sex) & (stats[f"{age_corr}_pval_{corr_type}"] < thld_age), :]
     #SSAA_genes = get_genes_list(SSAA, 'Gene', ['non-genic'])
     SSAA_genes = list(set(AA_genes).intersection(set(SS_genes)))
     SSAA_lists[tissue] = SSAA_genes
@@ -98,18 +99,33 @@ AA_tags = [x for x in AA_lists.keys()]
 AA_sections = get_sections(AA_sets)
 plot_upset(genes_universe, AA_lists, path_save, 'AA')
 common_genes['AA'] = list(AA_sections['1'*len(AA_tags)])
+labels = venn.get_labels(list(AA_lists.values()), fill=['number'])
+fig, ax = venn.venn4(labels, names=list(AA_lists.keys()))
+plt.savefig(f"{path_save}/figs/venn_AA.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/figs/venn_AA.pdf", bbox_inches='tight')
+plt.close('all')
 
 SS_sets = [set(x) for x in SS_lists.values()]
 SS_tags = [x for x in SS_lists.keys()]
 SS_sections = get_sections(SS_sets)
 plot_upset(genes_universe, SS_lists, path_save, 'SS')
 common_genes['SS'] = list(SS_sections['1'*len(SS_tags)])
+labels = venn.get_labels(list(SS_lists.values()), fill=['number'])
+fig, ax = venn.venn4(labels, names=list(SS_lists.keys()))
+plt.savefig(f"{path_save}/figs/venn_SS.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/figs/venn_SS.pdf", bbox_inches='tight')
+plt.close('all')
 
 SSAA_sets = [set(x) for x in SSAA_lists.values()]
 SSAA_tags = [x for x in SSAA_lists.keys()]
 SSAA_sections = get_sections(SSAA_sets)
 plot_upset(genes_universe, SSAA_lists, path_save, 'SSAA')
 common_genes['SSAA'] = list(SSAA_sections['1'*len(SSAA_tags)])
+labels = venn.get_labels(list(SSAA_lists.values()), fill=['number'])
+fig, ax = venn.venn4(labels, names=list(SSAA_lists.keys()))
+plt.savefig(f"{path_save}/figs/venn_SSAA.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/figs/venn_SSAA.pdf", bbox_inches='tight')
+plt.close('all')
 
 upset_df = pd.DataFrame(index=list(genes_universe))
 for k, v in common_genes.items():
