@@ -29,6 +29,8 @@ from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 
 
+thld_abs_diff = 30
+
 dataset = "GSEUNN"
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -90,7 +92,6 @@ y_pred = model_linear.predict(df)
 df['ImmunoAgeAcc'] = df['ImmunoAge'] - y_pred
 df = df[~df.index.str.startswith(('Q', 'H'))]
 
-thld_abs_diff = 50
 fig = go.Figure()
 fig.add_trace(
     go.Scatter(
@@ -137,6 +138,9 @@ fig.update_layout(
     )
 )
 save_figure(fig, f"{path_save}/figs/x(Age)_y(ImmunoAge)")
+
+df = df[df[f'ImmunoAgeAbsDiff'] <= thld_abs_diff]
+df.to_excel(f"{path_save}/part3_with_age.xlsx", index=True)
 
 stat_01, pval_01 = mannwhitneyu(pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, df.loc[:, 'ImmunoAgeAcc'].values)
 stat_02, pval_02 = mannwhitneyu(pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, pheno.loc[pheno['Group'] == 'ESRD', 'ImmunoAgeAcc'].values)
@@ -202,3 +206,10 @@ fig.update_layout(
     )
 )
 save_figure(fig, f"{path_save}/figs/vio_age_acceleration")
+
+fig = go.Figure()
+add_histogram_trace(fig, df.loc[df['Sex'] == 'M', 'Age'].values, f"Males", 5.0)
+add_histogram_trace(fig, df.loc[df['Sex'] == 'F', 'Age'].values, f"Females", 5.0)
+add_layout(fig, "Age", "Count", "")
+fig.update_layout(colorway=['blue', 'red'], barmode='overlay')
+save_figure(fig, f"{path_save}/figs/histogram_Age")
