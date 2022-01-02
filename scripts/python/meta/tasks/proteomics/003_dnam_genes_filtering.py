@@ -127,6 +127,10 @@ plt.savefig(f"{path_save}/figs/venn_SSAA.png", bbox_inches='tight')
 plt.savefig(f"{path_save}/figs/venn_SSAA.pdf", bbox_inches='tight')
 plt.close('all')
 
+np.savetxt(f"{path_save}/genes_SS.txt", common_genes['SS'], fmt="%s")
+np.savetxt(f"{path_save}/genes_AA.txt", common_genes['AA'], fmt="%s")
+np.savetxt(f"{path_save}/genes_SSAA.txt", common_genes['SSAA'], fmt="%s")
+
 upset_df = pd.DataFrame(index=list(genes_universe))
 for k, v in common_genes.items():
     upset_df[k] = upset_df.index.isin(v)

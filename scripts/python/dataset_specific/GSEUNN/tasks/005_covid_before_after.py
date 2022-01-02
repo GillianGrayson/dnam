@@ -25,6 +25,7 @@ thlds = [0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001]
 
 covid_genes_df = pd.read_excel(f"{path}/lists/genes/covid/Balnis2021.xlsx")
 covid_genes = set(get_genes_list(covid_genes_df, 'Gene', [np.nan], ' +'))
+np.savetxt(f"{path}/lists/genes/covid/Balnis2021.txt", list(covid_genes), fmt="%s")
 
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 platform = datasets_info.loc[dataset, 'platform']
