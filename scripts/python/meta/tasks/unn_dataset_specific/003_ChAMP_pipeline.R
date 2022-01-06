@@ -111,15 +111,108 @@ champ.SVD(beta = myNorm,
 myCombat <- champ.runCombat(beta = myNorm,
                             pd = myLoad$pd,
                             variablename = "Sample_Group",
-                            batchname = c("Slide", "Sex", "Age"),
+                            batchname = c("Slide", "Array"),
                             logitTrans = TRUE)
 
 myCombat <- champ.runCombat(beta = myNorm,
                             pd = myLoad$pd,
-                            variablename = "Status",
-                            batchname = c("Sample_Group", "Slide", "Array", "Sex", "Age"),
+                            variablename = "Sample_Group",
+                            batchname = c("Sex", "Age"),
                             logitTrans = TRUE)
 
+mod.combat <- model.matrix( ~ 1 + myLoad$pd$Sex + myLoad$pd$Age)
+myCombat <- sva::ComBat(dat = as.matrix(myNorm) , batch = myLoad$pd$Sample_Group, mod=mod.combat, par.prior = T)
+
+champ.SVD(beta = myCombat,
+          rgSet = myLoad$rgSet,
+          pd = myLoad$pd,
+          RGEffect = FALSE,
+          PDFplot = TRUE,
+          Rplot = TRUE,
+          resultsDir = "./SVD_after_Combat/")
+
+myDMP <- champ.DMP(beta = myNorm,
+                   pheno = myLoad$pd$Sample_Group,
+                   compare.group = NULL,
+                   adjPVal = 0.05,
+                   adjust.method = "BH",
+                   arraytype = "EPIC")
+head(myDMP[[1]])
+DMP.GUI(DMP=myDMP[[1]],
+        beta=myNorm,
+        pheno=myLoad$pd$Sample_Group,
+        cutgroupnumber=4)
+
+myDMR <- champ.DMR(beta = myNorm,
+                   pheno = myLoad$pd$Sample_Group,
+                   compare.group = NULL,
+                   arraytype = "EPIC",
+                   method = "Bumphunter",
+                   minProbes = 10,
+                   adjPvalDmr = 0.001,
+                   cores = 4,
+                   ## following parameters are specifically for Bumphunter method.
+                   maxGap = 300,
+                   cutoff = NULL,
+                   pickCutoff = TRUE,
+                   smooth = TRUE,
+                   smoothFunction = loessByCluster,
+                   useWeights = FALSE,
+                   permutations = NULL,
+                   B = 250,
+                   nullMethod = "bootstrap")
+
+myDMR <- champ.DMR(beta = myNorm,
+                   pheno = myLoad$pd$Sample_Group,
+                   compare.group = NULL,
+                   arraytype = "EPIC",
+                   method = "ProbeLasso",
+                   minProbes = 10,
+                   adjPvalDmr = 0.001,
+                   cores = 4,
+                   ## following parameters are specifically for probe ProbeLasso method.
+                   meanLassoRadius = 375,
+                   minDmrSep = 1000,
+                   minDmrSize = 50,
+                   adjPvalProbe = 0.001,
+                   Rplot = FALSE,
+                   PDFplot = FALSE,
+                   resultsDir = "./ProbeLasso/")
+
+myDMR <- champ.DMR(beta = myNorm,
+                   pheno = myLoad$pd$Sample_Group,
+                   compare.group = NULL,
+                   arraytype = "EPIC",
+                   method = "DMRcate",
+                   minProbes = 10,
+                   adjPvalDmr = 0.001,
+                   cores = 4,
+                   ## following parameters are specifically for DMRcate method.
+                   rmSNPCH = T,
+                   fdr = 0.001,
+                   dist = 2,
+                   mafcut = 0.001,
+                   lambda = 1000,
+                   C = 2)
+
+DMR.GUI(DMR = myDMR,
+        beta = myNorm,
+        pheno = myLoad$pd$Sample_Group,
+        runDMP = TRUE,
+        compare.group = NULL,
+        arraytype = "EPIC")
+
+myGSEA <- champ.GSEA(beta = myNorm,
+                     DMP = myDMP[[1]],
+                     DMR = myDMR,
+                     CpGlist = NULL,
+                     Genelist = NULL,
+                     pheno = myLoad$pd$Sample_Group,
+                     method = "fisher",
+                     arraytype = "EPIC",
+                     Rplot = TRUE,
+                     adjPval = 0.001,
+                     cores = 4)
 
 
 
