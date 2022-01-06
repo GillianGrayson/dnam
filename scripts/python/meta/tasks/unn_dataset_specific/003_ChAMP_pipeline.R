@@ -17,7 +17,7 @@ setwd(path_work)
 
 myLoad = champ.load(directory = path_idat,
                     arraytype = "EPIC", # Choose microarray type is "450K" or "EPIC".(default = "450K")
-                    method = "ChAMP", # Method to load data, "ChAMP" method is newly provided by ChAMP group, while "minfi" is old minfi way.(default = "ChAMP")
+                    method = "minfi", # Method to load data, "ChAMP" method is newly provided by ChAMP group, while "minfi" is old minfi way.(default = "ChAMP")
                     methValue = "B", # Indicates whether you prefer m-values M or beta-values B. (default = "B")
                     autoimpute = TRUE, # If after filtering (or not do filtering) there are NA values in it, should impute.knn(k=3) should be done for the rest NA?
                     filterDetP = TRUE, # If filter = TRUE, then probes above the detPcut will be filtered out.(default = TRUE)
@@ -33,7 +33,9 @@ myLoad = champ.load(directory = path_idat,
                     force = TRUE
 )
 myLoad$pd$Slide <- as.factor(myLoad$pd$Slide)
-myLoad$pd$Subject_Id <- NULL
+myLoad$pd$Array <- as.factor(myLoad$pd$Array)
+myLoad$pd$Sex <- as.factor(myLoad$pd$Sex)
+myLoad$pd$Sample_Group <- as.factor(myLoad$pd$Sample_Group)
 save(myLoad, file="myLoad.RData")
 load("myLoad.RData")
 
@@ -77,8 +79,8 @@ champ.QC(beta = myNorm,
 myNorm <- champ.norm(beta = myLoad$beta,
                      rgSet = myLoad$rgSet,
                      mset = myLoad$mset,
-                     resultsDir = "./QC_FunctionalNormalize/norm/",
-                     method = "FunctionalNormalize",
+                     resultsDir = "./QC_FunctionalNormalization/norm/",
+                     method = "FunctionalNormalization",
                      plotBMIQ = FALSE,
                      arraytype = "EPIC",
                      cores = 4)

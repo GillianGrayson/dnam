@@ -56,7 +56,7 @@ sexes = pd.read_excel(f"{path}/{platform}/{dataset}/data/sex_L_Q_H_I.xlsx", inde
 df = pd.merge(ages, sexes, left_index=True, right_index=True)
 df = pd.merge(df, immuno, left_index=True, right_index=True)
 df.index.name = 'ID'
-df.to_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_with_age.xlsx", index=True)
+df.to_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_with_age_sex.xlsx", index=True)
 
 no_age_codes = set(immuno.index.values) - set(ages.index.values)
 if len(no_age_codes) > 0:
@@ -72,8 +72,15 @@ if len(duplicate_ids) > 0:
 controls = df[~df.index.str.startswith(('Q', 'H'))]
 
 fig = go.Figure()
-add_histogram_trace(fig, controls.loc[controls['Sex'] == 'M', 'Age'].values, f"Males", 5.0)
-add_histogram_trace(fig, controls.loc[controls['Sex'] == 'F', 'Age'].values, f"Females", 5.0)
+add_histogram_trace(fig, controls.loc[controls['Sex'] == 'M', 'Age'].values, f"Males ({controls.loc[controls['Sex'] == 'M', :].shape[0]})", 5.0)
+add_histogram_trace(fig, controls.loc[controls['Sex'] == 'F', 'Age'].values, f"Females({controls.loc[controls['Sex'] == 'F', :].shape[0]})", 5.0)
 add_layout(fig, "Age", "Count", "")
 fig.update_layout(colorway=['blue', 'red'], barmode='overlay')
+fig.update_layout(margin=go.layout.Margin(
+    l=50,
+    r=10,
+    b=60,
+    t=40,
+    pad=0
+))
 save_figure(fig, f"{path_save}/figs/histogram_Age")

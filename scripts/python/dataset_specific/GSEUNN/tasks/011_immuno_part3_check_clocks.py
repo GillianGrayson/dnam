@@ -7,6 +7,7 @@ from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_sex_dict
+from scripts.python.routines.plot.scatter import add_scatter_trace
 from matplotlib import colors
 from scipy.stats import mannwhitneyu
 import plotly.graph_objects as go
@@ -126,7 +127,7 @@ fig.add_trace(
         )
     )
 )
-add_layout(fig, 'Age', 'ImmunoAge', f"")
+add_layout(fig, 'Age', 'ipAGE', f"")
 fig.update_layout({'colorway': ["blue", "blue", "red"]})
 fig.update_layout(
     margin=go.layout.Margin(
@@ -140,7 +141,37 @@ fig.update_layout(
 save_figure(fig, f"{path_save}/figs/x(Age)_y(ImmunoAge)")
 
 df = df[df[f'ImmunoAgeAbsDiff'] <= thld_abs_diff]
-df.to_excel(f"{path_save}/part3_with_age.xlsx", index=True)
+df.to_excel(f"{path_save}/part3_filtered_with_age_sex.xlsx", index=True)
+
+fig = go.Figure()
+fig.add_trace(
+    go.Scatter(
+        x=df.loc[:, 'Age'].values,
+        y=df.loc[:, 'ImmunoAge'].values,
+        showlegend=True,
+        name="Controls",
+        mode="markers",
+        marker=dict(
+            size=9,
+            opacity=0.65,
+            line=dict(
+                width=0.5
+            )
+        )
+    )
+)
+add_layout(fig, 'Age', 'ipAGE', f"")
+fig.update_layout({'colorway': ["blue", "blue", "red"]})
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=80,
+        t=50,
+        pad=0
+    )
+)
+save_figure(fig, f"{path_save}/figs/x(Age)_y(ImmunoAge)_filtered")
 
 stat_01, pval_01 = mannwhitneyu(pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, df.loc[:, 'ImmunoAgeAcc'].values)
 stat_02, pval_02 = mannwhitneyu(pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, pheno.loc[pheno['Group'] == 'ESRD', 'ImmunoAgeAcc'].values)
@@ -178,7 +209,7 @@ fig.update_layout(
 save_figure(fig, f"{path_save}/figs/box_age_acceleration")
 
 fig = go.Figure()
-add_violin_trace(fig, pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, f"Control (model building)")
+add_violin_trace(fig, pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, f"Control (original)")
 add_violin_trace(fig, df.loc[:, 'ImmunoAgeAcc'].values, f"Control (test)")
 add_violin_trace(fig, pheno.loc[pheno['Group'] == 'ESRD', 'ImmunoAgeAcc'].values, f"ESRD")
 add_layout(fig, "", "Age acceleration", f"")
@@ -208,8 +239,41 @@ fig.update_layout(
 save_figure(fig, f"{path_save}/figs/vio_age_acceleration")
 
 fig = go.Figure()
-add_histogram_trace(fig, df.loc[df['Sex'] == 'M', 'Age'].values, f"Males", 5.0)
-add_histogram_trace(fig, df.loc[df['Sex'] == 'F', 'Age'].values, f"Females", 5.0)
+add_histogram_trace(fig, df.loc[df['Sex'] == 'M', 'Age'].values, f"Males ({df.loc[df['Sex'] == 'M', :].shape[0]})", 5.0)
+add_histogram_trace(fig, df.loc[df['Sex'] == 'F', 'Age'].values, f"Females ({df.loc[df['Sex'] == 'F', :].shape[0]})", 5.0)
 add_layout(fig, "Age", "Count", "")
 fig.update_layout(colorway=['blue', 'red'], barmode='overlay')
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=50,
+        r=10,
+        b=60,
+        t=40,
+        pad=0
+    )
+)
 save_figure(fig, f"{path_save}/figs/histogram_Age")
+
+fig = go.Figure()
+x = df.loc[:, 'Age'].values,
+y = df.loc[:, 'ImmunoAge'].values,
+add_scatter_trace(fig, ctrl.loc[:, 'Age'].values, ctrl.loc[:, 'ImmunoAge'].values, f"Control (original)")
+add_scatter_trace(fig, ctrl.loc[:, 'Age'].values, model_linear.fittedvalues.values, "", "lines")
+add_scatter_trace(fig, df.loc[:, 'Age'].values, df.loc[:, 'ImmunoAge'].values, f"Control (test)")
+add_scatter_trace(fig, esrd.loc[:, 'Age'].values, esrd.loc[:, 'ImmunoAge'].values, f"ESRD")
+add_layout(fig, f"Age", 'ipAGE', f"")
+fig.update_layout({'colorway': ['blue', 'blue', 'cyan', 'red']})
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=80,
+        t=50,
+        pad=0
+    )
+)
+fig.update_yaxes(autorange=False)
+fig.update_xaxes(autorange=False)
+fig.update_layout(yaxis_range=[10, 100])
+fig.update_layout(xaxis_range=[10, 100])
+save_figure(fig, f"{path_save}/figs/scatter_Age_ipAGE")
