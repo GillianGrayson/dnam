@@ -1,5 +1,5 @@
-options(java.parameters = "-Xmx16g")
 rm(list=ls())
+options(java.parameters = "-Xmx16g")
 
 install.packages(c( "foreach", "doParallel"))
 if (!requireNamespace("BiocManager", quietly=TRUE))
@@ -20,7 +20,7 @@ setwd(path_work)
 
 myLoad = champ.load(directory = path_idat,
                     arraytype = "EPIC", # Choose microarray type is "450K" or "EPIC".(default = "450K")
-                    method = "ChAMP", # Method to load data, "ChAMP" method is newly provided by ChAMP group, while "minfi" is old minfi way.(default = "ChAMP")
+                    method = "minfi", # Method to load data, "ChAMP" method is newly provided by ChAMP group, while "minfi" is old minfi way.(default = "ChAMP")
                     methValue = "B", # Indicates whether you prefer m-values M or beta-values B. (default = "B")
                     autoimpute = TRUE, # If after filtering (or not do filtering) there are NA values in it, should impute.knn(k=3) should be done for the rest NA?
                     filterDetP = TRUE, # If filter = TRUE, then probes above the detPcut will be filtered out.(default = TRUE)
@@ -35,12 +35,15 @@ myLoad = champ.load(directory = path_idat,
                     filterXY = TRUE, # If filterXY=TRUE, probes from X and Y chromosomes are removed.(default = TRUE)
                     force = TRUE
 )
+save(myLoad, file="myLoad_ChAMP.RData")
+save(myLoad, file="myLoad_minfi.RData")
+load("myLoad_ChAMP.RData")
+load("myLoad_minfi.RData")
 myLoad$pd$Slide <- as.factor(myLoad$pd$Slide)
 myLoad$pd$Array <- as.factor(myLoad$pd$Array)
 myLoad$pd$Sex <- as.factor(myLoad$pd$Sex)
 myLoad$pd$Sample_Group <- as.factor(myLoad$pd$Sample_Group)
-save(myLoad, file="myLoad.RData")
-load("myLoad.RData")
+
 
 CpG.GUI(CpG=rownames(myLoad$beta), arraytype="EPIC")
 champ.QC(beta = myLoad$beta,
@@ -90,6 +93,10 @@ myNorm <- champ.norm(beta = myLoad$beta,
 save(myNorm, file="myNorm_FunctionalNormalization.RData")
 load("myNorm_FunctionalNormalization.RData")
 
+myNorm_df <- data.frame(row.names(myNorm), myNorm)
+colnames(myNorm_df)[1] <- "CpG"
+write.table(myNorm_df, file = "myNorm_FunctionalNormalization.txt", row.names = F, sep = "\t", quote = F)
+
 champ.QC(beta = myNorm,
          pheno = myLoad$pd$Sample_Group,
          mdsPlot = TRUE,
@@ -126,7 +133,6 @@ myCombat <- champ.runCombat(beta = myNorm,
                             batchname = c("Sex", "Age"),
                             logitTrans = TRUE)
 save(myCombat, file="myCombat_BMIQ_vae(Age)_batch(Sex_Sample_Group).RData")
-save(myCombat, file="myCombat_BMIQ_vae(Sample_Group)_batch(Sex_Age).RData")
 
 mod.combat <- model.matrix( ~ 1 + myLoad$pd$Sex + myLoad$pd$Age)
 myCombat <- sva::ComBat(dat = as.matrix(myNorm), batch = myLoad$pd$Sample_Group, mod = mod.combat, par.prior = T)
@@ -157,6 +163,7 @@ DMP.GUI(DMP=myDMP[[1]],
         pheno=myLoad$pd$Sample_Group,
         cutgroupnumber=4)
 
+# DMR ==================================================================================================================
 myDMR <- champ.DMR(beta = myCombat,
                    pheno = myLoad$pd$Sample_Group,
                    compare.group = NULL,
@@ -175,6 +182,8 @@ myDMR <- champ.DMR(beta = myCombat,
                    permutations = NULL,
                    B = 250,
                    nullMethod = "bootstrap")
+write.csv(myDMR, file = "myDMR_Bumphunter.csv")
+save(myDMR, file="myDMR_Bumphunter.RData")
 
 myDMR <- champ.DMR(beta = myNorm,
                    pheno = myLoad$pd$Sample_Group,
