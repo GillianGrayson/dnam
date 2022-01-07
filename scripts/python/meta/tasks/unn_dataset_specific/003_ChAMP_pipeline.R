@@ -129,10 +129,13 @@ myCombat <- champ.runCombat(beta = myNorm,
 
 myCombat <- champ.runCombat(beta = myNorm,
                             pd = myLoad$pd,
-                            variablename = "Sample_Group",
-                            batchname = c("Sex", "Age"),
+                            variablename = "Age",
+                            batchname = c("Sex", "Slide", "Array"),
                             logitTrans = TRUE)
-save(myCombat, file="myCombat_BMIQ_vae(Age)_batch(Sex_Sample_Group).RData")
+save(myCombat, file="myCombat_FunctionalNormalization_vae(Age)_batch(Sex_Slide_Array).RData")
+myCombat_df <- data.frame(row.names(myCombat), myCombat)
+colnames(myCombat_df)[1] <- "CpG"
+write.table(myCombat_df, file = "myCombat_FunctionalNormalization_vae(Age)_batch(Sex_Slide_Array).txt", row.names = F, sep = "\t", quote = F)
 
 mod.combat <- model.matrix( ~ 1 + myLoad$pd$Sex + myLoad$pd$Age)
 myCombat <- sva::ComBat(dat = as.matrix(myNorm), batch = myLoad$pd$Sample_Group, mod = mod.combat, par.prior = T)

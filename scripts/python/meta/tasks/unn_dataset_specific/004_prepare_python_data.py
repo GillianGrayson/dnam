@@ -63,7 +63,7 @@ fig.update_layout(margin=go.layout.Margin(
 ))
 save_figure(fig, f"{path_save}/figs/bar_Sex")
 
-fn = f"{path}/003_ChAMP_pipeline/myNorm_FunctionalNormalization.txt"
+fn = f"{path}/003_ChAMP_pipeline/myCombat_FunctionalNormalization_vae(Age)_batch(Sex_Slide_Array).txt"
 df = pd.read_csv(fn, delimiter="\t", index_col='CpG')
 df.index.name = 'CpG'
 betas = df.T
