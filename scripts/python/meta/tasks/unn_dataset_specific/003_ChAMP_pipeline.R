@@ -1,3 +1,4 @@
+options(java.parameters = "-Xmx16g")
 rm(list=ls())
 
 install.packages(c( "foreach", "doParallel"))
@@ -8,6 +9,8 @@ BiocManager::install(c("minfi","ChAMPdata","Illumina450ProbeVariants.db","sva","
 library("ChAMP")
 library("xlsx")
 library("doParallel")
+library(sva)
+library(minfi)
 detectCores()
 
 path_idat <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/unn_dataset_specific/002_prepare_pd_for_ChAMP/GSE164056/raw/idat"
@@ -17,7 +20,7 @@ setwd(path_work)
 
 myLoad = champ.load(directory = path_idat,
                     arraytype = "EPIC", # Choose microarray type is "450K" or "EPIC".(default = "450K")
-                    method = "minfi", # Method to load data, "ChAMP" method is newly provided by ChAMP group, while "minfi" is old minfi way.(default = "ChAMP")
+                    method = "ChAMP", # Method to load data, "ChAMP" method is newly provided by ChAMP group, while "minfi" is old minfi way.(default = "ChAMP")
                     methValue = "B", # Indicates whether you prefer m-values M or beta-values B. (default = "B")
                     autoimpute = TRUE, # If after filtering (or not do filtering) there are NA values in it, should impute.knn(k=3) should be done for the rest NA?
                     filterDetP = TRUE, # If filter = TRUE, then probes above the detPcut will be filtered out.(default = TRUE)
@@ -66,14 +69,14 @@ save(myNorm, file="myNorm_BMIQ.RData")
 load("myNorm_BMIQ.RData")
 
 champ.QC(beta = myNorm,
-         pheno=myLoad$pd$Sample_Group,
-         mdsPlot=TRUE,
-         densityPlot=TRUE,
-         dendrogram=TRUE,
-         PDFplot=TRUE,
-         Rplot=TRUE,
-         Feature.sel="None",
-         resultsDir="./QC_BMIQ/")
+         pheno = myLoad$pd$Sample_Group,
+         mdsPlot = TRUE,
+         densityPlot = TRUE,
+         dendrogram = TRUE,
+         PDFplot = TRUE,
+         Rplot = TRUE,
+         Feature.sel = "None",
+         resultsDir = "./QC_BMIQ/")
 
 # FunctionalNormalize ==================================================================================================
 myNorm <- champ.norm(beta = myLoad$beta,
@@ -84,24 +87,25 @@ myNorm <- champ.norm(beta = myLoad$beta,
                      plotBMIQ = FALSE,
                      arraytype = "EPIC",
                      cores = 4)
-save(myNorm, file="myNorm_BMIQ.RData")
-load("myNorm_BMIQ.RData")
+save(myNorm, file="myNorm_FunctionalNormalization.RData")
+load("myNorm_FunctionalNormalization.RData")
 
 champ.QC(beta = myNorm,
-         pheno=myLoad$pd$Sample_Group,
-         mdsPlot=TRUE,
-         densityPlot=TRUE,
-         dendrogram=TRUE,
-         PDFplot=TRUE,
-         Rplot=TRUE,
-         Feature.sel="None",
-         resultsDir="./QC_FunctionalNormalize/")
+         pheno = myLoad$pd$Sample_Group,
+         mdsPlot = TRUE,
+         densityPlot = TRUE,
+         dendrogram = TRUE,
+         PDFplot = TRUE,
+         Rplot = TRUE,
+         Feature.sel = "None",
+         resultsDir = "./QC_FunctionalNormalization/")
 
 # ======================================================================================================================
 QC.GUI(beta = myNorm,
        pheno = myLoad$pd$Sample_Group,
        arraytype = "EPIC")
 
+# SVD ==================================================================================================================
 champ.SVD(beta = myNorm,
           rgSet = myLoad$rgSet,
           pd = myLoad$pd,
@@ -121,9 +125,11 @@ myCombat <- champ.runCombat(beta = myNorm,
                             variablename = "Sample_Group",
                             batchname = c("Sex", "Age"),
                             logitTrans = TRUE)
+save(myCombat, file="myCombat_BMIQ_vae(Age)_batch(Sex_Sample_Group).RData")
+save(myCombat, file="myCombat_BMIQ_vae(Sample_Group)_batch(Sex_Age).RData")
 
 mod.combat <- model.matrix( ~ 1 + myLoad$pd$Sex + myLoad$pd$Age)
-myCombat <- sva::ComBat(dat = as.matrix(myNorm) , batch = myLoad$pd$Sample_Group, mod=mod.combat, par.prior = T)
+myCombat <- sva::ComBat(dat = as.matrix(myNorm), batch = myLoad$pd$Sample_Group, mod = mod.combat, par.prior = T)
 
 champ.SVD(beta = myCombat,
           rgSet = myLoad$rgSet,
@@ -133,19 +139,25 @@ champ.SVD(beta = myCombat,
           Rplot = TRUE,
           resultsDir = "./SVD_after_Combat/")
 
+# DMP ==================================================================================================================
 myDMP <- champ.DMP(beta = myNorm,
                    pheno = myLoad$pd$Sample_Group,
                    compare.group = NULL,
-                   adjPVal = 0.05,
+                   adjPVal = 0.001,
                    adjust.method = "BH",
                    arraytype = "EPIC")
+save(myNorm, file="myDMP.RData")
+load("myDMP.RData")
+colnames(myDMP[[1]])[0] <- "CpG"
+write.xlsx(myDMP[[1]], file = "myDMP.xlsx", sheetName = "myDMP", append = FALSE)
+write.csv(myDMP[[1]], file = "myDMP.csv")
 head(myDMP[[1]])
 DMP.GUI(DMP=myDMP[[1]],
         beta=myNorm,
         pheno=myLoad$pd$Sample_Group,
         cutgroupnumber=4)
 
-myDMR <- champ.DMR(beta = myNorm,
+myDMR <- champ.DMR(beta = myCombat,
                    pheno = myLoad$pd$Sample_Group,
                    compare.group = NULL,
                    arraytype = "EPIC",
@@ -215,8 +227,6 @@ myGSEA <- champ.GSEA(beta = myNorm,
                      Rplot = TRUE,
                      adjPval = 0.001,
                      cores = 4)
-
-
 
 passed_cpgs_origin = rownames(myLoad$beta)
 RGset <- myLoad$rgSet
