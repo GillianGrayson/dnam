@@ -69,6 +69,7 @@ else:
         betas[cpg] =  betas_background[cpg].median()
 
 betas = betas.loc[:, cpgs_target]
+betas = betas.astype('float32')
 
 pheno.to_pickle(f"{path_save}/pheno.pkl")
 pheno.to_excel(f"{path_save}/pheno.xlsx", index=True)
