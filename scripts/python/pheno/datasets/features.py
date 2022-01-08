@@ -123,6 +123,12 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'Sex',
         }
+    elif dataset == "GSE52588":
+        d = {
+            'Status': 'group',
+            'Age': 'age',
+            'Sex': 'gender',
+        }
 
 
 
@@ -213,7 +219,8 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'Control')], "Case": [Field('First episode psychosis', 'Case')]}
     elif dataset == "GSE164056":
         d = {"Control": [Field('Control', 'Control')], "Case": [Field('Case', 'Case')]}
-
+    elif dataset == "GSE52588":
+        d = {"Control": [Field('Siblings', 'Siblings'), Field('Mothers', 'Mothers')], "Case": [Field('Down syndrome', 'DS')]}
 
 
 
@@ -280,6 +287,8 @@ def get_default_statuses_ids(dataset: str):
     elif dataset == "GSE152026":
         statuses = {"Control": [0], 'Case': [0]}
     elif dataset == "GSE164056":
+        statuses = {"Control": [0], 'Case': [0]}
+    elif dataset == "GSE52588":
         statuses = {"Control": [0], 'Case': [0]}
     return statuses
 
@@ -353,6 +362,8 @@ def get_sex_dict(dataset: str):
         d = {"F": "Female", "M": "Male"}
     elif dataset == "GSE164056":
         d = {"F": "F", "M": "M"}
+    elif dataset == "GSE52588":
+        d = {"F": "Female", "M": "Male"}
 
 
     elif dataset == "GSE42861":

@@ -5,6 +5,7 @@ install.packages(c( "foreach", "doParallel"))
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
 BiocManager::install(c("minfi","ChAMPdata","Illumina450ProbeVariants.db","sva","IlluminaHumanMethylation450kmanifest","limma","RPMM","DNAcopy","preprocessCore","impute","marray","wateRmelon","goseq","plyr","GenomicRanges","RefFreeEWAS","qvalue","isva","doParallel","bumphunter","quadprog","shiny","shinythemes","plotly","RColorBrewer","DMRcate","dendextend","IlluminaHumanMethylationEPICmanifest","FEM","matrixStats","missMethyl","combinat"))
+BiocManager::install("ramwas")
 
 library("ChAMP")
 library("xlsx")
@@ -158,7 +159,6 @@ myDMP <- champ.DMP(beta = myNorm,
 save(myNorm, file="myDMP.RData")
 load("myDMP.RData")
 colnames(myDMP[[1]])[0] <- "CpG"
-write.xlsx(myDMP[[1]], file = "myDMP.xlsx", sheetName = "myDMP", append = FALSE)
 write.csv(myDMP[[1]], file = "myDMP.csv")
 head(myDMP[[1]])
 DMP.GUI(DMP=myDMP[[1]],
@@ -239,6 +239,50 @@ myGSEA <- champ.GSEA(beta = myNorm,
                      Rplot = TRUE,
                      adjPval = 0.001,
                      cores = 4)
+
+
+
+
+# Check ChAMP with preprocessed files
+tmpNorm <- read.table("E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/unn_dataset_specific/007_prepare_combined_data_for_R/GSE87571/betas.csv",
+                      header = TRUE,
+                      sep = ",",
+                      dec = ".",
+                      row.names = "CpG")
+
+pd <- read.table("E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/unn_dataset_specific/007_prepare_combined_data_for_R/GSE87571/pheno.csv",
+                 header = TRUE,
+                 sep = ",",
+                 dec = ".",
+                 row.names = "subject_id")
+
+champ.SVD(beta = tmpNorm,
+          pd = pd,
+          RGEffect = FALSE,
+          PDFplot = TRUE,
+          Rplot = TRUE,
+          resultsDir = "./SVD_tmp/")
+
+tmpCombat <- champ.runCombat(beta = tmpNorm,
+                             pd = pd,
+                             variablename = "Age",
+                             batchname = c("Dataset"),
+                             logitTrans = TRUE)
+
+champ.SVD(beta = tmpCombat,
+          pd = pd,
+          RGEffect = FALSE,
+          PDFplot = TRUE,
+          Rplot = TRUE,
+          resultsDir = "./SVD_tmp/")
+
+tmpCombat_df <- data.frame(row.names(tmpCombat), tmpCombat)
+colnames(tmpCombat_df)[1] <- "CpG"
+write.table(tmpCombat_df, file = "tmpCombat.txt", row.names = F, sep = "\t", quote = F)
+
+
+
+
 
 passed_cpgs_origin = rownames(myLoad$beta)
 RGset <- myLoad$rgSet
