@@ -39,7 +39,7 @@ Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
 calc_features = ["DNAmAge", "DNAmAgeHannum", "DNAmPhenoAge", "DNAmGrimAge"]
 features = ["AgeAccelGrim", "DNAmAge", "CD8T", "CD4T", "NK", "Bcell", "Mono", "Gran", "propNeuron", "DNAmAgeHannum", "DNAmPhenoAge", "DNAmGDF15", "DNAmGrimAge", "IEAA", "EEAA", "IEAA.Hannum"]
 
-pheno = pd.read_pickle(f"{path}/004_prepare_python_data/pheno.pkl")
+pheno = pd.read_excel(f"{path}/007_prepare_combined_data_for_R/GSE87571/pheno.xlsx", index_col='subject_id')
 pheno = pheno.drop(features, axis=1, errors='ignore')
 
 calcs = pd.read_csv(f"{path}/005_prepare_for_calculator/betas.output.csv", delimiter=",", index_col='subject_id')
@@ -49,16 +49,8 @@ df = pd.merge(pheno, calcs, left_index=True, right_index=True)
 df.to_excel(f"{path}/006_age_acceleration/pheno_xtd.xlsx")
 df.to_pickle(f"{path}/006_age_acceleration/pheno_xtd.pkl")
 
-pheno_eu = df.loc[df['Sample_Group'] == 'EU', :]
-pheno_ru = df.loc[df['Sample_Group'] == 'RU', :]
-
-stat, pval = mannwhitneyu(pheno_eu[f"AgeAccelGrim"].values, pheno_ru[f"AgeAccelGrim"].values)
-vio = go.Figure()
-add_violin_trace(vio, pheno_eu[f"AgeAccelGrim"].values, 'EU')
-add_violin_trace(vio, pheno_ru[f"AgeAccelGrim"].values, "RU")
-add_layout(vio, "", f"AgeAccelGrim", f"Mann-Whitney p-value: {pval:0.4e}")
-vio.update_layout({'colorway': ['blue', 'red']})
-save_figure(vio, f"{path_save}/figs/Acc_vio_AgeAccelGrim")
+pheno_eu = df.loc[df['Dataset'] == 'GSE87571', :]
+pheno_ru = df.loc[df['Dataset'] == 'GSEUNN', :]
 
 metrics = ['R2', 'R2_adj', 'mw_stat_acc', 'mw_pval_acc', 'mw_stat_diff', 'mw_pval_diff']
 res_dict = {"metric": calc_features}
@@ -72,8 +64,8 @@ for f_id, f in enumerate(calc_features):
 
     df[f"{f}Acc"] = df[f] - reg.predict(df)
     df[f"{f}Diff"] = df[f] - df["Age"]
-    pheno_eu = df.loc[df['Sample_Group'] == 'EU', :]
-    pheno_ru = df.loc[df['Sample_Group'] == 'RU', :]
+    pheno_eu = df.loc[df['Dataset'] == 'GSE87571', :]
+    pheno_ru = df.loc[df['Dataset'] == 'GSEUNN', :]
 
     scatter = go.Figure()
     add_scatter_trace(scatter, [0, 100], [0, 100], "", "lines")
@@ -107,12 +99,12 @@ for f_id, f in enumerate(calc_features):
     vio.update_layout({'colorway': ['blue', 'red']})
     save_figure(vio, f"{path_save}/figs/Acc_vio_{f}")
 
-    stat, pval = mannwhitneyu(pheno_eu[f"{f}Diff"].values, pheno_ru[f"{f}Diff"].values)
-    res_dict['mw_stat_diff'][f_id] = stat
-    res_dict['mw_pval_diff'][f_id] = pval
-    vio = go.Figure()
-    add_violin_trace(vio, pheno_eu[f"{f}Diff"].values, "EU")
-    add_violin_trace(vio, pheno_ru[f"{f}Diff"].values, "RU")
-    add_layout(vio, "", f"{f} - Age", f"Mann-Whitney p-value: {pval:0.4e}")
-    vio.update_layout({'colorway': ['blue', 'red']})
-    save_figure(vio, f"{path_save}/figs/Diff_{f}")
+    # stat, pval = mannwhitneyu(pheno_eu[f"{f}Diff"].values, pheno_ru[f"{f}Diff"].values)
+    # res_dict['mw_stat_diff'][f_id] = stat
+    # res_dict['mw_pval_diff'][f_id] = pval
+    # vio = go.Figure()
+    # add_violin_trace(vio, pheno_eu[f"{f}Diff"].values, "EU")
+    # add_violin_trace(vio, pheno_ru[f"{f}Diff"].values, "RU")
+    # add_layout(vio, "", f"{f} - Age", f"Mann-Whitney p-value: {pval:0.4e}")
+    # vio.update_layout({'colorway': ['blue', 'red']})
+    # save_figure(vio, f"{path_save}/figs/Diff_{f}")

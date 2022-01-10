@@ -116,3 +116,42 @@ for d_id, dataset in enumerate(datasets):
 
 pheno_all.to_excel(f"{path_save}/pheno.xlsx", index=True)
 
+ys_male = [
+    pheno_all.loc[(pheno_all['Sex'] == 'F') & (pheno_all['Sample_Group'] == 'RU'), :].shape[0],
+    pheno_all.loc[(pheno_all['Sex'] == 'F') & (pheno_all['Sample_Group'] == 'EU'), :].shape[0]
+]
+ys_female = [
+    pheno_all.loc[(pheno_all['Sex'] == 'M') & (pheno_all['Sample_Group'] == 'RU'), :].shape[0],
+    pheno_all.loc[(pheno_all['Sex'] == 'M') & (pheno_all['Sample_Group'] == 'EU'), :].shape[0]
+]
+fig = go.Figure(data=[
+    go.Bar(
+        x=['RU', 'EU'],
+        y=ys_male,
+        name='Female',
+        text=ys_male,
+        textposition='auto',
+        showlegend=True,
+    ),
+    go.Bar(
+        x=['RU', 'EU'],
+        y=ys_female,
+        name='Male',
+        text=ys_female,
+        textposition='auto',
+        showlegend=True,
+    )
+])
+add_layout(fig, f"", f"Count", "")
+fig.update_layout(barmode='group')
+fig.update_layout({'colorway': ['red', 'blue']})
+fig.update_layout(legend_font_size=20)
+fig.update_layout(margin=go.layout.Margin(
+    l=60,
+    r=10,
+    b=40,
+    t=50,
+    pad=0
+))
+save_figure(fig, f"{path_save}/figs/bar_Sex")
+

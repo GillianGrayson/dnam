@@ -24,10 +24,10 @@ import statsmodels.formula.api as smf
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 
-gse_dataset = 'GSE152026'
+gse_dataset = 'GSE87571'
 
 folder_name = f"unn_dataset_specific"
-path_save = f"{path}/meta/tasks/{folder_name}/{gse_dataset}"
+path_save = f"{path}/meta/tasks/{folder_name}/001_calc_stats_and_aa/{gse_dataset}"
 Path(f"{path_save}/figs/CpG").mkdir(parents=True, exist_ok=True)
 Path(f"{path_save}/figs/DNAmAge").mkdir(parents=True, exist_ok=True)
 
@@ -117,11 +117,19 @@ for f_id, f in enumerate(calc_features):
     pheno_unn = pheno_all.loc[pheno_all['Dataset'] == 'GSEUNN', :]
 
     scatter = go.Figure()
-    add_scatter_trace(scatter, [0, 100], [0, 100], "", "lines")
-    add_scatter_trace(scatter, pheno_gse["Age"].values, pheno_gse[f].values, gse_dataset)
+    add_scatter_trace(scatter, [10, 100], [10, 100], "", "lines")
+    add_scatter_trace(scatter, pheno_gse["Age"].values, pheno_gse[f].values, "EU")
     add_scatter_trace(scatter, pheno_gse["Age"].values, reg.fittedvalues.values, "", "lines")
-    add_scatter_trace(scatter, pheno_unn["Age"].values, pheno_unn[f].values, "UNN")
+    add_scatter_trace(scatter, pheno_unn["Age"].values, pheno_unn[f].values, "RU")
     add_layout(scatter, "Age", f, "")
+    scatter.update_layout(legend_font_size=20)
+    scatter.update_layout(margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=60,
+        t=60,
+        pad=0
+    ))
     scatter.update_layout({'colorway': ['black', 'blue', 'blue', 'red']})
     save_figure(scatter, f"{path_save}/figs/DNAmAge/scatter_Age_{f}")
 
@@ -129,21 +137,19 @@ for f_id, f in enumerate(calc_features):
     res_dict['mw_stat_acc'][f_id] = stat
     res_dict['mw_pval_acc'][f_id] = pval
     vio = go.Figure()
-    add_violin_trace(vio, pheno_gse[f"{f}Acc"].values, gse_dataset)
-    add_violin_trace(vio, pheno_unn[f"{f}Acc"].values, "UNN")
+    add_violin_trace(vio, pheno_gse[f"{f}Acc"].values, "EU")
+    add_violin_trace(vio, pheno_unn[f"{f}Acc"].values, "RU")
     add_layout(vio, "", f"{f} acceleration", f"Mann-Whitney p-value: {pval:0.4e}")
+    vio.update_layout(legend_font_size=20)
+    vio.update_layout(margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=40,
+        t=90,
+        pad=0
+    ))
     vio.update_layout({'colorway': ['blue', 'red']})
     save_figure(vio, f"{path_save}/figs/DNAmAge/vio_{f}Acc")
-
-    stat, pval = mannwhitneyu(pheno_gse[f"{f}Diff"].values, pheno_unn[f"{f}Diff"].values)
-    res_dict['mw_stat_diff'][f_id] = stat
-    res_dict['mw_pval_diff'][f_id] = pval
-    vio = go.Figure()
-    add_violin_trace(vio, pheno_gse[f"{f}Diff"].values, gse_dataset)
-    add_violin_trace(vio, pheno_unn[f"{f}Diff"].values, "UNN")
-    add_layout(vio, "", f"{f} - Age", f"Mann-Whitney p-value: {pval:0.4e}")
-    vio.update_layout({'colorway': ['blue', 'red']})
-    save_figure(vio, f"{path_save}/figs/DNAmAge/vio_{f}Diff")
 
 res_df = pd.DataFrame(res_dict)
 res_df.set_index("metric", inplace=True)
@@ -157,9 +163,17 @@ df_unn = df.loc[df['Dataset'] == 'GSEUNN', :]
 df_gse = df.loc[df['Dataset'] != 'GSEUNN', :]
 
 fig = go.Figure()
-add_histogram_trace(fig, df_unn['Age'].values, f"UNN ({df_unn.shape[0]})", 5.0)
-add_histogram_trace(fig, df_gse['Age'].values, f"{gse_dataset} ({df_gse.shape[0]})", 5.0)
+add_histogram_trace(fig, df_gse['Age'].values, f"EU ({df_gse.shape[0]})", 5.0)
+add_histogram_trace(fig, df_unn['Age'].values, f"RU ({df_unn.shape[0]})", 5.0)
 add_layout(fig, "Age", "Count", "")
+fig.update_layout(legend_font_size=20)
+fig.update_layout(margin=go.layout.Margin(
+    l=80,
+    r=20,
+    b=60,
+    t=50,
+    pad=0
+))
 fig.update_layout(colorway = ['blue', 'red'], barmode = 'overlay')
 save_figure(fig, f"{path_save}/figs/histogram_Age")
 
