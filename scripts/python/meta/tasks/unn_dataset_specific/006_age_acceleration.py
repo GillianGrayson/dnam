@@ -87,6 +87,7 @@ for f_id, f in enumerate(calc_features):
     scatter.update_xaxes(autorange=False)
     scatter.update_layout(yaxis_range=[10, 100])
     scatter.update_layout(xaxis_range=[10, 100])
+    scatter.update_layout(legend_font_size=20)
     save_figure(scatter, f"{path_save}/figs/scatter_Age_{f}")
 
     stat, pval = mannwhitneyu(pheno_eu[f"{f}Acc"].values, pheno_ru[f"{f}Acc"].values)
@@ -96,6 +97,14 @@ for f_id, f in enumerate(calc_features):
     add_violin_trace(vio, pheno_eu[f"{f}Acc"].values, 'EU')
     add_violin_trace(vio, pheno_ru[f"{f}Acc"].values, "RU")
     add_layout(vio, "", f"{f} acceleration", f"Mann-Whitney p-value: {pval:0.4e}")
+    vio.update_layout(legend_font_size=20)
+    vio.update_layout(margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=40,
+        t=90,
+        pad=0
+    ))
     vio.update_layout({'colorway': ['blue', 'red']})
     save_figure(vio, f"{path_save}/figs/Acc_vio_{f}")
 
