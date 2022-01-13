@@ -7,7 +7,7 @@ def add_layout(fig, x_label, y_label, title):
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,
+            y=1.01,
             xanchor="center",
             x=0.5
         ),
@@ -26,8 +26,8 @@ def add_layout(fig, x_label, y_label, title):
             pad=0
         ),
         showlegend=True,
-        xaxis=get_axis(x_label, 20, 20),
-        yaxis=get_axis(y_label, 20, 20),
+        xaxis=get_axis(x_label, 25, 25),
+        yaxis=get_axis(y_label, 25, 25),
     )
 
 
@@ -39,8 +39,8 @@ def get_axis(title, title_size, tick_size):
         zeroline=False,
         linecolor='black',
         showline=True,
-        gridcolor='gray',
-        gridwidth=0.1,
+        gridcolor='gainsboro',
+        gridwidth=0.05,
         mirror=True,
         ticks='outside',
         titlefont=dict(
