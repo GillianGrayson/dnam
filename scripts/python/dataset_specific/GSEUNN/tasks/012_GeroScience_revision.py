@@ -16,6 +16,7 @@ from scripts.python.routines.plot.violin import add_violin_trace
 from scripts.python.routines.plot.box import add_box_trace
 from scripts.python.routines.plot.layout import add_layout
 import pathlib
+import string
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from functools import reduce
@@ -55,6 +56,8 @@ dist_num_bins = 25
 
 path_save = f"{path}/{platform}/{dataset}/special/012_GeroScience_revision"
 pathlib.Path(f"{path_save}/SupplementaryFigure2").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/Figure2").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/Figure3").mkdir(parents=True, exist_ok=True)
 
 # Supplementary Figure 2 ===============================================================================================
 result_dict = {'feature': ['CD4T', 'CD8naive', 'CD8pCD28nCD45RAn', 'Gran', 'Mono', 'NK', 'PlasmaBlast']}
@@ -118,9 +121,192 @@ for f_id, f in enumerate(result_dict['feature']):
             pad=0
         )
     )
-    #fig.update_xaxes(showgrid=True)
-    #fig.update_yaxes(showgrid=True)
     fig.update_layout(legend_y=1.01)
-    save_figure(fig, f"{path_save}/SupplementaryFigure2/{f}")
+    fig.add_annotation(dict(font=dict(color='black', size=45),
+                            x=-0.18,
+                            y=1.25,
+                            showarrow=False,
+                            text=f"({string.ascii_lowercase[f_id]})",
+                            textangle=0,
+                            yanchor='top',
+                            xanchor='left',
+                            xref="paper",
+                            yref="paper"))
+    save_figure(fig, f"{path_save}/SupplementaryFigure2/{string.ascii_lowercase[f_id]}_{f}")
 
-ololo = 1
+# Figure 2 =============================================================================================================
+result_dict = {
+    'feature': ['DNAmAgeHannumAA', 'DNAmAgeAA', 'IEAA', 'EEAA', 'DNAmPhenoAgeAA', 'DNAmGrimAgeAA'],
+    'name': ['DNAmAgeHannum acceleration', 'DNAmAge acceleration', 'IEAA', 'EEAA', 'DNAmPhenoAge acceleration', 'DNAmGrimAge acceleration']
+}
+result_dict['pval_mv'] = np.zeros(len(result_dict['feature']))
+for f_id, f in enumerate(result_dict['feature']):
+    values_ctrl = ctrl.loc[:, f].values
+    values_esrd = esrd.loc[:, f].values
+    stat, pval = mannwhitneyu(values_ctrl, values_esrd, alternative='two-sided')
+    result_dict['pval_mv'][f_id] = pval
+
+result_dict = correct_pvalues(result_dict, ['pval_mv'])
+result_df = pd.DataFrame(result_dict)
+result_df.set_index('feature', inplace=True)
+result_df.to_excel(f"{path_save}/Figure2/result.xlsx", index=True)
+
+for f_id, f in enumerate(result_dict['feature']):
+    values_ctrl = ctrl.loc[:, f].values
+    values_esrd = esrd.loc[:, f].values
+    fig = go.Figure()
+    fig.add_trace(
+        go.Violin(
+            y=values_ctrl,
+            name=f"Control",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor=ctrl_color,
+            marker = dict(color=ctrl_color, line=dict(color='black',width=0.3), opacity=0.8),
+            points='all',
+            bandwidth = np.ptp(values_ctrl) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    fig.add_trace(
+        go.Violin(
+            y=values_esrd,
+            name=f"ESRD",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor=esrd_color,
+            marker=dict(color=esrd_color, line=dict(color='black',width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    add_layout(fig, "", f"{result_dict['name'][f_id]}", f"p-value: {result_df.at[f, 'pval_mv_fdr_bh']:0.2e}")
+    fig.update_layout({'colorway': ['lime', 'fuchsia']})
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=90,
+            pad=0
+        )
+    )
+    fig.update_layout(legend_y=1.01)
+    fig.add_annotation(dict(font=dict(color='black', size=45),
+                            x=-0.18,
+                            y=1.25,
+                            showarrow=False,
+                            text=f"({string.ascii_lowercase[f_id]})",
+                            textangle=0,
+                            yanchor='top',
+                            xanchor='left',
+                            xref="paper",
+                            yref="paper"))
+    save_figure(fig, f"{path_save}/Figure2/{string.ascii_lowercase[f_id]}_{f}")
+
+# Figure 3 =============================================================================================================
+result_dict = {
+    'feature': ['PhenoAgeAA',
+                'White_blood_cell_count_(10^9/L)',
+                'Lymphocyte_percent_(%)',
+                'Creatinine_(umol/L)',
+                'Mean_cell_volume_(fL)',
+                'Albumin_(g/L)',
+                'Alkaline_phosphatase_(U/L)',
+                'Red_cell_distribution_width_(%)',
+                'Glucose._serum_(mmol/L)_',
+                'Log_C-reactive_protein_(mg/L)',
+                ],
+    'name': ['Phenotypic Age Acceleration',
+             'White blood cell count (10^9/L)',
+             'Lymphocyte percent (%)',
+             'Creatinine (umol/L)',
+             'Mean cell volume (fL)',
+             'Albumin (g/L)',
+             'Alkaline phosphatase (U/L)',
+             'Red cell distribution width (%)',
+             'Glucose. serum (mmol/L)',
+             'Log C-reactive protein (mg/L)',
+             ]
+}
+result_dict['pval_mv'] = np.zeros(len(result_dict['feature']))
+for f_id, f in enumerate(result_dict['feature']):
+    values_ctrl = ctrl.loc[:, f].values
+    values_esrd = esrd.loc[:, f].values
+    stat, pval = mannwhitneyu(values_ctrl, values_esrd, alternative='two-sided')
+    result_dict['pval_mv'][f_id] = pval
+
+result_dict = correct_pvalues(result_dict, ['pval_mv'])
+result_df = pd.DataFrame(result_dict)
+result_df.set_index('feature', inplace=True)
+result_df.to_excel(f"{path_save}/Figure3/result.xlsx", index=True)
+
+for f_id, f in enumerate(result_dict['feature']):
+    values_ctrl = ctrl.loc[:, f].values
+    values_esrd = esrd.loc[:, f].values
+    fig = go.Figure()
+    fig.add_trace(
+        go.Violin(
+            y=values_ctrl,
+            name=f"Control",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor=ctrl_color,
+            marker = dict(color=ctrl_color, line=dict(color='black',width=0.3), opacity=0.8),
+            points='all',
+            bandwidth = np.ptp(values_ctrl) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    fig.add_trace(
+        go.Violin(
+            y=values_esrd,
+            name=f"ESRD",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor=esrd_color,
+            marker=dict(color=esrd_color, line=dict(color='black',width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    if f == 'PhenoAgeAA':
+        add_layout(fig, "", f"{result_dict['name'][f_id]}", f"p-value: {result_df.at[f, 'pval_mv']:0.2e}")
+    else:
+        add_layout(fig, "", f"{result_dict['name'][f_id]}", f"p-value: {result_df.at[f, 'pval_mv_fdr_bh']:0.2e}")
+    fig.update_layout({'colorway': ['lime', 'fuchsia']})
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=90,
+            pad=0
+        )
+    )
+    fig.update_layout(legend_y=1.01)
+    fig.add_annotation(dict(font=dict(color='black', size=45),
+                            x=-0.18,
+                            y=1.25,
+                            showarrow=False,
+                            text=f"({string.ascii_lowercase[f_id]})",
+                            textangle=0,
+                            yanchor='top',
+                            xanchor='left',
+                            xref="paper",
+                            yref="paper"))
+    save_figure(fig, f"{path_save}/Figure3/{string.ascii_lowercase[f_id]}")
