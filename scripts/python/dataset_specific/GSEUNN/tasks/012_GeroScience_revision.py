@@ -3,6 +3,7 @@ from scripts.python.routines.manifest import get_manifest
 import numpy as np
 import os
 import pickle
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
@@ -51,6 +52,7 @@ ctrl = pheno.loc[pheno['Group'] == 'Control']
 esrd = pheno.loc[pheno['Group'] == 'ESRD']
 
 ctrl_color = 'lime'
+ctrl_test_color = 'cyan'
 esrd_color = 'fuchsia'
 dist_num_bins = 25
 
@@ -58,6 +60,7 @@ path_save = f"{path}/{platform}/{dataset}/special/012_GeroScience_revision"
 pathlib.Path(f"{path_save}/SupplementaryFigure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure3").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/Figure4").mkdir(parents=True, exist_ok=True)
 
 # Supplementary Figure 2 ===============================================================================================
 result_dict = {'feature': ['CD4T', 'CD8naive', 'CD8pCD28nCD45RAn', 'Gran', 'Mono', 'NK', 'PlasmaBlast']}
@@ -104,7 +107,7 @@ for f_id, f in enumerate(result_dict['feature']):
             fillcolor=esrd_color,
             marker=dict(color=esrd_color, line=dict(color='black',width=0.3), opacity=0.8),
             points='all',
-            bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+            bandwidth=np.ptp(values_esrd) / dist_num_bins,
             opacity=0.8
         )
     )
@@ -181,7 +184,7 @@ for f_id, f in enumerate(result_dict['feature']):
             fillcolor=esrd_color,
             marker=dict(color=esrd_color, line=dict(color='black',width=0.3), opacity=0.8),
             points='all',
-            bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+            bandwidth=np.ptp(values_esrd) / dist_num_bins,
             opacity=0.8
         )
     )
@@ -278,7 +281,7 @@ for f_id, f in enumerate(result_dict['feature']):
             fillcolor=esrd_color,
             marker=dict(color=esrd_color, line=dict(color='black',width=0.3), opacity=0.8),
             points='all',
-            bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+            bandwidth=np.ptp(values_esrd) / dist_num_bins,
             opacity=0.8
         )
     )
@@ -310,3 +313,138 @@ for f_id, f in enumerate(result_dict['feature']):
                             xref="paper",
                             yref="paper"))
     save_figure(fig, f"{path_save}/Figure3/{string.ascii_lowercase[f_id]}")
+
+# Figure 4 =============================================================================================================
+ctrl_test = pd.read_excel(f"{path}/{platform}/{dataset}/special/011_immuno_part3_check_clocks/part3_filtered_with_age_sex_16.xlsx", index_col='ID')
+
+rmse = np.sqrt(mean_squared_error(ctrl_test.loc[:, 'Age'].values, ctrl_test.loc[:, 'ImmunoAge'].values))
+mae = mean_absolute_error(ctrl_test.loc[:, 'Age'].values, ctrl_test.loc[:, 'ImmunoAge'].values)
+print(f"RMSE in test controls: {rmse}")
+print(f"MAE in test controls: {mae}")
+
+values_ctrl = ctrl.loc[:, 'ImmunoAgeAA'].values
+values_ctrl_test = ctrl_test.loc[:, 'ImmunoAgeAcc'].values
+values_esrd = esrd.loc[:, 'ImmunoAgeAA'].values
+
+stat_01, pval_01 = mannwhitneyu(values_ctrl, values_ctrl_test, alternative='two-sided')
+stat_02, pval_02 = mannwhitneyu(values_ctrl, values_esrd, alternative='two-sided')
+stat_12, pval_12 = mannwhitneyu(values_ctrl_test, values_esrd, alternative='two-sided')
+
+fig = go.Figure()
+fig.add_trace(
+    go.Violin(
+        y=values_ctrl,
+        name=f"Control",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor=ctrl_color,
+        marker=dict(color=ctrl_color, line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+        opacity=0.8
+    )
+)
+fig.add_trace(
+    go.Violin(
+        y=values_ctrl_test,
+        name=f"Control (test)",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor=ctrl_test_color,
+        marker=dict(color=ctrl_test_color, line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(values_ctrl_test) / dist_num_bins,
+        opacity=0.8
+    )
+)
+fig.add_trace(
+    go.Violin(
+        y=values_esrd,
+        name=f"ESRD",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor=esrd_color,
+        marker=dict(color=esrd_color, line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(values_esrd) / 50,
+        opacity=0.8
+    )
+)
+
+add_layout(fig, "", "ipAGE acceleration", f"")
+fig.update_layout({'colorway': ['lime', 'cyan', 'fuchsia']})
+fig = add_p_value_annotation(fig, {(0,1): pval_01, (1, 2) : pval_12, (0,2): pval_02})
+fig.update_yaxes(autorange=False)
+fig.update_layout(yaxis_range=[-50, 200])
+fig.update_layout(title_xref='paper')
+fig.update_layout(legend_font_size=20)
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=110,
+        r=20,
+        b=50,
+        t=90,
+        pad=0
+    )
+)
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.25,
+        xanchor="center",
+        x=0.5
+    )
+)
+fig.add_annotation(dict(font=dict(color='black', size=45),
+                        x=-0.18,
+                        y=1.4,
+                        showarrow=False,
+                        text=f"(b)",
+                        textangle=0,
+                        yanchor='top',
+                        xanchor='left',
+                        xref="paper",
+                        yref="paper"))
+save_figure(fig, f"{path_save}/Figure4/b")
+
+formula = f"ImmunoAge ~ Age"
+model_linear = smf.ols(formula=formula, data=ctrl).fit()
+fig = go.Figure()
+add_scatter_trace(fig, ctrl.loc[:, 'Age'].values, ctrl.loc[:, 'ImmunoAge'].values, f"Control")
+add_scatter_trace(fig, ctrl.loc[:, 'Age'].values, model_linear.fittedvalues.values, "", "lines")
+add_scatter_trace(fig, ctrl_test.loc[:, 'Age'].values, ctrl_test.loc[:, 'ImmunoAge'].values, f"Control (test)")
+add_scatter_trace(fig, esrd.loc[:, 'Age'].values, esrd.loc[:, 'ImmunoAge'].values, f"ESRD")
+add_layout(fig, f"Age", 'ipAGE', f"")
+fig.update_layout({'colorway': ['lime', 'lime', 'cyan', 'fuchsia']})
+fig.update_layout(legend_font_size=20)
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=80,
+        r=20,
+        b=80,
+        t=65,
+        pad=0
+    )
+)
+fig.update_yaxes(autorange=False)
+fig.update_xaxes(autorange=False)
+fig.update_layout(yaxis_range=[10, 110])
+fig.update_layout(xaxis_range=[10, 100])
+fig.add_annotation(dict(font=dict(color='black', size=45),
+                        x=-0.13,
+                        y=1.20,
+                        showarrow=False,
+                        text=f"(a)",
+                        textangle=0,
+                        yanchor='top',
+                        xanchor='left',
+                        xref="paper",
+                        yref="paper"))
+save_figure(fig, f"{path_save}/Figure4/a")

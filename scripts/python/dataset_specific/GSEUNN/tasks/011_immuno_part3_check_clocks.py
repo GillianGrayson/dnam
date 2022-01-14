@@ -4,6 +4,7 @@ import numpy as np
 import os
 import pickle
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_sex_dict
@@ -30,7 +31,7 @@ from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 
 
-thld_abs_diff = 30
+thld_abs_diff = 16
 
 dataset = "GSEUNN"
 
@@ -96,8 +97,8 @@ df = df[~df.index.str.startswith(('Q', 'H'))]
 fig = go.Figure()
 fig.add_trace(
     go.Scatter(
-        x=df.loc[df[f'ImmunoAgeAbsDiff'] <= thld_abs_diff, 'Age'].values,
-        y=df.loc[df[f'ImmunoAgeAbsDiff'] <= thld_abs_diff, 'ImmunoAge'].values,
+        x=df.loc[abs(df[f'ImmunoAgeAbsDiff']) <= thld_abs_diff, 'Age'].values,
+        y=df.loc[abs(df[f'ImmunoAgeAbsDiff']) <= thld_abs_diff, 'ImmunoAge'].values,
         showlegend=True,
         name="Controls",
         mode="markers",
@@ -112,11 +113,11 @@ fig.add_trace(
 )
 fig.add_trace(
     go.Scatter(
-        x=df.loc[df[f'ImmunoAgeAbsDiff'] > thld_abs_diff, 'Age'].values,
-        y=df.loc[df[f'ImmunoAgeAbsDiff'] > thld_abs_diff, 'ImmunoAge'].values,
+        x=df.loc[abs(df[f'ImmunoAgeAbsDiff']) > thld_abs_diff, 'Age'].values,
+        y=df.loc[abs(df[f'ImmunoAgeAbsDiff']) > thld_abs_diff, 'ImmunoAge'].values,
         showlegend=False,
         mode="markers+text",
-        text=df.loc[df[f'ImmunoAgeAbsDiff'] > thld_abs_diff, 'Name'].values,
+        text=df.loc[abs(df[f'ImmunoAgeAbsDiff']) > thld_abs_diff, 'Name'].values,
         textposition="middle right",
         marker=dict(
             size=10,
@@ -140,8 +141,12 @@ fig.update_layout(
 )
 save_figure(fig, f"{path_save}/figs/x(Age)_y(ImmunoAge)")
 
-df = df[df[f'ImmunoAgeAbsDiff'] <= thld_abs_diff]
-df.to_excel(f"{path_save}/part3_filtered_with_age_sex.xlsx", index=True)
+df = df[abs(df[f'ImmunoAgeAbsDiff']) <= thld_abs_diff]
+df.to_excel(f"{path_save}/part3_filtered_with_age_sex_{thld_abs_diff}.xlsx", index=True)
+rmse = np.sqrt(mean_squared_error(df.loc[:, 'Age'].values, df.loc[:, 'ImmunoAge'].values))
+mae = mean_absolute_error(df.loc[:, 'Age'].values, df.loc[:, 'ImmunoAge'].values)
+print(f"RMSE in test controls: {rmse}")
+print(f"MAE in test controls: {mae}")
 
 fig = go.Figure()
 fig.add_trace(
