@@ -50,8 +50,8 @@ sex_dict = get_sex_dict(dataset)
 with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
     immuno_features = f.read().splitlines()
 
-path_save = f"{path}/{platform}/{dataset}/special/011_immuno_part3_check_clocks"
-pathlib.Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
+path_save = f"{path}/{platform}/{dataset}/special/011_immuno_part3_and_part4_check_clocks"
+pathlib.Path(f"{path_save}/figs/{thld_abs_diff}").mkdir(parents=True, exist_ok=True)
 
 continuous_vars = {}
 categorical_vars = {status_col: [x.column for x in status_passed_fields], sex_col: list(sex_dict.values())}
@@ -67,9 +67,9 @@ pheno['ImmunoAgeAcc'] = pheno['ImmunoAge'] - y_pred
 ImmunoAgeAcc_check = abs(pheno['ImmunoAgeAcc'] - pheno['ImmunoAgeAA'])
 print(f"Linear model checking: {max(abs(ImmunoAgeAcc_check.values))}")
 
-df = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_with_age_sex.xlsx", index_col='ID')
+df = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_part4_with_age_sex.xlsx", index_col='ID')
 
-model_df = pd.read_excel(f"{path}/{platform}/{dataset}/special/011_immuno_part3_check_clocks/legacy/Control/v22/clock.xlsx")
+model_df = pd.read_excel(f"{path}/{platform}/{dataset}/special/011_immuno_part3_and_part4_check_clocks/legacy/Control/v22/clock.xlsx")
 
 features = model_df['feature'].to_list()
 coefs = model_df['coef'].to_list()
@@ -86,7 +86,7 @@ for feat_id in range(1, len(features)):
     predicted += df.loc[:, features[feat_id]].values * coefs[feat_id]
 
 df[f'ImmunoAge'] = predicted
-df.to_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_with_age_sex.xlsx", index=True)
+df.to_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_part4_with_age_sex.xlsx", index=True)
 
 df[f'ImmunoAgeAbsDiff'] = df[f'ImmunoAge'] - df[f'Age']
 df[f'Name'] = df.index.values
@@ -139,10 +139,11 @@ fig.update_layout(
         pad=0
     )
 )
-save_figure(fig, f"{path_save}/figs/x(Age)_y(ImmunoAge)")
+save_figure(fig, f"{path_save}/figs/{thld_abs_diff}/x(Age)_y(ImmunoAge)")
 
 df = df[abs(df[f'ImmunoAgeAbsDiff']) <= thld_abs_diff]
-df.to_excel(f"{path_save}/part3_filtered_with_age_sex_{thld_abs_diff}.xlsx", index=True)
+print(f"Shape: {df.shape}")
+df.to_excel(f"{path_save}/part3_part4_filtered_with_age_sex_{thld_abs_diff}.xlsx", index=True)
 rmse = np.sqrt(mean_squared_error(df.loc[:, 'Age'].values, df.loc[:, 'ImmunoAge'].values))
 mae = mean_absolute_error(df.loc[:, 'Age'].values, df.loc[:, 'ImmunoAge'].values)
 print(f"RMSE in test controls: {rmse}")
@@ -176,11 +177,23 @@ fig.update_layout(
         pad=0
     )
 )
-save_figure(fig, f"{path_save}/figs/x(Age)_y(ImmunoAge)_filtered")
+save_figure(fig, f"{path_save}/figs/{thld_abs_diff}/x(Age)_y(ImmunoAge)_filtered")
 
-stat_01, pval_01 = mannwhitneyu(pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, df.loc[:, 'ImmunoAgeAcc'].values)
-stat_02, pval_02 = mannwhitneyu(pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, pheno.loc[pheno['Group'] == 'ESRD', 'ImmunoAgeAcc'].values)
-stat_12, pval_12 = mannwhitneyu(df.loc[:, 'ImmunoAgeAcc'].values, pheno.loc[pheno['Group'] == 'ESRD', 'ImmunoAgeAcc'].values)
+ctrl_color = 'lime'
+ctrl_test_color = 'cyan'
+esrd_color = 'fuchsia'
+dist_num_bins = 25
+ctrl = pheno.loc[pheno['Group'] == 'Control']
+esrd = pheno.loc[pheno['Group'] == 'ESRD']
+ctrl_test = df
+
+values_ctrl = ctrl.loc[:, 'ImmunoAgeAA'].values
+values_ctrl_test = ctrl_test.loc[:, 'ImmunoAgeAcc'].values
+values_esrd = esrd.loc[:, 'ImmunoAgeAA'].values
+
+stat_01, pval_01 = mannwhitneyu(values_ctrl, values_ctrl_test, alternative='two-sided')
+stat_02, pval_02 = mannwhitneyu(values_ctrl, values_esrd, alternative='two-sided')
+stat_12, pval_12 = mannwhitneyu(values_ctrl_test, values_esrd, alternative='two-sided')
 
 fig = go.Figure()
 add_box_trace(fig, pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, f"Control (model building)")
@@ -211,13 +224,71 @@ fig.update_layout(
     )
 )
 
-save_figure(fig, f"{path_save}/figs/box_age_acceleration")
+save_figure(fig, f"{path_save}/figs/{thld_abs_diff}/box_age_acceleration")
 
 fig = go.Figure()
-add_violin_trace(fig, pheno.loc[pheno['Group'] == 'Control', 'ImmunoAgeAcc'].values, f"Control (original)")
-add_violin_trace(fig, df.loc[:, 'ImmunoAgeAcc'].values, f"Control (test)")
-add_violin_trace(fig, pheno.loc[pheno['Group'] == 'ESRD', 'ImmunoAgeAcc'].values, f"ESRD")
-add_layout(fig, "", "Age acceleration", f"")
+fig.add_trace(
+    go.Violin(
+        y=values_ctrl,
+        name=f"Control",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor=ctrl_color,
+        marker=dict(color=ctrl_color, line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(values_ctrl) / dist_num_bins,
+        opacity=0.8
+    )
+)
+fig.add_trace(
+    go.Violin(
+        y=values_ctrl_test,
+        name=f"Control (test)",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor=ctrl_test_color,
+        marker=dict(color=ctrl_test_color, line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(values_ctrl_test) / dist_num_bins,
+        opacity=0.8
+    )
+)
+fig.add_trace(
+    go.Violin(
+        y=values_esrd,
+        name=f"ESRD",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor=esrd_color,
+        marker=dict(color=esrd_color, line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(values_esrd) / 50,
+        opacity=0.8
+    )
+)
+
+add_layout(fig, "", "ipAGE acceleration", f"")
+fig.update_layout({'colorway': ['lime', 'cyan', 'fuchsia']})
+fig = add_p_value_annotation(fig, {(0,1): pval_01, (1, 2) : pval_12, (0,2): pval_02})
+fig.update_yaxes(autorange=False)
+fig.update_layout(yaxis_range=[-50, 200])
+fig.update_layout(title_xref='paper')
+fig.update_layout(legend_font_size=20)
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=110,
+        r=20,
+        b=50,
+        t=90,
+        pad=0
+    )
+)
 fig.update_layout(
     legend=dict(
         orientation="h",
@@ -227,21 +298,17 @@ fig.update_layout(
         x=0.5
     )
 )
-fig.update_layout({'colorway': ['blue', 'cyan', 'red']})
-fig.update_xaxes(showticklabels=False)
-fig.update_yaxes(autorange=False)
-fig.update_layout(yaxis_range=[-50, 250])
-fig = add_p_value_annotation(fig, {(0,1): pval_01, (1, 2) : pval_12, (0,2): pval_02})
-fig.update_layout(
-    margin=go.layout.Margin(
-        l=80,
-        r=20,
-        b=30,
-        t=120,
-        pad=0
-    )
-)
-save_figure(fig, f"{path_save}/figs/vio_age_acceleration")
+fig.add_annotation(dict(font=dict(color='black', size=45),
+                        x=-0.18,
+                        y=1.4,
+                        showarrow=False,
+                        text=f"(b)",
+                        textangle=0,
+                        yanchor='top',
+                        xanchor='left',
+                        xref="paper",
+                        yref="paper"))
+save_figure(fig, f"{path_save}/figs/{thld_abs_diff}/vio_age_acceleration")
 
 fig = go.Figure()
 add_histogram_trace(fig, df.loc[df['Sex'] == 'M', 'Age'].values, f"Males ({df.loc[df['Sex'] == 'M', :].shape[0]})", 5.0)
@@ -257,7 +324,7 @@ fig.update_layout(
         pad=0
     )
 )
-save_figure(fig, f"{path_save}/figs/histogram_Age")
+save_figure(fig, f"{path_save}/figs/{thld_abs_diff}/histogram_Age")
 
 fig = go.Figure()
 x = df.loc[:, 'Age'].values,
@@ -281,4 +348,4 @@ fig.update_yaxes(autorange=False)
 fig.update_xaxes(autorange=False)
 fig.update_layout(yaxis_range=[10, 100])
 fig.update_layout(xaxis_range=[10, 100])
-save_figure(fig, f"{path_save}/figs/scatter_Age_ipAGE")
+save_figure(fig, f"{path_save}/figs/{thld_abs_diff}/scatter_Age_ipAGE")

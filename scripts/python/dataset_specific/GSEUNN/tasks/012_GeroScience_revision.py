@@ -319,7 +319,7 @@ for f_id, f in enumerate(result_dict['feature']):
     save_figure(fig, f"{path_save}/Figure3/{string.ascii_lowercase[f_id]}")
 
 # Figure 4 =============================================================================================================
-ctrl_test = pd.read_excel(f"{path}/{platform}/{dataset}/special/011_immuno_part3_check_clocks/part3_filtered_with_age_sex_16.xlsx", index_col='ID')
+ctrl_test = pd.read_excel(f"{path}/{platform}/{dataset}/special/011_immuno_part3_and_part4_check_clocks/part3_part4_filtered_with_age_sex_16.xlsx", index_col='ID')
 
 rmse = np.sqrt(mean_squared_error(ctrl_test.loc[:, 'Age'].values, ctrl_test.loc[:, 'ImmunoAge'].values))
 mae = mean_absolute_error(ctrl_test.loc[:, 'Age'].values, ctrl_test.loc[:, 'ImmunoAge'].values)
