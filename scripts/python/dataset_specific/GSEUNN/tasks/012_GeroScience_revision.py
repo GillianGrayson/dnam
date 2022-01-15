@@ -33,6 +33,7 @@ from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.EWAS.routines.correction import correct_pvalues
 from statsmodels.stats.multitest import multipletests
 import plotly.express as px
+import matplotlib
 
 
 dataset = "GSEUNN"
@@ -485,44 +486,58 @@ for f_id_1, f_1 in enumerate(result_dict['feature']):
     pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
     pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
 
-# for f_id_1, f_1 in enumerate(result_dict['name']):
-#     for f_id_2, f_2 in enumerate(result_dict['name']):
-#         corr_df_ctrl.loc[f_1, f_2] = f"{corr_df_ctrl.loc[f_1, f_2]:0.2f}"
-#         pval_df_ctrl.loc[f_1, f_2] = f"{pval_df_ctrl.loc[f_1, f_2]:0.2f}"
-#         corr_df_esrd.loc[f_1, f_2] = f"{corr_df_esrd.loc[f_1, f_2]:0.2f}"
-#         pval_df_esrd.loc[f_1, f_2] = f"{pval_df_esrd.loc[f_1, f_2]:0.2f}"
+corr_df_esrd = corr_df_esrd.iloc[::-1]
+mtx_to_plot = corr_df_esrd.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_yticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_xticklabels(corr_df_esrd.columns.values)
+ax.set_yticklabels(corr_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(corr_df_esrd.shape[0]):
+    for j in range(corr_df_esrd.shape[0]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=7)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/b_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/b_1.pdf", bbox_inches='tight', dpi=400)
 
+pval_df_esrd = pval_df_esrd.iloc[::-1]
 mtx_to_plot = pval_df_esrd.to_numpy()
-cmap = plt.get_cmap("Oranges").copy()
-cmap.set_under('#d7bfd7')
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
 fig, ax = plt.subplots()
 im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
-cbar = ax.figure.colorbar(im, ax=ax, location='top')
-cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=20)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
 ax.set_xticks(np.arange(pval_df_esrd.shape[0]))
 ax.set_yticks(np.arange(pval_df_esrd.shape[0]))
-ax.set_xticklabels(pval_df_esrd.index.values)
+ax.set_xticklabels(pval_df_esrd.columns.values)
 ax.set_yticklabels(pval_df_esrd.index.values)
 plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
 for i in range(pval_df_esrd.shape[0]):
     for j in range(pval_df_esrd.shape[0]):
-        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color="black", fontsize=5)
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=7)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=7)
 fig.tight_layout()
-plt.savefig(f"{path_save}/Figure5/test.png")
-plt.savefig(f"{path_save}/Figure5/test.pdf")
-
-
-# fig = go.Figure(
-#     data=go.Heatmap(
-#         z=pval_df_esrd.values,
-#         x=pval_df_esrd.index.values,
-#         y=pval_df_esrd.index.values,
-#         hoverongaps=False,
-#         text=pval_df_esrd.values,
-#         texttemplate="%{text}",
-#         colorbar=dict(orientation='h', title=dict(text=f"-log10(p-value)", side='top'))
-#     )
-# )
-#
-#
-# save_figure(fig, f"{path_save}/Figure5/test")
+plt.savefig(f"{path_save}/Figure5/b_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/b_2.pdf", bbox_inches='tight', dpi=400)
