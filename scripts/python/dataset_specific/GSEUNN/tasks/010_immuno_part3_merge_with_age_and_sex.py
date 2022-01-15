@@ -41,7 +41,7 @@ status_dict = get_status_dict(dataset)
 status_passed_fields = status_dict['Control'] + status_dict['Case']
 sex_dict = get_sex_dict(dataset)
 
-path_save = f"{path}/{platform}/{dataset}/special/010_immuno_part3_merge_with_age_and_sex"
+path_save = f"{path}/{platform}/{dataset}/special/010_immuno_part3_and_part4_merge_with_age_and_sex"
 pathlib.Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
 
 continuous_vars = {}
@@ -49,25 +49,35 @@ categorical_vars = {status_col: [x.column for x in status_passed_fields], sex_co
 pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
 pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
 
-immuno = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part3.xlsx", index_col='Sample')
+immuno3 = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part3.xlsx", index_col='Sample')
+immuno4 = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part4.xlsx", index_col='Sample')
+immuno4 = immuno4.loc[immuno4.index.str.match(r'(L|F|I|A|S)*', na=False), :]
+coomon_samples = set(immuno3.index.values).intersection(set(immuno4.index.values))
+if len(coomon_samples) > 0:
+    print(f"Subjects with common ids:")
+    print(coomon_samples)
+immuno = pd.concat([immuno3, immuno4])
 ages = pd.read_excel(f"{path}/{platform}/{dataset}/data/age_L_Q_H_I.xlsx", index_col='Code')
 sexes = pd.read_excel(f"{path}/{platform}/{dataset}/data/sex_L_Q_H_I.xlsx", index_col='Code')
 
 df = pd.merge(ages, sexes, left_index=True, right_index=True)
 df = pd.merge(df, immuno, left_index=True, right_index=True)
-df.index.name = 'ID'
-df.to_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_with_age_sex.xlsx", index=True)
+
 
 no_age_codes = set(immuno.index.values) - set(ages.index.values)
 if len(no_age_codes) > 0:
     print(f"Subjects with missed ages:")
-    print(no_age_codes)
+    print('\n'.join(sorted(list(no_age_codes))))
 
 used_ids = pheno.loc[:, 'ID'].values
-duplicate_ids = set(used_ids).intersection(set(df.index.values))
+duplicate_ids = list(set(used_ids).intersection(set(df.index.values)))
 if len(duplicate_ids) > 0:
-    print(f"Duplicates:")
-    print(duplicate_ids)
+    print(f"Remove duplicates:")
+    print('\n'.join(sorted(duplicate_ids)))
+    df.drop(duplicate_ids, inplace=True)
+
+df.index.name = 'ID'
+df.to_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_part4_with_age_sex.xlsx", index=True)
 
 controls = df[~df.index.str.startswith(('Q', 'H'))]
 
