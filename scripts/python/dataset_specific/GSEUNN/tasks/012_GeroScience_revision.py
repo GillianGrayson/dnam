@@ -453,7 +453,7 @@ fig.add_annotation(dict(font=dict(color='black', size=45),
                         yref="paper"))
 save_figure(fig, f"{path_save}/Figure4/a")
 
-# Figure 5 =============================================================================================================
+# Figure 5 a,b =========================================================================================================
 result_dict = {
     'feature': ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenoAge', 'ImmunoAge'],
     'name': ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenotypicAge', 'ipAGE']
@@ -485,6 +485,62 @@ for f_id_1, f_1 in enumerate(result_dict['feature']):
 
     pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
     pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
+
+corr_df_ctrl = corr_df_ctrl.iloc[::-1]
+mtx_to_plot = corr_df_ctrl.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_yticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_xticklabels(corr_df_ctrl.columns.values)
+ax.set_yticklabels(corr_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(corr_df_ctrl.shape[0]):
+    for j in range(corr_df_ctrl.shape[0]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=7)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/a_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/a_1.pdf", bbox_inches='tight', dpi=400)
+
+pval_df_ctrl = pval_df_ctrl.iloc[::-1]
+mtx_to_plot = pval_df_ctrl.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_yticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_xticklabels(pval_df_ctrl.columns.values)
+ax.set_yticklabels(pval_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(pval_df_ctrl.shape[0]):
+    for j in range(pval_df_ctrl.shape[0]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=7)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=7)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/a_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/a_2.pdf", bbox_inches='tight', dpi=400)
 
 corr_df_esrd = corr_df_esrd.iloc[::-1]
 mtx_to_plot = corr_df_esrd.to_numpy()
@@ -541,3 +597,148 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/b_2.pdf", bbox_inches='tight', dpi=400)
+
+# Figure 5 c,d =========================================================================================================
+result_dict = {
+    'feature': ['DNAmAgeHannumAA', 'DNAmAgeAA', 'IEAA', 'EEAA', 'DNAmPhenoAgeAA', 'DNAmGrimAgeAA', 'PhenoAgeAA', 'ImmunoAgeAA'],
+    'name': ['DNAmAgeHannumAcc', 'DNAmAgeAcc', 'IEAA', 'EEAA', 'DNAmPhenoAgeAcc', 'DNAmGrimAgeAcc', 'PhenotypicAgeAcc', 'ipAGEAcc']
+}
+
+corr_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+pval_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+corr_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+pval_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+
+for f_id_1, f_1 in enumerate(result_dict['feature']):
+    for f_id_2, f_2 in enumerate(result_dict['feature']):
+        values_1_ctrl = ctrl.loc[:, f_1].values
+        values_2_ctrl = ctrl.loc[:, f_2].values
+        values_1_esrd = esrd.loc[:, f_1].values
+        values_2_esrd = esrd.loc[:, f_2].values
+
+        corr_ctrl, pval_ctrl = stats.pearsonr(values_1_ctrl, values_2_ctrl)
+        corr_df_ctrl.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_ctrl
+        pval_df_ctrl.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_ctrl
+        corr_esrd, pval_esrd = stats.pearsonr(values_1_esrd, values_2_esrd)
+        corr_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_esrd
+        pval_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_esrd
+
+    # _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
+    # pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
+    # _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
+    # pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
+
+    pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
+    pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
+
+corr_df_ctrl = corr_df_ctrl.iloc[::-1]
+mtx_to_plot = corr_df_ctrl.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_yticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_xticklabels(corr_df_ctrl.columns.values)
+ax.set_yticklabels(corr_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(corr_df_ctrl.shape[0]):
+    for j in range(corr_df_ctrl.shape[0]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=6)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/c_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/c_1.pdf", bbox_inches='tight', dpi=400)
+
+pval_df_ctrl = pval_df_ctrl.iloc[::-1]
+mtx_to_plot = pval_df_ctrl.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_yticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_xticklabels(pval_df_ctrl.columns.values)
+ax.set_yticklabels(pval_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(pval_df_ctrl.shape[0]):
+    for j in range(pval_df_ctrl.shape[0]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=7)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=6)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/c_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/c_2.pdf", bbox_inches='tight', dpi=400)
+
+corr_df_esrd = corr_df_esrd.iloc[::-1]
+mtx_to_plot = corr_df_esrd.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_yticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_xticklabels(corr_df_esrd.columns.values)
+ax.set_yticklabels(corr_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(corr_df_esrd.shape[0]):
+    for j in range(corr_df_esrd.shape[0]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=6)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/d_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/d_1.pdf", bbox_inches='tight', dpi=400)
+
+pval_df_esrd = pval_df_esrd.iloc[::-1]
+mtx_to_plot = pval_df_esrd.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.046, pad=0.04)
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=15)
+ax.set_aspect("equal")
+ax.set_xticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_yticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_xticklabels(pval_df_esrd.columns.values)
+ax.set_yticklabels(pval_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+textcolors = ("black", "white")
+for i in range(pval_df_esrd.shape[0]):
+    for j in range(pval_df_esrd.shape[0]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=7)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=6)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/d_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure5/d_2.pdf", bbox_inches='tight', dpi=400)
