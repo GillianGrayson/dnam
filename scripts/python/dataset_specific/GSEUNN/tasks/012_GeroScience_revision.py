@@ -12,6 +12,7 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from matplotlib import colors
 from scipy.stats import mannwhitneyu
 import plotly.graph_objects as go
+from scipy import stats
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.violin import add_violin_trace
 from scripts.python.routines.plot.box import add_box_trace
@@ -30,6 +31,7 @@ from scripts.python.routines.plot.histogram import add_histogram_trace
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.EWAS.routines.correction import correct_pvalues
+from statsmodels.stats.multitest import multipletests
 import plotly.express as px
 
 
@@ -61,6 +63,7 @@ pathlib.Path(f"{path_save}/SupplementaryFigure2").mkdir(parents=True, exist_ok=T
 pathlib.Path(f"{path_save}/Figure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure3").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure4").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/Figure5").mkdir(parents=True, exist_ok=True)
 
 # Supplementary Figure 2 ===============================================================================================
 result_dict = {'feature': ['CD4T', 'CD8naive', 'CD8pCD28nCD45RAn', 'Gran', 'Mono', 'NK', 'PlasmaBlast']}
@@ -448,3 +451,78 @@ fig.add_annotation(dict(font=dict(color='black', size=45),
                         xref="paper",
                         yref="paper"))
 save_figure(fig, f"{path_save}/Figure4/a")
+
+# Figure 5 =============================================================================================================
+result_dict = {
+    'feature': ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenoAge', 'ImmunoAge'],
+    'name': ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenotypicAge', 'ipAGE']
+}
+
+corr_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+pval_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+corr_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+pval_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+
+for f_id_1, f_1 in enumerate(result_dict['feature']):
+    for f_id_2, f_2 in enumerate(result_dict['feature']):
+        values_1_ctrl = ctrl.loc[:, f_1].values
+        values_2_ctrl = ctrl.loc[:, f_2].values
+        values_1_esrd = esrd.loc[:, f_1].values
+        values_2_esrd = esrd.loc[:, f_2].values
+
+        corr_ctrl, pval_ctrl = stats.pearsonr(values_1_ctrl, values_2_ctrl)
+        corr_df_ctrl.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_ctrl
+        pval_df_ctrl.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_ctrl
+        corr_esrd, pval_esrd = stats.pearsonr(values_1_esrd, values_2_esrd)
+        corr_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_esrd
+        pval_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_esrd
+
+    # _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
+    # pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
+    # _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
+    # pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
+
+    pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
+    pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
+
+# for f_id_1, f_1 in enumerate(result_dict['name']):
+#     for f_id_2, f_2 in enumerate(result_dict['name']):
+#         corr_df_ctrl.loc[f_1, f_2] = f"{corr_df_ctrl.loc[f_1, f_2]:0.2f}"
+#         pval_df_ctrl.loc[f_1, f_2] = f"{pval_df_ctrl.loc[f_1, f_2]:0.2f}"
+#         corr_df_esrd.loc[f_1, f_2] = f"{corr_df_esrd.loc[f_1, f_2]:0.2f}"
+#         pval_df_esrd.loc[f_1, f_2] = f"{pval_df_esrd.loc[f_1, f_2]:0.2f}"
+
+mtx_to_plot = pval_df_esrd.to_numpy()
+cmap = plt.get_cmap("Oranges").copy()
+cmap.set_under('#d7bfd7')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top')
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=20)
+ax.set_xticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_yticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_xticklabels(pval_df_esrd.index.values)
+ax.set_yticklabels(pval_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+for i in range(pval_df_esrd.shape[0]):
+    for j in range(pval_df_esrd.shape[0]):
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color="black", fontsize=5)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure5/test.png")
+plt.savefig(f"{path_save}/Figure5/test.pdf")
+
+
+# fig = go.Figure(
+#     data=go.Heatmap(
+#         z=pval_df_esrd.values,
+#         x=pval_df_esrd.index.values,
+#         y=pval_df_esrd.index.values,
+#         hoverongaps=False,
+#         text=pval_df_esrd.values,
+#         texttemplate="%{text}",
+#         colorbar=dict(orientation='h', title=dict(text=f"-log10(p-value)", side='top'))
+#     )
+# )
+#
+#
+# save_figure(fig, f"{path_save}/Figure5/test")
