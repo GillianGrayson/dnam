@@ -478,11 +478,25 @@ for f_id_1, f_1 in enumerate(result_dict['feature']):
         corr_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_esrd
         pval_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_esrd
 
-    # _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
-    # pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
-    # _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
-    # pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
+selection = np.tri(pval_df_ctrl.shape[0], pval_df_ctrl.shape[1], -1, dtype=np.bool)
 
+pval_df_ctrl_fdr = pval_df_ctrl.where(selection).stack().reset_index()
+pval_df_ctrl_fdr.columns = ['row', 'col', 'pval']
+_, pvals_corr, _, _ = multipletests(pval_df_ctrl_fdr.loc[:, 'pval'].values, 0.05, method='fdr_bh')
+pval_df_ctrl_fdr['pval_fdr_bh'] = pvals_corr
+
+pval_df_esrd_fdr = pval_df_esrd.where(selection).stack().reset_index()
+pval_df_esrd_fdr.columns = ['row', 'col', 'pval']
+_, pvals_corr, _, _ = multipletests(pval_df_esrd_fdr.loc[:, 'pval'].values, 0.05, method='fdr_bh')
+pval_df_esrd_fdr['pval_fdr_bh'] = pvals_corr
+
+for line_id in range(pval_df_ctrl_fdr.shape[0]):
+    pval_df_ctrl.loc[pval_df_ctrl_fdr.at[line_id, 'row'], pval_df_ctrl_fdr.at[line_id, 'col']] = pval_df_ctrl_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_ctrl.loc[pval_df_ctrl_fdr.at[line_id, 'col'], pval_df_ctrl_fdr.at[line_id, 'row']] = pval_df_ctrl_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_esrd.loc[pval_df_esrd_fdr.at[line_id, 'row'], pval_df_esrd_fdr.at[line_id, 'col']] = pval_df_esrd_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_esrd.loc[pval_df_esrd_fdr.at[line_id, 'col'], pval_df_esrd_fdr.at[line_id, 'row']] = pval_df_esrd_fdr.at[line_id, 'pval_fdr_bh']
+
+for f_id_1, f_1 in enumerate(result_dict['feature']):
     pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
     pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
 
@@ -623,11 +637,25 @@ for f_id_1, f_1 in enumerate(result_dict['feature']):
         corr_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_esrd
         pval_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_esrd
 
-    # _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
-    # pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
-    # _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[result_dict['name'][f_id_1], :].values, 0.05, method='fdr_bh')
-    # pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pvals_corr)
+selection = np.tri(pval_df_ctrl.shape[0], pval_df_ctrl.shape[1], -1, dtype=np.bool)
 
+pval_df_ctrl_fdr = pval_df_ctrl.where(selection).stack().reset_index()
+pval_df_ctrl_fdr.columns = ['row', 'col', 'pval']
+_, pvals_corr, _, _ = multipletests(pval_df_ctrl_fdr.loc[:, 'pval'].values, 0.05, method='fdr_bh')
+pval_df_ctrl_fdr['pval_fdr_bh'] = pvals_corr
+
+pval_df_esrd_fdr = pval_df_esrd.where(selection).stack().reset_index()
+pval_df_esrd_fdr.columns = ['row', 'col', 'pval']
+_, pvals_corr, _, _ = multipletests(pval_df_esrd_fdr.loc[:, 'pval'].values, 0.05, method='fdr_bh')
+pval_df_esrd_fdr['pval_fdr_bh'] = pvals_corr
+
+for line_id in range(pval_df_ctrl_fdr.shape[0]):
+    pval_df_ctrl.loc[pval_df_ctrl_fdr.at[line_id, 'row'], pval_df_ctrl_fdr.at[line_id, 'col']] = pval_df_ctrl_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_ctrl.loc[pval_df_ctrl_fdr.at[line_id, 'col'], pval_df_ctrl_fdr.at[line_id, 'row']] = pval_df_ctrl_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_esrd.loc[pval_df_esrd_fdr.at[line_id, 'row'], pval_df_esrd_fdr.at[line_id, 'col']] = pval_df_esrd_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_esrd.loc[pval_df_esrd_fdr.at[line_id, 'col'], pval_df_esrd_fdr.at[line_id, 'row']] = pval_df_esrd_fdr.at[line_id, 'pval_fdr_bh']
+
+for f_id_1, f_1 in enumerate(result_dict['feature']):
     pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
     pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
 
