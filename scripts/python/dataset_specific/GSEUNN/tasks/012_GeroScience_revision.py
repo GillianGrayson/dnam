@@ -865,49 +865,60 @@ for f_id, f in enumerate(top_features):
 xs = -np.log10(result_df.loc[:, 'Mann–Whitney U test p-value (FDR)'].values)[::-1]
 ys = result_df.index.values[::-1]
 
+
 fig = go.Figure()
 fig.add_trace(
     go.Bar(
         x=xs,
-        y=ys,
+        y=list(range(len(xs))),
         orientation='h',
-        marker=dict(color='red')
+        marker=dict(color='red', opacity=0.9)
     )
 )
 fig.add_trace(
     go.Scatter(
-        x=[-np.log10(0.05)] * len(ys),
-        y=ys,
+        x=[-np.log10(0.05), -np.log10(0.05)],
+        y=[-1, len(xs)],
         showlegend=False,
         mode='lines',
         line = dict(color='black', width=2, dash='dash')
     )
 )
-add_layout(fig, r"$-\log_{10}(\mathrm{p-value})$", "", f"")
+add_layout(fig, "$\\huge{-\log_{10}(\\text{p-value})}$", "", f"")
 fig.update_layout({'colorway': ['red', 'black']})
 fig.update_layout(legend_font_size=20)
 fig.update_layout(showlegend=False)
-fig.update_yaxes(showgrid=False)
+fig.update_layout(
+    yaxis = dict(
+        tickmode = 'array',
+        tickvals = list(range(len(xs))),
+        ticktext = ys
+    )
+)
+fig.update_yaxes(autorange=False)
+fig.update_layout(yaxis_range=[-1, len(xs)])
+fig.update_yaxes(tickfont_size=24)
+fig.update_xaxes(tickfont_size=30)
 fig.update_layout(
     autosize=False,
-    width=600,
-    height=1200,
+    width=800,
+    height=1400,
     margin=go.layout.Margin(
-        l=140,
+        l=175,
         r=20,
-        b=80,
-        t=65,
+        b=100,
+        t=40,
         pad=0
     )
 )
-# fig.add_annotation(dict(font=dict(color='black', size=45),
-#                         x=-0.13,
-#                         y=1.20,
-#                         showarrow=False,
-#                         text=f"(a)",
-#                         textangle=0,
-#                         yanchor='top',
-#                         xanchor='left',
-#                         xref="paper",
-#                         yref="paper"))
+fig.add_annotation(dict(font=dict(color='black', size=65),
+                        x=-0.29,
+                        y=1.04,
+                        showarrow=False,
+                        text=f"(a)",
+                        textangle=0,
+                        yanchor='top',
+                        xanchor='left',
+                        xref="paper",
+                        yref="paper"))
 save_figure(fig, f"{path_save}/Figure6/a")
