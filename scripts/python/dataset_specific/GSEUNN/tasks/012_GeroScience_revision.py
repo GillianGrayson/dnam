@@ -65,6 +65,9 @@ pathlib.Path(f"{path_save}/Figure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure3").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure4").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure5").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/Figure6").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/Figure7").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/SupplementaryTable9").mkdir(parents=True, exist_ok=True)
 
 # Supplementary Figure 2 ===============================================================================================
 result_dict = {'feature': ['CD4T', 'CD8naive', 'CD8pCD28nCD45RAn', 'Gran', 'Mono', 'NK', 'PlasmaBlast']}
@@ -770,3 +773,141 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/d_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/d_2.pdf", bbox_inches='tight', dpi=400)
+
+# Figure 6 =============================================================================================================
+# SupplementaryTable9 ==================================================================================================
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    immuno_features = f.read().splitlines()
+result_dict = {'feature': immuno_features}
+result_dict['pval_mv'] = np.zeros(len(result_dict['feature']))
+for f_id, f in enumerate(result_dict['feature']):
+    values_ctrl = ctrl.loc[:, f].values
+    values_esrd = esrd.loc[:, f].values
+    stat, pval = mannwhitneyu(values_ctrl, values_esrd, alternative='two-sided')
+    result_dict['pval_mv'][f_id] = pval
+
+result_dict = correct_pvalues(result_dict, ['pval_mv'])
+result_df = pd.DataFrame(result_dict)
+result_df.set_index('feature', inplace=True)
+result_df.sort_values(['pval_mv'], ascending=[True], inplace=True)
+result_df.rename(
+    columns={'pval_mv': 'Mann–Whitney U test p-value', 'pval_mv_fdr_bh': 'Mann–Whitney U test p-value (FDR)'},
+    inplace=True
+)
+result_df.drop('pval_mv_bonferroni', axis=1, inplace=True)
+result_df.to_excel(f"{path_save}/SupplementaryTable9/Disease.xlsx", index=True)
+top_features = ['CSF1', 'CXCL9']
+top_features_ranges = {'CSF1': [-100, 2500], 'CXCL9': [-1000, 20000]}
+top_features_bandwidth={'CSF1': {'Control': 50, 'ESRD': 90}, 'CXCL9': {'Control': 800, 'ESRD': 800}}
+
+for f_id, f in enumerate(top_features):
+    values_ctrl = ctrl.loc[:, f].values
+    values_esrd = esrd.loc[:, f].values
+    fig = go.Figure()
+    fig.add_trace(
+        go.Violin(
+            y=values_ctrl,
+            name=f"Control",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor=ctrl_color,
+            marker = dict(color=ctrl_color, line=dict(color='black',width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=top_features_bandwidth[f]['Control'],
+            opacity=0.8
+        )
+    )
+    fig.add_trace(
+        go.Violin(
+            y=values_esrd,
+            name=f"ESRD",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor=esrd_color,
+            marker=dict(color=esrd_color, line=dict(color='black',width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=top_features_bandwidth[f]['ESRD'],
+            opacity=0.8
+        )
+    )
+    add_layout(fig, "", f"{f}", f"p-value: {result_df.at[f, 'Mann–Whitney U test p-value (FDR)']:0.2e}")
+    fig.update_layout({'colorway': ['lime', 'fuchsia']})
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_yaxes(autorange=False)
+    fig.update_layout(yaxis_range=top_features_ranges[f])
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=130,
+            r=20,
+            b=50,
+            t=90,
+            pad=0
+        )
+    )
+    fig.update_layout(legend_y=1.01)
+    fig.add_annotation(dict(font=dict(color='black', size=45),
+                            x=-0.18,
+                            y=1.25,
+                            showarrow=False,
+                            text=f"({string.ascii_lowercase[f_id+1]})",
+                            textangle=0,
+                            yanchor='top',
+                            xanchor='left',
+                            xref="paper",
+                            yref="paper"))
+    save_figure(fig, f"{path_save}/Figure6/{string.ascii_lowercase[f_id+1]}_{f}")
+
+xs = -np.log10(result_df.loc[:, 'Mann–Whitney U test p-value (FDR)'].values)[::-1]
+ys = result_df.index.values[::-1]
+
+fig = go.Figure()
+fig.add_trace(
+    go.Bar(
+        x=xs,
+        y=ys,
+        orientation='h',
+        marker=dict(color='red')
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x=[-np.log10(0.05)] * len(ys),
+        y=ys,
+        showlegend=False,
+        mode='lines',
+        line = dict(color='black', width=2, dash='dash')
+    )
+)
+add_layout(fig, r"$-\log_{10}(\mathrm{p-value})$", "", f"")
+fig.update_layout({'colorway': ['red', 'black']})
+fig.update_layout(legend_font_size=20)
+fig.update_layout(showlegend=False)
+fig.update_yaxes(showgrid=False)
+fig.update_layout(
+    autosize=False,
+    width=600,
+    height=1200,
+    margin=go.layout.Margin(
+        l=140,
+        r=20,
+        b=80,
+        t=65,
+        pad=0
+    )
+)
+# fig.add_annotation(dict(font=dict(color='black', size=45),
+#                         x=-0.13,
+#                         y=1.20,
+#                         showarrow=False,
+#                         text=f"(a)",
+#                         textangle=0,
+#                         yanchor='top',
+#                         xanchor='left',
+#                         xref="paper",
+#                         yref="paper"))
+save_figure(fig, f"{path_save}/Figure6/a")
