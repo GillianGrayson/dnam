@@ -1121,3 +1121,44 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure7/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/b_2.pdf", bbox_inches='tight', dpi=400)
+
+# Figure 7 Scatters ====================================================================================================
+
+top_features = ['CXCL9', 'VEGFA', 'CCL2']
+top_features_ranges = {'CXCL9': [0, 5000], 'VEGFA': [0, 250], 'CCL2': [0, 500]}
+
+for f_id, f in enumerate(top_features):
+    formula = f"{f} ~ Age"
+    model_linear = smf.ols(formula=formula, data=ctrl).fit()
+    fig = go.Figure()
+    add_scatter_trace(fig, ctrl.loc[:, 'Age'].values, ctrl.loc[:, f].values, f"Control")
+    add_scatter_trace(fig, ctrl.loc[:, 'Age'].values, model_linear.fittedvalues.values, "", "lines")
+    add_scatter_trace(fig, esrd.loc[:, 'Age'].values, esrd.loc[:, f].values, f"ESRD")
+    add_layout(fig, f"Age", f'{f}', f"")
+    fig.update_layout({'colorway': ['lime', 'lime', 'fuchsia']})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=120,
+            r=20,
+            b=80,
+            t=65,
+            pad=0
+        )
+    )
+    fig.update_yaxes(autorange=False)
+    fig.update_xaxes(autorange=False)
+    fig.update_layout(yaxis_range=top_features_ranges[f])
+    fig.update_layout(xaxis_range=[10, 100])
+    fig.add_annotation(dict(font=dict(color='black', size=45),
+                            x=-0.22,
+                            y=1.20,
+                            showarrow=False,
+                            text=f"({string.ascii_lowercase[f_id+4]})",
+                            textangle=0,
+                            yanchor='top',
+                            xanchor='left',
+                            xref="paper",
+                            yref="paper"))
+
+    save_figure(fig, f"{path_save}/Figure7/{string.ascii_lowercase[f_id+4]}_{f}")
