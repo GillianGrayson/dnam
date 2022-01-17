@@ -865,7 +865,6 @@ for f_id, f in enumerate(top_features):
 xs = -np.log10(result_df.loc[:, 'Mann–Whitney U test p-value (FDR)'].values)[::-1]
 ys = result_df.index.values[::-1]
 
-
 fig = go.Figure()
 fig.add_trace(
     go.Bar(
@@ -933,6 +932,14 @@ with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
 corr_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
 pval_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
 
+age_col_names = []
+for n in names_2:
+    age_col_names.append(f"{n} correlation")
+    age_col_names.append(f"{n} p-value")
+    age_col_names.append(f"{n} p-value (FDR)")
+age_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2) * 3)), index=names_1, columns=age_col_names)
+age_df_ctrl.index.name = 'feature'
+
 for f_id_2, f_2 in enumerate(features_2):
     for f_id_1, f_1 in enumerate(features_1):
         values_1_ctrl = ctrl.loc[:, f_1].values
@@ -941,9 +948,15 @@ for f_id_2, f_2 in enumerate(features_2):
         corr_df_ctrl.loc[names_1[f_id_1], names_2[f_id_2]] = corr_ctrl
         pval_df_ctrl.loc[names_1[f_id_1], names_2[f_id_2]] = pval_ctrl
 
+    age_df_ctrl.loc[:, f"{names_2[f_id_2]} correlation"] = corr_df_ctrl.loc[:, names_2[f_id_2]]
+    age_df_ctrl.loc[:, f"{names_2[f_id_2]} p-value"] = pval_df_ctrl.loc[:, names_2[f_id_2]]
+
 for f_id_2, f_2 in enumerate(features_2):
     _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[:, names_2[f_id_2]].values, 0.05, method='fdr_bh')
+    age_df_ctrl.loc[:, f"{names_2[f_id_2]} p-value (FDR)"] = pvals_corr
     pval_df_ctrl.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
+
+age_df_ctrl.to_excel(f"{path_save}/SupplementaryTable9/Age_Control.xlsx", index=True)
 
 corr_df_ctrl = corr_df_ctrl.iloc[::-1]
 mtx_to_plot = corr_df_ctrl.to_numpy()
@@ -1014,8 +1027,17 @@ names_2 = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'Ph
 with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
     features_1 = f.read().splitlines()
     names_1 = features_1.copy()
+
 features_1 += ['Dialysis_(months)']
 names_1 += ['Dialysis(months)']
+
+age_col_names = []
+for n in names_2:
+    age_col_names.append(f"{n} correlation")
+    age_col_names.append(f"{n} p-value")
+    age_col_names.append(f"{n} p-value (FDR)")
+age_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2) * 3)), index=names_1, columns=age_col_names)
+age_df_esrd.index.name = 'feature'
 
 corr_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
 pval_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
@@ -1028,9 +1050,15 @@ for f_id_2, f_2 in enumerate(features_2):
         corr_df_esrd.loc[names_1[f_id_1], names_2[f_id_2]] = corr_esrd
         pval_df_esrd.loc[names_1[f_id_1], names_2[f_id_2]] = pval_esrd
 
+    age_df_esrd.loc[:, f"{names_2[f_id_2]} correlation"] = corr_df_esrd.loc[:, names_2[f_id_2]]
+    age_df_esrd.loc[:, f"{names_2[f_id_2]} p-value"] = pval_df_esrd.loc[:, names_2[f_id_2]]
+
 for f_id_2, f_2 in enumerate(features_2):
     _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[:, names_2[f_id_2]].values, 0.05, method='fdr_bh')
+    age_df_esrd.loc[:, f"{names_2[f_id_2]} p-value (FDR)"] = pvals_corr
     pval_df_esrd.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
+
+age_df_esrd.to_excel(f"{path_save}/SupplementaryTable9/Age_ESRD.xlsx", index=True)
 
 corr_df_esrd = corr_df_esrd.iloc[::-1]
 mtx_to_plot = corr_df_esrd.to_numpy()
