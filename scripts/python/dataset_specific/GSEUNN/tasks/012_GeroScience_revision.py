@@ -922,3 +922,65 @@ fig.add_annotation(dict(font=dict(color='black', size=65),
                         xref="paper",
                         yref="paper"))
 save_figure(fig, f"{path_save}/Figure6/a")
+
+# Figure 7 =============================================================================================================
+# SupplementaryTable9 ==================================================================================================
+features_2 = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenoAge', 'ImmunoAge']
+names_2 = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenotypicAge', 'ipAGE']
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features_1 = f.read().splitlines()
+    names_1 = features_1
+
+corr_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+pval_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+corr_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+pval_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+
+for f_id_2, f_2 in enumerate(features_2):
+    for f_id_1, f_1 in enumerate(features_1):
+        values_1_ctrl = ctrl.loc[:, f_1].values
+        values_2_ctrl = ctrl.loc[:, f_2].values
+        values_1_esrd = esrd.loc[:, f_1].values
+        values_2_esrd = esrd.loc[:, f_2].values
+
+        corr_ctrl, pval_ctrl = stats.pearsonr(values_1_ctrl, values_2_ctrl)
+        corr_df_ctrl.loc[names_1[f_id_1], names_2[f_id_2]] = corr_ctrl
+        pval_df_ctrl.loc[names_1[f_id_1], names_2[f_id_2]] = pval_ctrl
+        corr_esrd, pval_esrd = stats.pearsonr(values_1_esrd, values_2_esrd)
+        corr_df_esrd.loc[names_1[f_id_1], names_2[f_id_2]] = corr_esrd
+        pval_df_esrd.loc[names_1[f_id_1], names_2[f_id_2]] = pval_esrd
+
+for f_id_2, f_2 in enumerate(features_2):
+    _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[:, names_2[f_id_2]].values, 0.05, method='fdr_bh')
+    pval_df_ctrl.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
+    _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[:, names_2[f_id_2]].values, 0.05, method='fdr_bh')
+    pval_df_esrd.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
+
+corr_df_ctrl = corr_df_ctrl.iloc[::-1]
+mtx_to_plot = corr_df_ctrl.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.05, pad=0.03, shrink=0.155)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=8)
+cbar.ax.tick_params(labelsize=8)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(corr_df_ctrl.shape[1]))
+ax.set_yticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_xticklabels(corr_df_ctrl.columns.values)
+ax.set_yticklabels(corr_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='x', which='major', labelsize=6)
+ax.tick_params(axis='x', which='minor', labelsize=6)
+ax.tick_params(axis='y', which='major', labelsize=5)
+ax.tick_params(axis='y', which='minor', labelsize=5)
+textcolors = ("black", "white")
+for i in range(corr_df_ctrl.shape[0]):
+    for j in range(corr_df_ctrl.shape[1]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=3)
+fig.tight_layout()
+plt.savefig(f"{path_save}/Figure7/a_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure7/a_1.pdf", bbox_inches='tight', dpi=400)
