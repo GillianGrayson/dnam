@@ -15,7 +15,7 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from scipy.stats import mannwhitneyu
 import plotly.graph_objects as go
 from scripts.python.routines.sections import get_sections
-import scripts.python.routines.plot.venn as venn
+import scripts.python.routines.plot.venn as vennrout
 from scipy import stats
 import pathlib
 import string
@@ -53,6 +53,7 @@ dist_num_bins = 25
 
 path_save = f"{path}/{platform}/{dataset}/special/012_GeroScience_revision"
 pathlib.Path(f"{path_save}/SupplementaryFigure2").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/SupplementaryFigure3").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure3").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure4").mkdir(parents=True, exist_ok=True)
@@ -793,8 +794,6 @@ top_features = ['CSF1', 'CXCL9']
 top_features_ranges = {'CSF1': [-100, 2500], 'CXCL9': [-1000, 20000]}
 top_features_bandwidth={'CSF1': {'Control': 50, 'ESRD': 90}, 'CXCL9': {'Control': 800, 'ESRD': 800}}
 
-
-
 for f_id, f in enumerate(top_features):
     values_ctrl = ctrl.loc[:, f].values
     values_esrd = esrd.loc[:, f].values
@@ -1119,7 +1118,6 @@ plt.savefig(f"{path_save}/Figure7/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/b_2.pdf", bbox_inches='tight', dpi=400)
 
 # Figure 7 Scatters ====================================================================================================
-
 top_features = ['CXCL9', 'VEGFA', 'CCL2']
 top_features_ranges = {'CXCL9': [0, 5000], 'VEGFA': [0, 250], 'CCL2': [0, 500]}
 
@@ -1162,7 +1160,7 @@ for f_id, f in enumerate(top_features):
 venn_sets = [set(x) for x in venn_lists.values()]
 venn_tags = [x for x in venn_lists.keys()]
 venn_sections = get_sections(venn_sets)
-labels = venn.get_labels(list(venn_lists.values()), fill=['number'])
+labels = vennrout.get_labels(list(venn_lists.values()), fill=['number'])
 
 fig, ax = plt.subplots()
 venn = venn2(
@@ -1238,3 +1236,322 @@ upset_df = upset_df.set_index(list(table7_lists.keys()))
 fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
 plt.savefig(f"{path_save}/Figure7/d_2.png", bbox_inches='tight')
 plt.savefig(f"{path_save}/Figure7/d_2.pdf", bbox_inches='tight')
+
+# Supplementary Figure 3a ==============================================================================================
+features_2 = ['DNAmAgeHannumAA', 'DNAmAgeAA', 'IEAA', 'EEAA', 'DNAmPhenoAgeAA', 'DNAmGrimAgeAA', 'ImmunoAgeAA']
+names_2 = ['DNAmAgeHannumAcc', 'DNAmAgeAcc', 'IEAA', 'EEAA', 'DNAmPhenoAgeAcc', 'DNAmGrimAgeAcc', 'ipAGEAcc']
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features_1 = f.read().splitlines()
+    names_1 = features_1.copy()
+
+corr_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+pval_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+
+age_col_names = []
+for n in names_2:
+    age_col_names.append(f"{n} correlation")
+    age_col_names.append(f"{n} p-value")
+    age_col_names.append(f"{n} p-value (FDR)")
+age_acc_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2) * 3)), index=names_1, columns=age_col_names)
+age_acc_df_ctrl.index.name = 'feature'
+
+for f_id_2, f_2 in enumerate(features_2):
+    for f_id_1, f_1 in enumerate(features_1):
+        values_1_ctrl = ctrl.loc[:, f_1].values
+        values_2_ctrl = ctrl.loc[:, f_2].values
+        corr_ctrl, pval_ctrl = stats.pearsonr(values_1_ctrl, values_2_ctrl)
+        corr_df_ctrl.loc[names_1[f_id_1], names_2[f_id_2]] = corr_ctrl
+        pval_df_ctrl.loc[names_1[f_id_1], names_2[f_id_2]] = pval_ctrl
+
+    age_acc_df_ctrl.loc[:, f"{names_2[f_id_2]} correlation"] = corr_df_ctrl.loc[:, names_2[f_id_2]]
+    age_acc_df_ctrl.loc[:, f"{names_2[f_id_2]} p-value"] = pval_df_ctrl.loc[:, names_2[f_id_2]]
+
+for f_id_2, f_2 in enumerate(features_2):
+    _, pvals_corr, _, _ = multipletests(pval_df_ctrl.loc[:, names_2[f_id_2]].values, 0.05, method='fdr_bh')
+    age_acc_df_ctrl.loc[:, f"{names_2[f_id_2]} p-value (FDR)"] = pvals_corr
+    pval_df_ctrl.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
+
+age_acc_df_ctrl.to_excel(f"{path_save}/SupplementaryTable9/Age_Acc_Control.xlsx", index=True)
+
+corr_df_ctrl = corr_df_ctrl.iloc[::-1]
+mtx_to_plot = corr_df_ctrl.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.05, pad=0.03, shrink=0.15)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=8)
+cbar.ax.tick_params(labelsize=8)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(corr_df_ctrl.shape[1]))
+ax.set_yticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_xticklabels(corr_df_ctrl.columns.values)
+ax.set_yticklabels(corr_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='x', which='major', labelsize=6)
+ax.tick_params(axis='x', which='minor', labelsize=6)
+ax.tick_params(axis='y', which='major', labelsize=5)
+ax.tick_params(axis='y', which='minor', labelsize=5)
+textcolors = ("black", "white")
+for i in range(corr_df_ctrl.shape[0]):
+    for j in range(corr_df_ctrl.shape[1]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=3)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure3/a_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure3/a_1.pdf", bbox_inches='tight', dpi=400)
+
+pval_df_ctrl = pval_df_ctrl.iloc[::-1]
+mtx_to_plot = pval_df_ctrl.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.05, pad=0.03, shrink=0.15)
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=8)
+cbar.ax.tick_params(labelsize=8)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(pval_df_ctrl.shape[1]))
+ax.set_yticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_xticklabels(pval_df_ctrl.columns.values)
+ax.set_yticklabels(pval_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='x', which='major', labelsize=6)
+ax.tick_params(axis='x', which='minor', labelsize=6)
+ax.tick_params(axis='y', which='major', labelsize=5)
+ax.tick_params(axis='y', which='minor', labelsize=5)
+textcolors = ("black", "white")
+for i in range(pval_df_ctrl.shape[0]):
+    for j in range(pval_df_ctrl.shape[1]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=3)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=3)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure3/a_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure3/a_2.pdf", bbox_inches='tight', dpi=400)
+
+# Supplementary Figure 3b ============================================================================================================
+features_2 = ['DNAmAgeHannumAA', 'DNAmAgeAA', 'IEAA', 'EEAA', 'DNAmPhenoAgeAA', 'DNAmGrimAgeAA', 'ImmunoAgeAA']
+names_2 = ['DNAmAgeHannumAcc', 'DNAmAgeAcc', 'IEAA', 'EEAA', 'DNAmPhenoAgeAcc', 'DNAmGrimAgeAcc', 'ipAGEAcc']
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features_1 = f.read().splitlines()
+    names_1 = features_1.copy()
+features_1 += ['Dialysis_(months)']
+names_1 += ['Dialysis(months)']
+
+age_col_names = []
+for n in names_2:
+    age_col_names.append(f"{n} correlation")
+    age_col_names.append(f"{n} p-value")
+    age_col_names.append(f"{n} p-value (FDR)")
+age_acc_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2) * 3)), index=names_1, columns=age_col_names)
+age_acc_df_esrd.index.name = 'feature'
+
+corr_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+pval_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(names_1), len(names_2))), index=names_1, columns=names_2)
+
+for f_id_2, f_2 in enumerate(features_2):
+    for f_id_1, f_1 in enumerate(features_1):
+        values_1_esrd = esrd.loc[:, f_1].values
+        values_2_esrd = esrd.loc[:, f_2].values
+        corr_esrd, pval_esrd = stats.pearsonr(values_1_esrd, values_2_esrd)
+        corr_df_esrd.loc[names_1[f_id_1], names_2[f_id_2]] = corr_esrd
+        pval_df_esrd.loc[names_1[f_id_1], names_2[f_id_2]] = pval_esrd
+
+    age_acc_df_esrd.loc[:, f"{names_2[f_id_2]} correlation"] = corr_df_esrd.loc[:, names_2[f_id_2]]
+    age_acc_df_esrd.loc[:, f"{names_2[f_id_2]} p-value"] = pval_df_esrd.loc[:, names_2[f_id_2]]
+
+for f_id_2, f_2 in enumerate(features_2):
+    _, pvals_corr, _, _ = multipletests(pval_df_esrd.loc[:, names_2[f_id_2]].values, 0.05, method='fdr_bh')
+    age_acc_df_esrd.loc[:, f"{names_2[f_id_2]} p-value (FDR)"] = pvals_corr
+    pval_df_esrd.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
+
+venn_lists['Age_Acc_ESRD'] = age_acc_df_esrd.index[age_acc_df_esrd[f"ipAGEAcc p-value (FDR)"] < 0.05].tolist()
+
+age_acc_df_esrd.to_excel(f"{path_save}/SupplementaryTable9/Age_Acc_ESRD.xlsx", index=True)
+
+corr_df_esrd = corr_df_esrd.iloc[::-1]
+mtx_to_plot = corr_df_esrd.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.05, pad=0.03, shrink=0.15)
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=8)
+cbar.ax.tick_params(labelsize=8)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(corr_df_esrd.shape[1]))
+ax.set_yticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_xticklabels(corr_df_esrd.columns.values)
+ax.set_yticklabels(corr_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='x', which='major', labelsize=6)
+ax.tick_params(axis='x', which='minor', labelsize=6)
+ax.tick_params(axis='y', which='major', labelsize=5)
+ax.tick_params(axis='y', which='minor', labelsize=5)
+textcolors = ("black", "white")
+for i in range(corr_df_esrd.shape[0]):
+    for j in range(corr_df_esrd.shape[1]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=3)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure3/b_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure3/b_1.pdf", bbox_inches='tight', dpi=400)
+
+pval_df_esrd = pval_df_esrd.iloc[::-1]
+mtx_to_plot = pval_df_esrd.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+cbar = ax.figure.colorbar(im, ax=ax, location='top', fraction=0.05, pad=0.03, shrink=0.15)
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=8)
+cbar.ax.tick_params(labelsize=8)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(pval_df_esrd.shape[1]))
+ax.set_yticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_xticklabels(pval_df_esrd.columns.values)
+ax.set_yticklabels(pval_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='x', which='major', labelsize=6)
+ax.tick_params(axis='x', which='minor', labelsize=6)
+ax.tick_params(axis='y', which='major', labelsize=5)
+ax.tick_params(axis='y', which='minor', labelsize=5)
+textcolors = ("black", "white")
+for i in range(pval_df_esrd.shape[0]):
+    for j in range(pval_df_esrd.shape[1]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=3)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=3)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure3/b_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure3/b_2.pdf", bbox_inches='tight', dpi=400)
+
+# Supplementary Figure 3 Scatters ======================================================================================
+top_features = ['CXCL9']
+top_features_ranges = {'CXCL9': [0, 15000]}
+
+for f_id, f in enumerate(top_features):
+    formula = f"{f} ~ ImmunoAgeAA"
+    model_linear = smf.ols(formula=formula, data=esrd).fit()
+    fig = go.Figure()
+    add_scatter_trace(fig, ctrl.loc[:, 'ImmunoAgeAA'].values, ctrl.loc[:, f].values, f"Control")
+    add_scatter_trace(fig, esrd.loc[:, 'ImmunoAgeAA'].values, model_linear.fittedvalues.values, "", "lines")
+    add_scatter_trace(fig, esrd.loc[:, 'ImmunoAgeAA'].values, esrd.loc[:, f].values, f"ESRD")
+    add_layout(fig, f"ipAGE acceleration", f'{f}', f"")
+    fig.update_layout({'colorway': ['lime', 'fuchsia', 'fuchsia']})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=140,
+            r=20,
+            b=80,
+            t=65,
+            pad=0
+        )
+    )
+    fig.update_yaxes(autorange=False)
+    fig.update_xaxes(autorange=False)
+    fig.update_layout(yaxis_range=top_features_ranges[f])
+    fig.update_layout(xaxis_range=[-50, 200])
+    fig.add_annotation(dict(font=dict(color='black', size=45),
+                            x=-0.26,
+                            y=1.20,
+                            showarrow=False,
+                            text=f"({string.ascii_lowercase[f_id+4]})",
+                            textangle=0,
+                            yanchor='top',
+                            xanchor='left',
+                            xref="paper",
+                            yref="paper"))
+    save_figure(fig, f"{path_save}/SupplementaryFigure3/{string.ascii_lowercase[f_id+4]}_{f}")
+
+# Supplementary Figure 3 Venn ==========================================================================================
+venn_sets = [set(x) for x in venn_lists.values()]
+venn_tags = [x for x in venn_lists.keys()]
+venn_sections = get_sections(venn_sets)
+labels = vennrout.get_labels(list(venn_lists.values()), fill=['number'])
+
+fig, ax = plt.subplots()
+venn = venn3(
+    subsets=(set(venn_lists['ESRD']), set(venn_lists['Age_Control']), set(venn_lists['Age_Acc_ESRD'])),
+    set_labels = (' Associated\nwith ESRD', 'Associated with age \n  (in Control group)', 'Associated with \n ipAGE acceleration \n(in Control group)'),
+    set_colors=('r', 'g', 'b'),
+    alpha = 0.5)
+venn3_circles(subsets=(set(venn_lists['ESRD']), set(venn_lists['Age_Control']), set(venn_lists['Age_Acc_ESRD'])))
+for text in venn.set_labels:
+    text.set_fontsize(16)
+for text in venn.subset_labels:
+    text.set_fontsize(25)
+plt.savefig(f"{path_save}/SupplementaryFigure3/c.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure3/c.pdf", bbox_inches='tight', dpi=400)
+
+# Supplementary Figure 3 Table =========================================================================================
+features = ['DNAmAgeHannumAcc', 'DNAmAgeAcc', 'IEAA', 'EEAA', 'DNAmPhenoAgeAcc', 'DNAmGrimAgeAcc', 'ipAGEAcc']
+columns = ['Control group', 'ESRD group']
+
+table7 = pd.DataFrame(data=np.zeros(shape=(len(features), len(columns))), index=features, columns=columns)
+table7_lists = {}
+for f in features:
+    table7.loc[f, 'Control group'] = len(age_acc_df_ctrl.index[age_acc_df_ctrl[f"{f} p-value (FDR)"] < 0.05].tolist())
+    table7.loc[f, 'ESRD group'] = len(age_acc_df_esrd.index[age_acc_df_esrd[f"{f} p-value (FDR)"] < 0.05].tolist())
+    table7_lists[f] = age_acc_df_ctrl.index[age_acc_df_ctrl[f"{f} p-value (FDR)"] < 0.05].tolist()
+fig = go.Figure()
+fig.add_trace(
+    go.Table(
+        header=dict(values=['Type of age'] + columns,
+                    fill_color='paleturquoise',
+                    align='left',
+                    font_size=25),
+        cells=dict(values=[table7.index.values, table7['Control group'], table7['ESRD group']],
+                   fill_color='lavender',
+                   align='left',
+                   font_size=25,
+                   height=35),
+        columnwidth = [70, 30, 30]
+    )
+)
+fig.update_layout(
+    autosize=False,
+    width=600,
+    height=430,
+    margin=go.layout.Margin(
+        l=70,
+        r=20,
+        b=20,
+        t=65,
+        pad=0
+    )
+)
+fig.add_annotation(dict(font=dict(color='black', size=45),
+                        x=-0.13,
+                        y=1.20,
+                        showarrow=False,
+                        text=f"(d)",
+                        textangle=0,
+                        yanchor='top',
+                        xanchor='left',
+                        xref="paper",
+                        yref="paper"))
+save_figure(fig, f"{path_save}/SupplementaryFigure3/d_1")
+
+table7_sets = [set(x) for x in table7_lists.values()]
+table7_tags = [x for x in table7_lists.keys()]
+table7_sections = get_sections(table7_sets)
+upset_df = pd.DataFrame(index=list(age_acc_df_ctrl.index.values))
+for k, v in table7_lists.items():
+    upset_df[k] = upset_df.index.isin(v)
+upset_df = upset_df.set_index(list(table7_lists.keys()))
+fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
+plt.savefig(f"{path_save}/SupplementaryFigure3/d_2.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/SupplementaryFigure3/d_2.pdf", bbox_inches='tight')
