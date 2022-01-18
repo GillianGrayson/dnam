@@ -1485,14 +1485,14 @@ labels = vennrout.get_labels(list(venn_lists.values()), fill=['number'])
 fig, ax = plt.subplots()
 venn = venn3(
     subsets=(set(venn_lists['ESRD']), set(venn_lists['Age_Control']), set(venn_lists['Age_Acc_ESRD'])),
-    set_labels = (' Associated\nwith ESRD', 'Associated with age \n  (in Control group)', 'Associated with \n ipAGE acceleration \n(in Control group)'),
+    set_labels = (' Associated\nwith ESRD', 'Associated with age \n  (in Control group)', 'Associated with \n ipAGE acceleration \n(in ESRD group)'),
     set_colors=('r', 'g', 'b'),
     alpha = 0.5)
 venn3_circles(subsets=(set(venn_lists['ESRD']), set(venn_lists['Age_Control']), set(venn_lists['Age_Acc_ESRD'])))
 for text in venn.set_labels:
     text.set_fontsize(16)
 for text in venn.subset_labels:
-    text.set_fontsize(25)
+    text.set_fontsize(18)
 plt.savefig(f"{path_save}/SupplementaryFigure3/c.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure3/c.pdf", bbox_inches='tight', dpi=400)
 
@@ -1518,7 +1518,7 @@ fig.add_trace(
                    align='left',
                    font_size=25,
                    height=35),
-        columnwidth = [70, 30, 30]
+        columnwidth = [80, 30, 30]
     )
 )
 fig.update_layout(
