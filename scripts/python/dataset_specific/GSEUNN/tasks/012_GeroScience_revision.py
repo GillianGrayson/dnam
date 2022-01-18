@@ -1,6 +1,8 @@
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
 import numpy as np
+from matplotlib_venn import venn2, venn2_circles, venn2_unweighted
+from matplotlib_venn import venn3, venn3_circles
 import os
 import pickle
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -12,6 +14,8 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from matplotlib import colors
 from scipy.stats import mannwhitneyu
 import plotly.graph_objects as go
+from scripts.python.routines.sections import get_sections
+import scripts.python.routines.plot.venn as venn
 from scipy import stats
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.violin import add_violin_trace
@@ -788,6 +792,7 @@ for f_id, f in enumerate(result_dict['feature']):
 
 result_dict = correct_pvalues(result_dict, ['pval_mv'])
 result_df = pd.DataFrame(result_dict)
+venn_lists = {'ESRD': result_df.loc[result_df['pval_mv_fdr_bh'] < 0.05, 'feature'].tolist()}
 result_df.set_index('feature', inplace=True)
 result_df.sort_values(['pval_mv'], ascending=[True], inplace=True)
 result_df.rename(
@@ -799,6 +804,8 @@ result_df.to_excel(f"{path_save}/SupplementaryTable9/Disease.xlsx", index=True)
 top_features = ['CSF1', 'CXCL9']
 top_features_ranges = {'CSF1': [-100, 2500], 'CXCL9': [-1000, 20000]}
 top_features_bandwidth={'CSF1': {'Control': 50, 'ESRD': 90}, 'CXCL9': {'Control': 800, 'ESRD': 800}}
+
+
 
 for f_id, f in enumerate(top_features):
     values_ctrl = ctrl.loc[:, f].values
@@ -956,6 +963,8 @@ for f_id_2, f_2 in enumerate(features_2):
     age_df_ctrl.loc[:, f"{names_2[f_id_2]} p-value (FDR)"] = pvals_corr
     pval_df_ctrl.loc[:, names_2[f_id_2]] = -np.log10(pvals_corr)
 
+venn_lists['Age_Control'] = age_df_ctrl.index[age_df_ctrl[f"Age p-value (FDR)"] < 0.05].tolist()
+
 age_df_ctrl.to_excel(f"{path_save}/SupplementaryTable9/Age_Control.xlsx", index=True)
 
 corr_df_ctrl = corr_df_ctrl.iloc[::-1]
@@ -1019,7 +1028,6 @@ for i in range(pval_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure7/a_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/a_2.pdf", bbox_inches='tight', dpi=400)
-
 
 # Figure 7b ============================================================================================================
 features_2 = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenoAge', 'ImmunoAge', 'Dialysis_(months)']
@@ -1162,3 +1170,25 @@ for f_id, f in enumerate(top_features):
                             yref="paper"))
 
     save_figure(fig, f"{path_save}/Figure7/{string.ascii_lowercase[f_id+4]}_{f}")
+
+# Figure 7 Venn ========================================================================================================
+venn_sets = [set(x) for x in venn_lists.values()]
+venn_tags = [x for x in venn_lists.keys()]
+venn_sections = get_sections(venn_sets)
+labels = venn.get_labels(list(venn_lists.values()), fill=['number'])
+
+fig, ax = plt.subplots()
+venn = venn2(
+    subsets=(set(venn_lists['ESRD']), set(venn_lists['Age_Control'])),
+    set_labels = (' Associated\nwith ESRD', 'Associated with age \n  (in Control group)'),
+    set_colors=('r', 'g'),
+    alpha = 0.5)
+venn2_circles(subsets=(set(venn_lists['ESRD']), set(venn_lists['Age_Control'])))
+for text in venn.set_labels:
+    text.set_fontsize(16)
+for text in venn.subset_labels:
+    text.set_fontsize(25)
+plt.savefig(f"{path_save}/Figure7/c.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/Figure7/c.pdf", bbox_inches='tight', dpi=400)
+
+# Figure 7 Table =======================================================================================================
