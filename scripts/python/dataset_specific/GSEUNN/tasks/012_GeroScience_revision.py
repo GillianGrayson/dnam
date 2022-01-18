@@ -5,39 +5,27 @@ from matplotlib_venn import venn2, venn2_circles, venn2_unweighted
 from matplotlib_venn import venn3, venn3_circles
 import os
 import pickle
+import upsetplot as upset
+from upsetplot import UpSet
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
-from scipy.stats import spearmanr
+from scripts.python.pheno.datasets.filter import filter_pheno
 import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_sex_dict
 from scripts.python.routines.plot.scatter import add_scatter_trace
-from matplotlib import colors
 from scipy.stats import mannwhitneyu
 import plotly.graph_objects as go
 from scripts.python.routines.sections import get_sections
 import scripts.python.routines.plot.venn as venn
 from scipy import stats
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.violin import add_violin_trace
-from scripts.python.routines.plot.box import add_box_trace
-from scripts.python.routines.plot.layout import add_layout
 import pathlib
 import string
-import seaborn as sns
-from sklearn.preprocessing import StandardScaler
-from functools import reduce
-import plotly
-from sklearn.decomposition import PCA
 import statsmodels.formula.api as smf
 from scripts.python.routines.manifest import get_manifest
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.histogram import add_histogram_trace
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.EWAS.routines.correction import correct_pvalues
 from statsmodels.stats.multitest import multipletests
-import plotly.express as px
-import matplotlib
 
 
 dataset = "GSEUNN"
@@ -1168,7 +1156,6 @@ for f_id, f in enumerate(top_features):
                             xanchor='left',
                             xref="paper",
                             yref="paper"))
-
     save_figure(fig, f"{path_save}/Figure7/{string.ascii_lowercase[f_id+4]}_{f}")
 
 # Figure 7 Venn ========================================================================================================
@@ -1192,3 +1179,62 @@ plt.savefig(f"{path_save}/Figure7/c.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/c.pdf", bbox_inches='tight', dpi=400)
 
 # Figure 7 Table =======================================================================================================
+features = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenotypicAge', 'ipAGE']
+columns = ['Control group', 'ESRD group']
+
+table7 = pd.DataFrame(data=np.zeros(shape=(len(features), len(columns))), index=features, columns=columns)
+table7_lists = {}
+for f in features:
+    table7.loc[f, 'Control group'] = len(age_df_ctrl.index[age_df_ctrl[f"{f} p-value (FDR)"] < 0.05].tolist())
+    table7.loc[f, 'ESRD group'] = len(age_df_esrd.index[age_df_esrd[f"{f} p-value (FDR)"] < 0.05].tolist())
+    table7_lists[f] = age_df_ctrl.index[age_df_ctrl[f"{f} p-value (FDR)"] < 0.05].tolist()
+
+fig = go.Figure()
+fig.add_trace(
+    go.Table(
+        header=dict(values=['Type of age'] + columns,
+                    fill_color='paleturquoise',
+                    align='left',
+                    font_size=25),
+        cells=dict(values=[table7.index.values, table7['Control group'], table7['ESRD group']],
+                   fill_color='lavender',
+                   align='left',
+                   font_size=25,
+                   height=35),
+        columnwidth = [70, 30, 30]
+    )
+)
+fig.update_layout(
+    autosize=False,
+    width=600,
+    height=430,
+    margin=go.layout.Margin(
+        l=70,
+        r=20,
+        b=20,
+        t=65,
+        pad=0
+    )
+)
+fig.add_annotation(dict(font=dict(color='black', size=45),
+                        x=-0.13,
+                        y=1.20,
+                        showarrow=False,
+                        text=f"(d)",
+                        textangle=0,
+                        yanchor='top',
+                        xanchor='left',
+                        xref="paper",
+                        yref="paper"))
+save_figure(fig, f"{path_save}/Figure7/d_1")
+
+table7_sets = [set(x) for x in table7_lists.values()]
+table7_tags = [x for x in table7_lists.keys()]
+table7_sections = get_sections(table7_sets)
+upset_df = pd.DataFrame(index=list(age_df_ctrl.index.values))
+for k, v in table7_lists.items():
+    upset_df[k] = upset_df.index.isin(v)
+upset_df = upset_df.set_index(list(table7_lists.keys()))
+fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
+plt.savefig(f"{path_save}/Figure7/d_2.png", bbox_inches='tight')
+plt.savefig(f"{path_save}/Figure7/d_2.pdf", bbox_inches='tight')
