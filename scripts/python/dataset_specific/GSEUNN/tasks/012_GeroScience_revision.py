@@ -4,6 +4,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from matplotlib_venn import venn2, venn2_circles, venn2_unweighted
 from matplotlib_venn import venn3, venn3_circles
+from plotly.subplots import make_subplots
 import os
 import pickle
 import upsetplot as upset
@@ -23,7 +24,7 @@ import string
 import statsmodels.formula.api as smf
 from scripts.python.routines.manifest import get_manifest
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.layout import add_layout
+from scripts.python.routines.plot.layout import add_layout, get_axis
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.EWAS.routines.correction import correct_pvalues
 from statsmodels.stats.multitest import multipletests
@@ -66,6 +67,570 @@ pathlib.Path(f"{path_save}/Figure5").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure6").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure7").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/SupplementaryTable9").mkdir(parents=True, exist_ok=True)
+
+# Supplementary Figure 4 ===============================================================================================
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features = f.read().splitlines()
+
+num_cols = 5
+num_rows = int(np.ceil(len(features) / num_cols))
+
+fig = make_subplots(rows=num_rows, cols=num_cols, shared_yaxes=False)
+
+for r_id in range(num_rows):
+    for c_id in range(num_cols):
+        rc_id = r_id * num_cols + c_id
+        if rc_id < len(features):
+            f = features[rc_id]
+
+            if rc_id == 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[1000],
+                        y=[0],
+                        showlegend=True,
+                        name='Control',
+                        mode='markers',
+                        marker=dict(
+                            size=100,
+                            opacity=0.7,
+                            line=dict(
+                                width=0.1
+                            ),
+                            color='lime'
+                        )
+                    ),
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=[1000],
+                        y=[0],
+                        showlegend=True,
+                        name='ESRD',
+                        mode='markers',
+                        marker=dict(
+                            size=100,
+                            opacity=0.7,
+                            line=dict(
+                                width=0.1
+                            ),
+                            color='fuchsia'
+                        )
+                    ),
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+
+            x_ctrl = ctrl.loc[:, 'Age'].values
+            y_ctrl = ctrl.loc[:, f].values
+            x_esrd = esrd.loc[:, 'Age'].values
+            y_esrd = esrd.loc[:, f].values
+
+            y_s = 0
+            y_pctl = np.percentile(pheno.loc[:, f].values, [90])[0]
+            y_max = np.max(pheno.loc[:, f].values)
+            if y_max > 2*y_pctl:
+                y_f = y_pctl * 1.3
+            else:
+                y_f = y_max
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x_ctrl,
+                    y=y_ctrl,
+                    showlegend=False,
+                    name='Control',
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        opacity=0.7,
+                        line=dict(
+                            width=0.1
+                        ),
+                        color='lime'
+                    )
+                ),
+                row=r_id + 1,
+                col=c_id + 1
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=x_esrd,
+                    y=y_esrd,
+                    showlegend=False,
+                    name='ESRD',
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        opacity=0.7,
+                        line=dict(
+                            width=0.1
+                        ),
+                        color='fuchsia'
+                    )
+                ),
+                row=r_id + 1,
+                col=c_id + 1
+            )
+            fig.update_xaxes(
+                autorange=False,
+                title_text="Age",
+                range=[10, 100],
+                row=r_id + 1,
+                col=c_id + 1,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=20
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=20
+                ),
+                exponentformat='e',
+                showexponent='all'
+            )
+            fig.update_yaxes(
+                autorange=False,
+                title_text=f"{f}",
+                range=[y_s, y_f],
+                row=r_id + 1,
+                col=c_id + 1,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=20
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=20
+                ),
+                exponentformat='e',
+                showexponent='all'
+            )
+
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.01,
+        xanchor="center",
+        x=0.5
+    ),
+    title=dict(
+        text="",
+        font=dict(size=25)
+    ),
+    template="none",
+    autosize=False,
+    width=3000,
+    height=4000,
+    margin=go.layout.Margin(
+        l=100,
+        r=40,
+        b=100,
+        t=100,
+        pad=0
+    )
+)
+fig.update_layout(legend_font_size=50)
+save_figure(fig, f"{path_save}/SupplementaryFigure4/tmp")
+
+# Supplementary Figure 5 ===============================================================================================
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features = f.read().splitlines()
+
+num_cols = 5
+num_rows = int(np.ceil(len(features) / num_cols))
+
+fig = make_subplots(rows=num_rows, cols=num_cols, shared_yaxes=False)
+
+for r_id in range(num_rows):
+    for c_id in range(num_cols):
+        rc_id = r_id * num_cols + c_id
+        if rc_id < len(features):
+            f = features[rc_id]
+
+            if rc_id == 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[1000],
+                        y=[0],
+                        showlegend=True,
+                        name='Control',
+                        mode='markers',
+                        marker=dict(
+                            size=100,
+                            opacity=0.7,
+                            line=dict(
+                                width=0.1
+                            ),
+                            color='lime'
+                        )
+                    ),
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=[1000],
+                        y=[0],
+                        showlegend=True,
+                        name='ESRD',
+                        mode='markers',
+                        marker=dict(
+                            size=100,
+                            opacity=0.7,
+                            line=dict(
+                                width=0.1
+                            ),
+                            color='fuchsia'
+                        )
+                    ),
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+
+            x_ctrl = ctrl.loc[:, 'ImmunoAge'].values
+            y_ctrl = ctrl.loc[:, f].values
+            x_esrd = esrd.loc[:, 'ImmunoAge'].values
+            y_esrd = esrd.loc[:, f].values
+
+            y_s = 0
+            y_pctl = np.percentile(pheno.loc[:, f].values, [90])[0]
+            y_max = np.max(pheno.loc[:, f].values)
+            if y_max > 2*y_pctl:
+                y_f = y_pctl * 1.3
+            else:
+                y_f = y_max
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x_ctrl,
+                    y=y_ctrl,
+                    showlegend=False,
+                    name='Control',
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        opacity=0.7,
+                        line=dict(
+                            width=0.1
+                        ),
+                        color='lime'
+                    )
+                ),
+                row=r_id + 1,
+                col=c_id + 1
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=x_esrd,
+                    y=y_esrd,
+                    showlegend=False,
+                    name='ESRD',
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        opacity=0.7,
+                        line=dict(
+                            width=0.1
+                        ),
+                        color='fuchsia'
+                    )
+                ),
+                row=r_id + 1,
+                col=c_id + 1
+            )
+            fig.update_xaxes(
+                autorange=False,
+                title_text="ipAGE",
+                range=[0, 250],
+                row=r_id + 1,
+                col=c_id + 1,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=20
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=20
+                ),
+                exponentformat='e',
+                showexponent='all'
+            )
+            fig.update_yaxes(
+                autorange=False,
+                title_text=f"{f}",
+                range=[y_s, y_f],
+                row=r_id + 1,
+                col=c_id + 1,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=20
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=20
+                ),
+                exponentformat='e',
+                showexponent='all'
+            )
+
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.01,
+        xanchor="center",
+        x=0.5
+    ),
+    title=dict(
+        text="",
+        font=dict(size=25)
+    ),
+    template="none",
+    autosize=False,
+    width=3000,
+    height=4000,
+    margin=go.layout.Margin(
+        l=100,
+        r=40,
+        b=100,
+        t=100,
+        pad=0
+    )
+)
+fig.update_layout(legend_font_size=50)
+save_figure(fig, f"{path_save}/SupplementaryFigure5/tmp")
+
+# Supplementary Figure 5 ===============================================================================================
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features = f.read().splitlines()
+
+num_cols = 5
+num_rows = int(np.ceil(len(features) / num_cols))
+
+fig = make_subplots(rows=num_rows, cols=num_cols, shared_yaxes=False)
+
+for r_id in range(num_rows):
+    for c_id in range(num_cols):
+        rc_id = r_id * num_cols + c_id
+        if rc_id < len(features):
+            f = features[rc_id]
+
+            if rc_id == 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[1000],
+                        y=[0],
+                        showlegend=True,
+                        name='Control',
+                        mode='markers',
+                        marker=dict(
+                            size=100,
+                            opacity=0.7,
+                            line=dict(
+                                width=0.1
+                            ),
+                            color='lime'
+                        )
+                    ),
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=[1000],
+                        y=[0],
+                        showlegend=True,
+                        name='ESRD',
+                        mode='markers',
+                        marker=dict(
+                            size=100,
+                            opacity=0.7,
+                            line=dict(
+                                width=0.1
+                            ),
+                            color='fuchsia'
+                        )
+                    ),
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+
+            x_ctrl = ctrl.loc[:, 'ImmunoAgeAA'].values
+            y_ctrl = ctrl.loc[:, f].values
+            x_esrd = esrd.loc[:, 'ImmunoAgeAA'].values
+            y_esrd = esrd.loc[:, f].values
+
+            y_s = 0
+            y_pctl = np.percentile(pheno.loc[:, f].values, [90])[0]
+            y_max = np.max(pheno.loc[:, f].values)
+            if y_max > 2*y_pctl:
+                y_f = y_pctl * 1.3
+            else:
+                y_f = y_max
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x_ctrl,
+                    y=y_ctrl,
+                    showlegend=False,
+                    name='Control',
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        opacity=0.7,
+                        line=dict(
+                            width=0.1
+                        ),
+                        color='lime'
+                    )
+                ),
+                row=r_id + 1,
+                col=c_id + 1
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=x_esrd,
+                    y=y_esrd,
+                    showlegend=False,
+                    name='ESRD',
+                    mode='markers',
+                    marker=dict(
+                        size=10,
+                        opacity=0.7,
+                        line=dict(
+                            width=0.1
+                        ),
+                        color='fuchsia'
+                    )
+                ),
+                row=r_id + 1,
+                col=c_id + 1
+            )
+            fig.update_xaxes(
+                autorange=False,
+                title_text="ipAGE acceleration",
+                range=[-50, 200],
+                row=r_id + 1,
+                col=c_id + 1,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=20
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=20
+                ),
+                exponentformat='e',
+                showexponent='all'
+            )
+            fig.update_yaxes(
+                autorange=False,
+                title_text=f"{f}",
+                range=[y_s, y_f],
+                row=r_id + 1,
+                col=c_id + 1,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=20
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=20
+                ),
+                exponentformat='e',
+                showexponent='all'
+            )
+
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.01,
+        xanchor="center",
+        x=0.5
+    ),
+    title=dict(
+        text="",
+        font=dict(size=25)
+    ),
+    template="none",
+    autosize=False,
+    width=3000,
+    height=4000,
+    margin=go.layout.Margin(
+        l=100,
+        r=40,
+        b=100,
+        t=100,
+        pad=0
+    )
+)
+fig.update_layout(legend_font_size=50)
+save_figure(fig, f"{path_save}/SupplementaryFigure6/tmp")
 
 # Supplementary Figure 7 ===============================================================================================
 with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
@@ -247,7 +812,6 @@ fig.tight_layout()
 plt.savefig(f"{path_save}/SupplementaryFigure7/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure7/b_2.pdf", bbox_inches='tight', dpi=400)
 plt.clf()
-
 
 # Supplementary Figure 2 ===============================================================================================
 result_dict = {'feature': ['CD4T', 'CD8naive', 'CD8pCD28nCD45RAn', 'Gran', 'Mono', 'NK', 'PlasmaBlast']}
