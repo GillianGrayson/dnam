@@ -1,5 +1,6 @@
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from matplotlib_venn import venn2, venn2_circles, venn2_unweighted
 from matplotlib_venn import venn3, venn3_circles
@@ -54,6 +55,10 @@ dist_num_bins = 25
 path_save = f"{path}/{platform}/{dataset}/special/012_GeroScience_revision"
 pathlib.Path(f"{path_save}/SupplementaryFigure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/SupplementaryFigure3").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/SupplementaryFigure4").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/SupplementaryFigure5").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/SupplementaryFigure6").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/SupplementaryFigure7").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure2").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure3").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure4").mkdir(parents=True, exist_ok=True)
@@ -61,6 +66,188 @@ pathlib.Path(f"{path_save}/Figure5").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure6").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/Figure7").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/SupplementaryTable9").mkdir(parents=True, exist_ok=True)
+
+# Supplementary Figure 7 ===============================================================================================
+with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
+    features= f.read().splitlines()
+result_dict = {
+    'feature': features,
+    'name': features
+}
+
+corr_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+pval_df_ctrl = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+corr_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+pval_df_esrd = pd.DataFrame(data=np.zeros(shape=(len(result_dict['feature']), len(result_dict['feature']))), index=result_dict['name'], columns=result_dict['name'])
+
+for f_id_1, f_1 in enumerate(result_dict['feature']):
+    for f_id_2, f_2 in enumerate(result_dict['feature']):
+        values_1_ctrl = ctrl.loc[:, f_1].values
+        values_2_ctrl = ctrl.loc[:, f_2].values
+        values_1_esrd = esrd.loc[:, f_1].values
+        values_2_esrd = esrd.loc[:, f_2].values
+
+        corr_ctrl, pval_ctrl = stats.pearsonr(values_1_ctrl, values_2_ctrl)
+        corr_df_ctrl.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_ctrl
+        pval_df_ctrl.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_ctrl
+        corr_esrd, pval_esrd = stats.pearsonr(values_1_esrd, values_2_esrd)
+        corr_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = corr_esrd
+        pval_df_esrd.loc[result_dict['name'][f_id_1], result_dict['name'][f_id_2]] = pval_esrd
+
+selection = np.tri(pval_df_ctrl.shape[0], pval_df_ctrl.shape[1], -1, dtype=np.bool)
+
+pval_df_ctrl_fdr = pval_df_ctrl.where(selection).stack().reset_index()
+pval_df_ctrl_fdr.columns = ['row', 'col', 'pval']
+_, pvals_corr, _, _ = multipletests(pval_df_ctrl_fdr.loc[:, 'pval'].values, 0.05, method='fdr_bh')
+pval_df_ctrl_fdr['pval_fdr_bh'] = pvals_corr
+
+pval_df_esrd_fdr = pval_df_esrd.where(selection).stack().reset_index()
+pval_df_esrd_fdr.columns = ['row', 'col', 'pval']
+_, pvals_corr, _, _ = multipletests(pval_df_esrd_fdr.loc[:, 'pval'].values, 0.05, method='fdr_bh')
+pval_df_esrd_fdr['pval_fdr_bh'] = pvals_corr
+
+for line_id in range(pval_df_ctrl_fdr.shape[0]):
+    pval_df_ctrl.loc[pval_df_ctrl_fdr.at[line_id, 'row'], pval_df_ctrl_fdr.at[line_id, 'col']] = pval_df_ctrl_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_ctrl.loc[pval_df_ctrl_fdr.at[line_id, 'col'], pval_df_ctrl_fdr.at[line_id, 'row']] = pval_df_ctrl_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_esrd.loc[pval_df_esrd_fdr.at[line_id, 'row'], pval_df_esrd_fdr.at[line_id, 'col']] = pval_df_esrd_fdr.at[line_id, 'pval_fdr_bh']
+    pval_df_esrd.loc[pval_df_esrd_fdr.at[line_id, 'col'], pval_df_esrd_fdr.at[line_id, 'row']] = pval_df_esrd_fdr.at[line_id, 'pval_fdr_bh']
+
+for f_id_1, f_1 in enumerate(result_dict['feature']):
+    pval_df_ctrl.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_ctrl.loc[result_dict['name'][f_id_1], :])
+    pval_df_esrd.loc[result_dict['name'][f_id_1], :] = -np.log10(pval_df_esrd.loc[result_dict['name'][f_id_1], :])
+
+corr_df_ctrl = corr_df_ctrl.iloc[::-1]
+mtx_to_plot = corr_df_ctrl.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("top", size="2%", pad=-1.2)
+cbar = ax.figure.colorbar(im, cax=cax, orientation="horizontal", ticks=[-1, 0, 1])
+cax.xaxis.set_label_position('top')
+cax.xaxis.set_ticks_position('top')
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=10)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_yticks(np.arange(corr_df_ctrl.shape[0]))
+ax.set_xticklabels(corr_df_ctrl.columns.values)
+ax.set_yticklabels(corr_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=4)
+ax.tick_params(axis='both', which='minor', labelsize=4)
+textcolors = ("black", "white")
+for i in range(corr_df_ctrl.shape[0]):
+    for j in range(corr_df_ctrl.shape[0]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=2)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure7/a_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure7/a_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
+
+pval_df_ctrl = pval_df_ctrl.iloc[::-1]
+mtx_to_plot = pval_df_ctrl.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("top", size="2%", pad=-1.2)
+cbar = ax.figure.colorbar(im, cax=cax, orientation="horizontal")
+cax.xaxis.set_label_position('top')
+cax.xaxis.set_ticks_position('top')
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=10)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_yticks(np.arange(pval_df_ctrl.shape[0]))
+ax.set_xticklabels(pval_df_ctrl.columns.values)
+ax.set_yticklabels(pval_df_ctrl.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=4)
+ax.tick_params(axis='both', which='minor', labelsize=4)
+textcolors = ("black", "white")
+for i in range(pval_df_ctrl.shape[0]):
+    for j in range(pval_df_ctrl.shape[0]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=2)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=2)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure7/a_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure7/a_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
+
+corr_df_esrd = corr_df_esrd.iloc[::-1]
+mtx_to_plot = corr_df_esrd.to_numpy()
+cmap = plt.get_cmap("bwr").copy()
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-1, vmax=1)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("top", size="2%", pad=-1.2)
+cbar = ax.figure.colorbar(im, cax=cax, orientation="horizontal", ticks=[-1, 0, 1])
+cax.xaxis.set_label_position('top')
+cax.xaxis.set_ticks_position('top')
+cbar.set_label(r"$\mathrm{Correlation}$", horizontalalignment='center', fontsize=10)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_yticks(np.arange(corr_df_esrd.shape[0]))
+ax.set_xticklabels(corr_df_esrd.columns.values)
+ax.set_yticklabels(corr_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=4)
+ax.tick_params(axis='both', which='minor', labelsize=4)
+textcolors = ("black", "white")
+for i in range(corr_df_esrd.shape[0]):
+    for j in range(corr_df_esrd.shape[0]):
+        color = 'black'
+        text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=2)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure7/b_1.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure7/b_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
+
+pval_df_esrd = pval_df_esrd.iloc[::-1]
+mtx_to_plot = pval_df_esrd.to_numpy()
+cmap = plt.get_cmap("Reds").copy()
+cmap.set_under('lightseagreen')
+fig, ax = plt.subplots()
+im = ax.imshow(mtx_to_plot, cmap=cmap, vmin=-np.log10(0.05))
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("top", size="2%", pad=-1.2)
+cbar = ax.figure.colorbar(im, cax=cax, orientation="horizontal")
+cax.xaxis.set_label_position('top')
+cax.xaxis.set_ticks_position('top')
+cbar.set_label(r"$-\log_{10}(\mathrm{p-value})$", horizontalalignment='center', fontsize=10)
+ax.set_aspect(0.5)
+ax.set_xticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_yticks(np.arange(pval_df_esrd.shape[0]))
+ax.set_xticklabels(pval_df_esrd.columns.values)
+ax.set_yticklabels(pval_df_esrd.index.values)
+plt.setp(ax.get_xticklabels(), rotation=90)
+data = im.get_array()
+threshold = im.norm(data.max()) / 2.
+ax.tick_params(axis='both', which='major', labelsize=4)
+ax.tick_params(axis='both', which='minor', labelsize=4)
+textcolors = ("black", "white")
+for i in range(pval_df_esrd.shape[0]):
+    for j in range(pval_df_esrd.shape[0]):
+        color = textcolors[int(im.norm(data[i, j]) > threshold)]
+        if np.isinf(mtx_to_plot[i, j]):
+            text = ax.text(j, i, f"", ha="center", va="center", color=color, fontsize=2)
+        else:
+            text = ax.text(j, i, f"{mtx_to_plot[i, j]:0.2f}", ha="center", va="center", color=color, fontsize=2)
+fig.tight_layout()
+plt.savefig(f"{path_save}/SupplementaryFigure7/b_2.png", bbox_inches='tight', dpi=400)
+plt.savefig(f"{path_save}/SupplementaryFigure7/b_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
+
 
 # Supplementary Figure 2 ===============================================================================================
 result_dict = {'feature': ['CD4T', 'CD8naive', 'CD8pCD28nCD45RAn', 'Gran', 'Mono', 'NK', 'PlasmaBlast']}
@@ -521,6 +708,7 @@ for i in range(corr_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/a_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/a_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_ctrl = pval_df_ctrl.iloc[::-1]
 mtx_to_plot = pval_df_ctrl.to_numpy()
@@ -551,6 +739,7 @@ for i in range(pval_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/a_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/a_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 corr_df_esrd = corr_df_esrd.iloc[::-1]
 mtx_to_plot = corr_df_esrd.to_numpy()
@@ -577,6 +766,7 @@ for i in range(corr_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/b_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/b_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_esrd = pval_df_esrd.iloc[::-1]
 mtx_to_plot = pval_df_esrd.to_numpy()
@@ -607,6 +797,7 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/b_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Figure 5 c,d =========================================================================================================
 result_dict = {
@@ -680,6 +871,7 @@ for i in range(corr_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/c_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/c_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_ctrl = pval_df_ctrl.iloc[::-1]
 mtx_to_plot = pval_df_ctrl.to_numpy()
@@ -710,6 +902,7 @@ for i in range(pval_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/c_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/c_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 corr_df_esrd = corr_df_esrd.iloc[::-1]
 mtx_to_plot = corr_df_esrd.to_numpy()
@@ -736,6 +929,7 @@ for i in range(corr_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/d_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/d_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_esrd = pval_df_esrd.iloc[::-1]
 mtx_to_plot = pval_df_esrd.to_numpy()
@@ -766,6 +960,7 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure5/d_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure5/d_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Figure 6 =============================================================================================================
 # SupplementaryTable9 ==================================================================================================
@@ -982,6 +1177,7 @@ for i in range(corr_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure7/a_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/a_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_ctrl = pval_df_ctrl.iloc[::-1]
 mtx_to_plot = pval_df_ctrl.to_numpy()
@@ -1015,6 +1211,7 @@ for i in range(pval_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure7/a_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/a_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Figure 7b ============================================================================================================
 features_2 = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenoAge', 'ImmunoAge', 'Dialysis_(months)']
@@ -1083,6 +1280,7 @@ for i in range(corr_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure7/b_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/b_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_esrd = pval_df_esrd.iloc[::-1]
 mtx_to_plot = pval_df_esrd.to_numpy()
@@ -1116,6 +1314,7 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/Figure7/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/b_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Figure 7 Scatters ====================================================================================================
 top_features = ['CXCL9', 'VEGFA', 'CCL2']
@@ -1175,6 +1374,7 @@ for text in venn.subset_labels:
     text.set_fontsize(25)
 plt.savefig(f"{path_save}/Figure7/c.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/Figure7/c.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Figure 7 Table =======================================================================================================
 features = ['Age', 'DNAmAgeHannum', 'DNAmAge', 'DNAmPhenoAge', 'DNAmGrimAge', 'PhenotypicAge', 'ipAGE']
@@ -1236,6 +1436,7 @@ upset_df = upset_df.set_index(list(table7_lists.keys()))
 fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
 plt.savefig(f"{path_save}/Figure7/d_2.png", bbox_inches='tight')
 plt.savefig(f"{path_save}/Figure7/d_2.pdf", bbox_inches='tight')
+plt.clf()
 
 # Supplementary Figure 3a ==============================================================================================
 features_2 = ['DNAmAgeHannumAA', 'DNAmAgeAA', 'IEAA', 'EEAA', 'DNAmPhenoAgeAA', 'DNAmGrimAgeAA', 'ImmunoAgeAA']
@@ -1301,6 +1502,7 @@ for i in range(corr_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/SupplementaryFigure3/a_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure3/a_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_ctrl = pval_df_ctrl.iloc[::-1]
 mtx_to_plot = pval_df_ctrl.to_numpy()
@@ -1334,6 +1536,7 @@ for i in range(pval_df_ctrl.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/SupplementaryFigure3/a_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure3/a_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Supplementary Figure 3b ============================================================================================================
 features_2 = ['DNAmAgeHannumAA', 'DNAmAgeAA', 'IEAA', 'EEAA', 'DNAmPhenoAgeAA', 'DNAmGrimAgeAA', 'ImmunoAgeAA']
@@ -1403,6 +1606,7 @@ for i in range(corr_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/SupplementaryFigure3/b_1.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure3/b_1.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 pval_df_esrd = pval_df_esrd.iloc[::-1]
 mtx_to_plot = pval_df_esrd.to_numpy()
@@ -1436,6 +1640,7 @@ for i in range(pval_df_esrd.shape[0]):
 fig.tight_layout()
 plt.savefig(f"{path_save}/SupplementaryFigure3/b_2.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure3/b_2.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Supplementary Figure 3 Scatters ======================================================================================
 top_features = ['CXCL9']
@@ -1495,6 +1700,7 @@ for text in venn.subset_labels:
     text.set_fontsize(18)
 plt.savefig(f"{path_save}/SupplementaryFigure3/c.png", bbox_inches='tight', dpi=400)
 plt.savefig(f"{path_save}/SupplementaryFigure3/c.pdf", bbox_inches='tight', dpi=400)
+plt.clf()
 
 # Supplementary Figure 3 Table =========================================================================================
 features = ['DNAmAgeHannumAcc', 'DNAmAgeAcc', 'IEAA', 'EEAA', 'DNAmPhenoAgeAcc', 'DNAmGrimAgeAcc', 'ipAGEAcc']
@@ -1555,3 +1761,5 @@ upset_df = upset_df.set_index(list(table7_lists.keys()))
 fig = upset.UpSet(upset_df, subset_size='count', show_counts=True, min_degree=1, sort_categories_by=None).plot()
 plt.savefig(f"{path_save}/SupplementaryFigure3/d_2.png", bbox_inches='tight')
 plt.savefig(f"{path_save}/SupplementaryFigure3/d_2.pdf", bbox_inches='tight')
+plt.clf()
+
