@@ -56,7 +56,7 @@ pheno["Sex_ord_enc"] = ord_enc.fit_transform(pheno[["Sex"]])
 ctrl = pheno.loc[pheno['Group'] == 'Control']
 esrd = pheno.loc[pheno['Group'] == 'ESRD']
 
-thld_abs_diff = 16
+thld_abs_diff = 10000
 part_3_4 = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_part4_with_age_sex.xlsx", index_col='ID')
 ord_enc = OrdinalEncoder()
 part_3_4["Sex_ord_enc"] = ord_enc.fit_transform(part_3_4[["Sex"]])
@@ -68,26 +68,26 @@ mae_part_3_4 = mean_absolute_error(part_3_4.loc[:, 'Age'].values, part_3_4.loc[:
 print(f"RMSE in part_3_4: {rmse_part_3_4}")
 print(f"MAE in part_3_4: {mae_part_3_4}")
 
-clock_name = 'ipAGE_with_sex'
+clock_name = 'ipAGE_part_3_4'
 
-path_save = f"{path}/{platform}/{dataset}/special/013_clocks_with_sex/{clock_name}"
+path_save = f"{path}/{platform}/{dataset}/special/014_clocks_on_part_3_4/{clock_name}_{thld_abs_diff}"
 pathlib.Path(f"{path_save}").mkdir(parents=True, exist_ok=True)
 
 with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
     immuno_features = f.read().splitlines()
 
-features = immuno_features + ['Sex_ord_enc']
+features = immuno_features
 target = 'Age'
 scoring = 'r2'
 
-X_train = ctrl[features].to_numpy()
-y_train = ctrl[target].to_numpy()
+X_train = part_3_4[features].to_numpy()
+y_train = part_3_4[target].to_numpy()
 
 cv = RepeatedKFold(n_splits=3, n_repeats=10, random_state=1)
 model_type = ElasticNet(max_iter=10000, tol=0.01)
 
 alphas = np.logspace(-5, np.log10(2.3 + 0.7 * random.uniform(0, 1)), 51)
-# alphas = np.logspace(-5, 1, 101)
+alphas = np.logspace(-5, 1, 101)
 # l1_ratios = np.linspace(0.0, 1.0, 11)
 l1_ratios = [0.5]
 
@@ -201,11 +201,11 @@ fig.add_trace(
         opacity=0.8
     )
 )
-add_layout(fig, "", "ipAGE (with Sex) acceleration", f"")
+add_layout(fig, "", "ipAGE (new) acceleration", f"")
 fig.update_layout({'colorway': ['lime', 'cyan', 'fuchsia']})
 fig = add_p_value_annotation(fig, {(0,1): pval_01, (1, 2) : pval_12, (0,2): pval_02})
 fig.update_yaxes(autorange=False)
-fig.update_layout(yaxis_range=[-50, 200])
+fig.update_layout(yaxis_range=[-300, 300])
 fig.update_layout(title_xref='paper')
 fig.update_layout(legend_font_size=20)
 fig.update_layout(
@@ -244,7 +244,7 @@ add_scatter_trace(fig, ctrl.loc[:, target].values, ctrl.loc[:, f"{clock_name}"].
 add_scatter_trace(fig, ctrl.loc[:, target].values, model_linear.fittedvalues.values, "", "lines")
 add_scatter_trace(fig, part_3_4.loc[:, target].values, part_3_4.loc[:, f"{clock_name}"].values, f"Control (test)")
 add_scatter_trace(fig, esrd.loc[:, target].values, esrd.loc[:, f"{clock_name}"].values, f"ESRD")
-add_layout(fig, f"{target}", 'ipAGE (with Sex)', f"")
+add_layout(fig, f"{target}", 'ipAGE (new)', f"")
 fig.update_layout({'colorway': ['lime', 'lime', 'cyan', 'fuchsia']})
 fig.update_layout(legend_font_size=20)
 fig.update_layout(
