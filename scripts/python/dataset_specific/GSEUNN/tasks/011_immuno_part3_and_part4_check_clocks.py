@@ -31,7 +31,7 @@ from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 
 
-thld_abs_diff = 16
+thld_abs_diff = 10000
 
 dataset = "GSEUNN"
 

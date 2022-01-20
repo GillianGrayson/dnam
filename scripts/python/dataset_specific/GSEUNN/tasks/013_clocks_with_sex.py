@@ -86,7 +86,8 @@ y_train = ctrl[target].to_numpy()
 cv = RepeatedKFold(n_splits=3, n_repeats=10, random_state=1)
 model_type = ElasticNet(max_iter=10000, tol=0.01)
 
-alphas = np.logspace(-5, np.log10(2.3 + 0.7 * random.uniform(0, 1)), 51)
+#alphas = np.logspace(-5, np.log10(2.3 + 0.7 * random.uniform(0, 1)), 51)
+alphas = [2.94857760516914]
 # alphas = np.logspace(-5, 1, 101)
 # l1_ratios = np.linspace(0.0, 1.0, 11)
 l1_ratios = [0.5]
@@ -146,6 +147,13 @@ model_linear = smf.ols(formula=formula, data=ctrl).fit()
 ctrl[f"{clock_name}_acceleration"] = ctrl[f'{clock_name}'] - model_linear.predict(ctrl)
 esrd[f"{clock_name}_acceleration"] = esrd[f'{clock_name}'] - model_linear.predict(esrd)
 part_3_4[f"{clock_name}_acceleration"] = part_3_4[f'{clock_name}'] - model_linear.predict(part_3_4)
+part_3_4["Group"] = "Control (test)"
+
+supp_a_df = ctrl.loc[:, ["ID", "Group", "Age", f"{clock_name}", f"{clock_name}_acceleration"]]
+supp_a_df = supp_a_df.append(esrd.loc[:, ["ID", "Group", "Age", f"{clock_name}", f"{clock_name}_acceleration"]], verify_integrity=True)
+supp_a_df.set_index("ID", inplace=True)
+supp_a_df = supp_a_df.append(part_3_4.loc[:, ["Group", "Age", f"{clock_name}", f"{clock_name}_acceleration"]], verify_integrity=True)
+supp_a_df.to_excel(f'{path_save}/supplementary_table.xlsx', index=True)
 
 values_ctrl = ctrl.loc[:, f"{clock_name}_acceleration"].values
 values_part_3_4 = part_3_4.loc[:, f"{clock_name}_acceleration"].values

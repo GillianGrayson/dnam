@@ -76,6 +76,119 @@ pathlib.Path(f"{path_save}").mkdir(parents=True, exist_ok=True)
 with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
     immuno_features = f.read().splitlines()
 
+
+
+dist_num_bins = 25
+fig = go.Figure()
+tmp = part_3_4.loc[part_3_4["Sheet"] == "L", "ImmunoAgeDiff"].values
+fig.add_trace(
+    go.Violin(
+        y=tmp,
+        name=f"L",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor='red',
+        marker=dict(color='red', line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(tmp) / dist_num_bins,
+        opacity=0.8
+    )
+)
+tmp = part_3_4.loc[part_3_4["Sheet"] == "I", "ImmunoAgeDiff"].values
+fig.add_trace(
+    go.Violin(
+        y=tmp,
+        name=f"I",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor='blue',
+        marker=dict(color='blue', line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(tmp) / dist_num_bins,
+        opacity=0.8
+    )
+)
+tmp = part_3_4.loc[part_3_4["Sheet"] == "A", "ImmunoAgeDiff"].values
+fig.add_trace(
+    go.Violin(
+        y=tmp,
+        name=f"A",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor='green',
+        marker=dict(color='green', line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(tmp) / 50,
+        opacity=0.8
+    )
+)
+tmp = part_3_4.loc[part_3_4["Sheet"] == "S", "ImmunoAgeDiff"].values
+fig.add_trace(
+    go.Violin(
+        y=tmp,
+        name=f"S",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor='cyan',
+        marker=dict(color='cyan', line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(tmp) / 50,
+        opacity=0.8
+    )
+)
+tmp = part_3_4.loc[part_3_4["Sheet"] == "Q", "ImmunoAgeDiff"].values
+fig.add_trace(
+    go.Violin(
+        y=tmp,
+        name=f"Q",
+        box_visible=True,
+        meanline_visible=True,
+        showlegend=True,
+        line_color='black',
+        fillcolor='purple',
+        marker=dict(color='purple', line=dict(color='black', width=0.3), opacity=0.8),
+        points='all',
+        bandwidth=np.ptp(tmp) / 50,
+        opacity=0.8
+    )
+)
+add_layout(fig, "", "ipAGE - Age", f"")
+# fig.update_yaxes(autorange=False)
+# fig.update_layout(yaxis_range=[-300, 300])
+fig.update_layout(title_xref='paper')
+fig.update_layout(legend_font_size=20)
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=110,
+        r=20,
+        b=50,
+        t=90,
+        pad=0
+    )
+)
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.05,
+        xanchor="center",
+        x=0.5
+    )
+)
+save_figure(fig, f"{path_save}/tmp")
+
+
+
+
+
 features = immuno_features
 target = 'Age'
 scoring = 'r2'
@@ -271,3 +384,4 @@ fig.add_annotation(dict(font=dict(color='black', size=45),
                         xref="paper",
                         yref="paper"))
 save_figure(fig, f"{path_save}/scatter")
+
