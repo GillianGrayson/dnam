@@ -161,8 +161,6 @@ fig.add_trace(
     )
 )
 add_layout(fig, "", "ipAGE - Age", f"")
-# fig.update_yaxes(autorange=False)
-# fig.update_layout(yaxis_range=[-300, 300])
 fig.update_layout(title_xref='paper')
 fig.update_layout(legend_font_size=20)
 fig.update_layout(
@@ -170,7 +168,7 @@ fig.update_layout(
         l=110,
         r=20,
         b=50,
-        t=90,
+        t=50,
         pad=0
     )
 )
@@ -199,8 +197,9 @@ y_train = part_3_4[target].to_numpy()
 cv = RepeatedKFold(n_splits=3, n_repeats=10, random_state=1)
 model_type = ElasticNet(max_iter=10000, tol=0.01)
 
-alphas = np.logspace(-5, np.log10(2.3 + 0.7 * random.uniform(0, 1)), 51)
-alphas = np.logspace(-5, 1, 101)
+#alphas = np.logspace(-5, np.log10(2.3 + 0.7 * random.uniform(0, 1)), 51)
+#alphas = np.logspace(-5, 1, 101)
+alphas = [10]
 # l1_ratios = np.linspace(0.0, 1.0, 11)
 l1_ratios = [0.5]
 
@@ -326,7 +325,7 @@ fig.update_layout(
         l=110,
         r=20,
         b=50,
-        t=90,
+        t=80,
         pad=0
     )
 )
@@ -339,16 +338,6 @@ fig.update_layout(
         x=0.5
     )
 )
-fig.add_annotation(dict(font=dict(color='black', size=45),
-                        x=-0.18,
-                        y=1.4,
-                        showarrow=False,
-                        text=f"(b)",
-                        textangle=0,
-                        yanchor='top',
-                        xanchor='left',
-                        xref="paper",
-                        yref="paper"))
 save_figure(fig, f"{path_save}/venn")
 
 
@@ -362,26 +351,16 @@ fig.update_layout({'colorway': ['lime', 'cyan', 'cyan', 'fuchsia']})
 fig.update_layout(legend_font_size=20)
 fig.update_layout(
     margin=go.layout.Margin(
-        l=80,
+        l=120,
         r=20,
-        b=80,
-        t=65,
+        b=75,
+        t=45,
         pad=0
     )
 )
 fig.update_yaxes(autorange=False)
 fig.update_xaxes(autorange=False)
-fig.update_layout(yaxis_range=[10, 110])
+fig.update_layout(yaxis_range=[0, 150])
 fig.update_layout(xaxis_range=[10, 100])
-fig.add_annotation(dict(font=dict(color='black', size=45),
-                        x=-0.13,
-                        y=1.20,
-                        showarrow=False,
-                        text=f"(a)",
-                        textangle=0,
-                        yanchor='top',
-                        xanchor='left',
-                        xref="paper",
-                        yref="paper"))
 save_figure(fig, f"{path_save}/scatter")
 
