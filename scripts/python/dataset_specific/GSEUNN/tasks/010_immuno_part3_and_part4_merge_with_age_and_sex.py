@@ -57,17 +57,14 @@ if len(coomon_samples) > 0:
     print(f"Subjects with common ids:")
     print(coomon_samples)
 immuno = pd.concat([immuno3, immuno4])
-ages = pd.read_excel(f"{path}/{platform}/{dataset}/data/age_L_Q_H_I.xlsx", index_col='Code')
-sexes = pd.read_excel(f"{path}/{platform}/{dataset}/data/sex_L_Q_H_I.xlsx", index_col='Code')
+ages_sexes = pd.read_excel(f"{path}/{platform}/{dataset}/data/age_sex_L_H_A_Q_I_S.xlsx", index_col='Code')
 
-df = pd.merge(ages, sexes, left_index=True, right_index=True)
-df = pd.merge(df, immuno, left_index=True, right_index=True)
+df = pd.merge(ages_sexes, immuno, left_index=True, right_index=True)
 
-
-no_age_codes = set(immuno.index.values) - set(ages.index.values)
-if len(no_age_codes) > 0:
+no_age_sex_codes = set(immuno.index.values) - set(ages_sexes.index.values)
+if len(no_age_sex_codes) > 0:
     print(f"Subjects with missed ages:")
-    print('\n'.join(sorted(list(no_age_codes))))
+    print('\n'.join(sorted(list(no_age_sex_codes))))
 
 used_ids = pheno.loc[:, 'ID'].values
 duplicate_ids = list(set(used_ids).intersection(set(df.index.values)))

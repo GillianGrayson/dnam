@@ -255,7 +255,7 @@ esrd_color = 'fuchsia'
 dist_num_bins = 25
 
 formula = f"{clock_name} ~ Age"
-model_linear = smf.ols(formula=formula, data=ctrl).fit()
+model_linear = smf.ols(formula=formula, data=part_3_4).fit()
 ctrl[f"{clock_name}_acceleration"] = ctrl[f'{clock_name}'] - model_linear.predict(ctrl)
 esrd[f"{clock_name}_acceleration"] = esrd[f'{clock_name}'] - model_linear.predict(esrd)
 part_3_4[f"{clock_name}_acceleration"] = part_3_4[f'{clock_name}'] - model_linear.predict(part_3_4)
@@ -272,7 +272,7 @@ fig = go.Figure()
 fig.add_trace(
     go.Violin(
         y=values_ctrl,
-        name=f"Control",
+        name=f"Control (old)",
         box_visible=True,
         meanline_visible=True,
         showlegend=True,
@@ -287,7 +287,7 @@ fig.add_trace(
 fig.add_trace(
     go.Violin(
         y=values_part_3_4,
-        name=f"Control (test)",
+        name=f"Control (new)",
         box_visible=True,
         meanline_visible=True,
         showlegend=True,
@@ -353,12 +353,12 @@ save_figure(fig, f"{path_save}/venn")
 
 
 fig = go.Figure()
-add_scatter_trace(fig, ctrl.loc[:, target].values, ctrl.loc[:, f"{clock_name}"].values, f"Control")
-add_scatter_trace(fig, ctrl.loc[:, target].values, model_linear.fittedvalues.values, "", "lines")
-add_scatter_trace(fig, part_3_4.loc[:, target].values, part_3_4.loc[:, f"{clock_name}"].values, f"Control (test)")
+add_scatter_trace(fig, ctrl.loc[:, target].values, ctrl.loc[:, f"{clock_name}"].values, f"Control (old)")
+add_scatter_trace(fig, part_3_4.loc[:, target].values, model_linear.fittedvalues.values, "", "lines")
+add_scatter_trace(fig, part_3_4.loc[:, target].values, part_3_4.loc[:, f"{clock_name}"].values, f"Control (new)")
 add_scatter_trace(fig, esrd.loc[:, target].values, esrd.loc[:, f"{clock_name}"].values, f"ESRD")
 add_layout(fig, f"{target}", 'ipAGE (new)', f"")
-fig.update_layout({'colorway': ['lime', 'lime', 'cyan', 'fuchsia']})
+fig.update_layout({'colorway': ['lime', 'cyan', 'cyan', 'fuchsia']})
 fig.update_layout(legend_font_size=20)
 fig.update_layout(
     margin=go.layout.Margin(
