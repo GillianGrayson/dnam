@@ -42,6 +42,7 @@ pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno_xtd.pkl")
 pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
 
 is_title_pval = True
+is_percentage = False
 
 path_save = f"{path}/{platform}/{dataset}/special/015_new_pheno"
 pathlib.Path(f"{path_save}").mkdir(parents=True, exist_ok=True)
@@ -59,6 +60,7 @@ target_features = pheno_new.columns.values
 
 df = pd.merge(pheno, pheno_new, left_index=True, right_index=True)
 df.to_excel(f"{path_save}/pheno_xtd.xlsx", index=True)
+num_subjects = df.shape[0]
 df_ctrl = df.loc[(df[status_col] == 'Control'), :]
 df_esrd = df.loc[(df[status_col] == 'ESRD'), :]
 
@@ -71,7 +73,7 @@ variants = {
     'Regular nutrition': ['No', 'Yes'],
     'Alcohol consumption': ['No', 'Yes', 'No info'],
     'Marital status': ['Single', 'Married', 'Divorced', 'Widow(er)', 'No info'],
-    'Сurrently working': ['No', 'Yes'],
+    'Currently working': ['No', 'Yes'],
     'Accommodation': ['City', 'Village'],
     'Education level': ['Higher', 'Higher unfinished', 'Secondary', 'Secondary special', 'Secondary unfinished', 'No info'],
     'Work type (intellectual or physical)': ['Intellectual', 'Physical', 'No info']
@@ -83,7 +85,7 @@ variants_x_tick_font_size = {
     'Regular nutrition': 25,
     'Alcohol consumption': 25,
     'Marital status': 20,
-    'Сurrently working': 25,
+    'Currently working': 25,
     'Accommodation': 25,
     'Education level': 15,
     'Work type (intellectual or physical)': 25
@@ -95,8 +97,12 @@ for f_id, f in enumerate(target_features):
     ys_ctrl = []
     ys_esrd = []
     for x in xs:
-        y_ctrl = df_ctrl[df_ctrl[f] == x].shape[0]
-        y_esrd = df_esrd[df_esrd[f] == x].shape[0]
+        if is_percentage:
+            y_ctrl = df_ctrl[df_ctrl[f] == x].shape[0] / num_subjects * 100
+            y_esrd = df_esrd[df_esrd[f] == x].shape[0] / num_subjects * 100
+        else:
+            y_ctrl = df_ctrl[df_ctrl[f] == x].shape[0]
+            y_esrd = df_esrd[df_esrd[f] == x].shape[0]
         ys_ctrl.append(y_ctrl)
         ys_esrd.append(y_esrd)
         cat_df.loc['Control', x] = y_ctrl
@@ -132,7 +138,10 @@ for f_id, f in enumerate(target_features):
     )
     fig.update_layout(barmode='group')
     if is_title_pval:
-        add_layout(fig, f"{f}", "Number of participants", f"Chi-square p-value = {p:0.2e}")
+        if is_percentage:
+            add_layout(fig, f"{f}", "% of participants", f"Chi-square p-value = {p:0.2e}")
+        else:
+            add_layout(fig, f"{f}", "Number of participants", f"Chi-square p-value = {p:0.2e}")
         fig.update_layout(title_xref='paper')
         fig.update_layout(
             autosize=False,
@@ -155,7 +164,10 @@ for f_id, f in enumerate(target_features):
                                 xref="paper",
                                 yref="paper"))
     else:
-        add_layout(fig, f"{f}", "Number of participants", f"")
+        if is_percentage:
+            add_layout(fig, f"{f}", "% of participants", f"")
+        else:
+            add_layout(fig, f"{f}", "Number of participants", f"")
         fig.update_layout(
             autosize=False,
             margin=go.layout.Margin(
@@ -180,6 +192,8 @@ for f_id, f in enumerate(target_features):
     fig.update_layout(showlegend=True)
 
     fig.update_traces(textposition='auto')
+    if is_percentage:
+        fig.update_traces(texttemplate='%{text:.1f}')
     fig.update_xaxes(tickfont_size=variants_x_tick_font_size[f])
     fig.update_traces(textfont_size=21, selector=dict(type='bar'))
     fig.update_traces(marker_line_color='black', marker_line_width=1.5)
