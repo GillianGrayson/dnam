@@ -57,7 +57,7 @@ if len(coomon_samples) > 0:
     print(f"Subjects with common ids:")
     print(coomon_samples)
 immuno = pd.concat([immuno3, immuno4])
-ages_sexes = pd.read_excel(f"{path}/{platform}/{dataset}/data/age_sex_L_H_A_Q_I_S.xlsx", index_col='Code')
+ages_sexes = pd.read_excel(f"{path}/{platform}/{dataset}/data/age_sex_L_H_A_Q_I_S_T.xlsx", index_col='Code')
 
 df = pd.merge(ages_sexes, immuno, left_index=True, right_index=True)
 
