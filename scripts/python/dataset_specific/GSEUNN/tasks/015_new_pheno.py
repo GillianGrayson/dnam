@@ -68,15 +68,15 @@ ctrl_color = 'lime'
 esrd_color = 'fuchsia'
 
 variants = {
-    'Smoking': ['No', 'Yes', 'No info'],
-    'Insomnia': ['No', 'Yes', 'No info'],
+    'Smoking': ['No', 'Yes'],
+    'Insomnia': ['No', 'Yes'],
     'Regular nutrition': ['No', 'Yes'],
-    'Alcohol consumption': ['No', 'Yes', 'No info'],
-    'Marital status': ['Single', 'Married', 'Divorced', 'Widow(er)', 'No info'],
+    'Alcohol consumption': ['No', 'Yes'],
+    'Marital status': ['Single', 'Married', 'Divorced', 'Widow(er)'],
     'Currently working': ['No', 'Yes'],
     'Accommodation': ['City', 'Village'],
-    'Education level': ['Higher', 'Higher unfinished', 'Secondary', 'Secondary special', 'Secondary unfinished', 'No info'],
-    'Work type (intellectual or physical)': ['Intellectual', 'Physical', 'No info']
+    'Education level': ['Higher', 'Higher unfinished', 'Secondary', 'Secondary special', 'Secondary unfinished'],
+    'Work type (intellectual or physical)': ['Intellectual', 'Physical']
 }
 
 variants_x_tick_font_size = {
