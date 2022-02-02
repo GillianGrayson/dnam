@@ -51,6 +51,28 @@ def calc_metrics(model, X, y, comment, params):
     return y_pred
 
 def analyze_outliers(ctrl, features, data_type):
+
+    corr_df = pd.DataFrame(data=np.zeros((len(features), 2)), index=features, columns=['pearson_corr', 'pearson_pval'])
+    for f in features:
+        corr, pval = stats.pearsonr(ctrl.loc[:, f].values, ctrl.loc[:, 'Age'].values)
+        corr_df.at[f, 'pearson_corr'] = corr
+        corr_df.at[f, 'pearson_pval'] = pval
+    _, corr_df['pearson_pval_fdr_bh'], _, _ = multipletests(corr_df.loc[:, 'pearson_pval'].values, 0.05, method='fdr_bh')
+    aa_features = corr_df.index[corr_df['pearson_pval_fdr_bh'] < 0.01].values
+
+    features = aa_features
+
+    iqr_feature = []
+    for f in features:
+        q1 = ctrl[f].quantile(0.25)
+        q3 = ctrl[f].quantile(0.75)
+        iqr = q3 - q1
+        filter = (ctrl[f] >= q1 - 1.5 * iqr) & (ctrl[f] <= q3 + 1.5 * iqr)
+        iqr_feature.append(f"{f}_IsIQR")
+        ctrl[f"{f}_IsIQR"] = filter
+    ctrl[f"NumIQR_{data_type}"] = len(aa_features) - ctrl[iqr_feature].sum(axis=1)
+    ctrl[f"PassedByNumIQR_{data_type}"] = ctrl[f"NumIQR_{data_type}"] < 1
+
     X_ctrl = ctrl.loc[:, features].to_numpy()
 
     lof = LocalOutlierFactor()
@@ -66,7 +88,7 @@ def analyze_outliers(ctrl, features, data_type):
     ctrl[f'mahalanobis_p_{data_type}'] = 1 - chi2.cdf(ctrl[f'mahalanobis_d_{data_type}'], 3)
     ctrl[f"PassedByMahalanobis_{data_type}"] = ctrl[f'mahalanobis_p_{data_type}'] <= 0.05
 
-    outlier_fraction = 0.2
+    outlier_fraction = 0.4
     classifiers = {
         'ABOD': ABOD(contamination=outlier_fraction),
         'KNN': KNN(contamination=outlier_fraction),
@@ -75,7 +97,7 @@ def analyze_outliers(ctrl, features, data_type):
         'SOS': SOS(contamination=outlier_fraction),
         'SUOD': SUOD(contamination=outlier_fraction)
     }
-    outlier_types = ["PassedByImmunoAgeDiff"]
+    outlier_types = ["PassedByImmunoAgeDiff", f"PassedByNumIQR_{data_type}"]
     for i, (clf_name, clf) in enumerate(classifiers.items()):
         clf.fit(X_ctrl)
         ctrl[f"{clf_name}_{data_type}"] = clf.predict(X_ctrl)
@@ -84,14 +106,11 @@ def analyze_outliers(ctrl, features, data_type):
 
     outlier_types += [f"{x}_{data_type}" for x in ["LocalOutlierFactor", "IsolationForest", "OneClassSVM", "PassedByMahalanobis"]]
 
-    corr_df = pd.DataFrame(data=np.zeros((len(features), 2)), index=features, columns=['pearson_corr', 'pearson_pval'])
-    for f in features:
-        corr, pval = stats.pearsonr(ctrl.loc[:, f].values, ctrl.loc[:, 'Age'].values)
-        corr_df.at[f, 'pearson_corr'] = corr
-        corr_df.at[f, 'pearson_pval'] = pval
-    _, corr_df['pearson_pval_fdr_bh'], _, _ = multipletests(corr_df.loc[:, 'pearson_pval'].values, 0.05, method='fdr_bh')
-    aa_features = corr_df.index[corr_df['pearson_pval_fdr_bh'] < 0.05].values
+
     ctrl[f"OutInPartOfAAFeatures_{data_type}"] = np.sum((np.abs(stats.zscore(ctrl[aa_features])) > 3), axis=1) / len(aa_features)
+    ctrl[f"PassedByOutInPartOfAAFeatures_{data_type}"] =  ctrl[f"OutInPartOfAAFeatures_{data_type}"] < 0.01
+
+    outlier_types += [f"PassedByOutInPartOfAAFeatures_{data_type}"]
 
     pca = PCA(n_components=2)
     pcs = pca.fit_transform(ctrl[features])
@@ -124,6 +143,9 @@ def analyze_outliers(ctrl, features, data_type):
         save_figure(fig, f"{pc_plot['path']}/{pc_plot['name']}")
 
     for ot_id, ot in enumerate(outlier_types):
+        n_total = ctrl.loc[(ctrl[ot] == True), :].shape[0]
+        n_in_intersection = ctrl.loc[(ctrl[ot] == True) & (ctrl['PassedByImmunoAgeDiff'] == True),:].shape[0]
+        print(f"Number of common subject of {ot} with PassedByImmunoAgeDiff: {n_in_intersection} from {n_total}")
         pc_plot_list[0]['name'] = f"{ot_id + 1}_{ot}"
         pc_plot_list[1]['name'] = f"{ot_id + 1}_{ot}_log"
         for pc_plot in pc_plot_list:
