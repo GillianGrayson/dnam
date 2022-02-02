@@ -77,7 +77,7 @@ def train_xgboost(config: DictConfig):
         'verbosity': config.model.verbosity,
     }
 
-    num_boost_round =config.trainer.max_epochs
+    num_boost_round = config.trainer.max_epochs
     early_stopping_rounds = config.trainer.patience
     bst = xgb.train(
         params=model_params,
