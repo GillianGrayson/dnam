@@ -30,7 +30,7 @@ def calc_metrics(model, X, y, comment, params):
     params[f'{comment} MAE'] = mae
     return y_pred
 
-outliers_metric = 'COPOD_scaled'
+outliers_metric = 'PassedByNumIQR_scaled'
 
 clock_name = 'ipAGE_all_controls'
 
@@ -63,10 +63,10 @@ ctrl = df.loc[df['Group'] == 'Control']
 esrd = df.loc[df['Group'] == 'ESRD']
 
 outliers_info = pd.read_excel(f"{path}/{platform}/{dataset}/special/017_outlier_detection_in_controls/ctrl.xlsx", index_col='ID')
-outliers_info = outliers_info.loc[:, [outliers_metric, 'PassedByImmunoAgeDiff']]
+outliers_info = outliers_info.loc[:, [outliers_metric]]
 
 ctrl = pd.merge(ctrl, outliers_info, left_index=True, right_index=True)
-ctrl = ctrl.loc[(ctrl[outliers_metric] == True) & (ctrl['PassedByImmunoAgeDiff'] == True), :]
+ctrl = ctrl.loc[(ctrl[outliers_metric] == True), :]
 
 path_save = f"{path}/{platform}/{dataset}/special/019_clocks_on_immuno_all_controls_wo_outliers/{outliers_metric}"
 pathlib.Path(f"{path_save}").mkdir(parents=True, exist_ok=True)

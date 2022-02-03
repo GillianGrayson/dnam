@@ -88,7 +88,7 @@ def analyze_outliers(ctrl, features, data_type):
     ctrl[f'mahalanobis_p_{data_type}'] = 1 - chi2.cdf(ctrl[f'mahalanobis_d_{data_type}'], 3)
     ctrl[f"PassedByMahalanobis_{data_type}"] = ctrl[f'mahalanobis_p_{data_type}'] <= 0.05
 
-    outlier_fraction = 0.4
+    outlier_fraction = 0.25
     classifiers = {
         'ABOD': ABOD(contamination=outlier_fraction),
         'KNN': KNN(contamination=outlier_fraction),
