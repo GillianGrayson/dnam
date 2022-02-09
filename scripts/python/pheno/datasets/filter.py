@@ -20,7 +20,6 @@ def filter_dataset(dataset: str, df: pd.DataFrame):
 
 def filter_pheno(dataset, pheno, continuous_vars, categorical_vars):
     pheno = filter_dataset(dataset, pheno)
-    #pheno.columns = pheno.columns.str.replace(' ', '_')
     for name, feat in continuous_vars.items():
         pheno = pheno[pheno[feat].notnull()]
     for feat, groups in categorical_vars.items():

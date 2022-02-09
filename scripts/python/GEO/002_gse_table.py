@@ -1,28 +1,28 @@
 import GEOparse
-import numpy as np
 import pandas as pd
-from tqdm import tqdm
-from distutils.dir_util import copy_tree
 from pathlib import Path
 import pathlib
 import pickle
-import os
 import re
 
-def process_characteristics_ch1(gse_df):
+
+def process_characteristics_ch1(df, regex_split):
     to_remove = [';', ': ']
     remover = re.compile('|'.join(map(re.escape, to_remove)))
-    for gsm, row in gse_df.iterrows():
-        tmp = re.split(r'(;*[a-zA-Z0-9 _]+: )', row['characteristics_ch1'])
+    for gsm, row in df.iterrows():
+        tmp = re.split(regex_split, row['characteristics_ch1'])
         tmp = [x for x in tmp if x]
         pairs = dict(zip(tmp[::2], tmp[1::2]))
         for char_raw, value in pairs.items():
             char = remover.sub('', char_raw)
-            gse_df.at[gsm, char] = value
+            df.at[gsm, char] = value
 
 
-GPL = 'GPL13534'
-n_gses = 200
+GPL = 'GPL21145'
+n_gses = 100
+
+characteristics_ch1_regex_findall = ';*([a-zA-Z0-9\^\/\=\-\:\,\.\s_\(\)]+): '
+characteristics_ch1_regex_split = '(;*[a-zA-Z0-9\^\/\=\-\,\:\.\s_\(\)]+: )'
 
 path = "E:/YandexDisk/Work/pydnameth/datasets/GEO"
 
@@ -51,7 +51,7 @@ else:
     f.close()
 
 gses = sorted(gse_gsms_dict.keys(),  key=lambda s: len(gse_gsms_dict.get(s)),  reverse=True)
-gses_df = pd.DataFrame(index=gses, columns=['Count', 'characteristics_ch1', 'source_name_ch1', 'raw_files_exist'])
+gses_df = pd.DataFrame(index=gses, columns=['raw_files_exist'])
 gses_df.index.name = 'GSE'
 
 for gse_id, gse in enumerate(gses[0:n_gses]):
@@ -73,51 +73,79 @@ for gse_id, gse in enumerate(gses[0:n_gses]):
             continue
         break
     gse_df_2 = gse_data.phenotype_data
-    GEOparse_data_empy = gse_df_2.empty
-    if not GEOparse_data_empy:
-        gse_df_2.replace('NONE', pd.NA, inplace=True)
+    if gse_df_2.empty:
+        process_type = 'GEOmetadb'
+    else:
         gse_df_2.index.name = 'gsm'
+        gse_df_2.replace('NONE', pd.NA, inplace=True)
         gse_df_2 = gse_df_2.loc[(gse_df_2['platform_id'] == GPL), :]
         is_index_equal = set(gse_df_1.index) == set(gse_df_2.index)
-        gses_df.at[gse, 'Count'] = gse_df_2.shape[0]
-        if not is_index_equal:
-            print("Index is not equal in GEOmetadb and GEOparse")
-            print(f"gse_df_2 full: {gse_df_2.shape[0]}")
-            print(f"gse_df_1 full: {gse_df_1.shape[0]}")
-            unique_chars = set()
+        if is_index_equal:
+            process_type = 'Common'
         else:
-            print("Index is equal")
-            gse_df_1 = gse_df_1.loc[gse_df_2.index, :]
-            gse_df_2 = pd.merge(gse_df_2, gse_df_1['characteristics_ch1'], left_index=True, right_index=True)
-            unique_chars = set.union(*gse_df_2['characteristics_ch1'].str.findall('([a-zA-Z0-9 _]+):').apply(set).to_list())
-            process_characteristics_ch1(gse_df_2)
+            print(f"GEOmetadb: {gse_df_1.shape[0]}")
+            print(f"GEOparse: {gse_df_2.shape[0]}")
+            if gse_df_2.shape[0] > gse_df_1.shape[0]:
+                process_type = 'GEOparse'
+            else:
+                process_type = 'GEOmetadb'
+    print(f"process_type: {process_type}")
+
+    gses_df.at[gse, 'GEOmetadb'] = gse_df_1.shape[0]
+    gses_df.at[gse, 'GEOparse'] = gse_df_2.shape[0]
+
+    if process_type == 'Common':
+        gse_df_1 = gse_df_1.loc[gse_df_2.index, :]
+        gse_df = pd.merge(gse_df_2, gse_df_1['characteristics_ch1'], left_index=True, right_index=True)
+        chars_df_1 = set.union(*gse_df['characteristics_ch1'].str.findall(characteristics_ch1_regex_findall).apply(set).to_list())
+        process_characteristics_ch1(gse_df, characteristics_ch1_regex_split)
+    elif process_type == 'GEOmetadb':
+        gse_df = gse_df_1
+        chars_df_1 = set.union(*gse_df['characteristics_ch1'].str.findall(characteristics_ch1_regex_findall).apply(set).to_list())
+        process_characteristics_ch1(gse_df, characteristics_ch1_regex_split)
+    elif process_type == 'GEOparse':
+        gse_df = gse_df_2.copy()
+        chars_df_1 = set()
     else:
-        print("No data from GEOparse")
-        gse_df_2 = gse_df_1
-        unique_chars = set.union(*gse_df_2['characteristics_ch1'].str.findall('([a-zA-Z0-9 _]+):').apply(set).to_list())
-        process_characteristics_ch1(gse_df_2)
+        raise ValueError(f"Unsupported process_type")
 
-    chars_cols = gse_df_2.columns.values[gse_df_2.columns.str.startswith('characteristics_ch1.')]
-    r = re.compile(r"characteristics_ch1.\d*.(.*)")
-    remaining_chars = [r.findall(x)[0] for x in chars_cols]
-    gses_df.at[gse, 'characteristics_ch1'] = unique_chars.union(set(remaining_chars))
-    gses_df.at[gse, 'source_name_ch1'] = gse_df_2['source_name_ch1'].unique()
+    if process_type in ['GEOparse', 'Common']:
+        chars_cols = gse_df.columns.values[gse_df.columns.str.startswith('characteristics_ch1.')]
+        r = re.compile(r"characteristics_ch1.\d*.(.*)")
+        chars_df_2 = set([r.findall(x)[0] for x in chars_cols])
+    else:
+        chars_df_2 = set()
 
-    if not gse_df_2['supplementary_file'].isnull().all():
+    chars_all = chars_df_1.union(chars_df_2)
+
+    if chars_df_2 != chars_df_1:
+        print(f"Chars from GEOmetadb ({len(chars_df_1)}) and GEOparse ({len(chars_df_2)}) differs!")
+        gses_df.at[gse, 'characteristics_ch1_differs'] = True
+    else:
+        gses_df.at[gse, 'characteristics_ch1_differs'] = False
+
+    gses_df.at[gse, 'n_characteristics_ch1_GEOmetadb'] = len(chars_df_1)
+    gses_df.at[gse, 'n_characteristics_ch1_GEOparse'] = len(chars_df_2)
+    gses_df.at[gse, 'process_type'] = process_type
+    gses_df.at[gse, 'Count'] = gse_df.shape[0]
+    gses_df.at[gse, 'characteristics_ch1'] = str(chars_all)
+    gses_df.at[gse, 'source_name_ch1'] = gse_df['source_name_ch1'].unique()
+
+    if not gse_df['supplementary_file'].isnull().all():
         gses_df.at[gse, 'raw_files_exist'] = True
-        if len(gse_df_2['supplementary_file'].unique()) == len(gse_df_2.index):
+        if len(gse_df['supplementary_file'].unique()) == len(gse_df.index):
             gses_df.at[gse, 'raw_files_for_all'] = True
         else:
             gses_df.at[gse, 'raw_files_for_all'] = False
-        gse_df_2[['supplementary_file_1', 'supplementary_file_2']] = gse_df_2['supplementary_file'].str.split(',\s*', expand=True, regex=True)
-        tmp = gse_df_2['supplementary_file_1'].str.findall('(?:.*\/)(.*)(?:_\w*.\..*\..*)').explode()
-        gse_df_2[['Sample_Name', 'Sentrix_ID', 'Sentrix_Position']] = tmp.str.split('_', expand=True)
+        supp_files_split = gse_df['supplementary_file'].str.split('[,;]\s*', expand=True, regex=True)
+        if supp_files_split.shape[1] == 2:
+            gse_df[['supplementary_file_1', 'supplementary_file_2']] = supp_files_split
+            supp_details = gse_df['supplementary_file_1'].str.findall('(?:.*\/)(.*)(?:_\w*.\..*\..*)').explode().str.split('_', expand=True)
+            if supp_details.shape[1] == 3:
+                gse_df[['Sample_Name', 'Sentrix_ID', 'Sentrix_Position']] = supp_details
     else:
         gses_df.at[gse, 'raw_files_exist'] = False
 
-    if GEOparse_data_empy:
-        gse_df_2.to_excel(f"{path}/{GPL}/{gse_id}_{gse}/gse_GEOmetadb.xlsx", index=True)
-    else:
-        gse_df_2.to_excel(f"{path}/{GPL}/{gse_id}_{gse}/gse_GEOparse.xlsx", index=True)
+    gse_df.to_excel(f"{path}/{GPL}/{gse_id}_{gse}/{process_type}.xlsx", index=True)
 
 gses_df.to_excel(f"{path}/{GPL}/gses.xlsx", index=True)
