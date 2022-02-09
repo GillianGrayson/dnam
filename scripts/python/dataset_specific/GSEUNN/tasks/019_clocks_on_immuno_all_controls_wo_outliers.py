@@ -30,7 +30,7 @@ def calc_metrics(model, X, y, comment, params):
     params[f'{comment} MAE'] = mae
     return y_pred
 
-outliers_metric = 'PassedByNumIQR_scaled'
+outliers_metric = 'PassedAll'
 
 clock_name = 'ipAGE_all_controls'
 

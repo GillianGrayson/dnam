@@ -194,6 +194,7 @@ pheno.set_index('ID', inplace=True)
 df = pheno.append(part_3_4, verify_integrity=True)
 df[f'ImmunoAgeDiff'] = df[f'ImmunoAge'] - df[f'Age']
 df[f"PassedByImmunoAgeDiff"] = abs(df[f'ImmunoAgeDiff']) <= thld_abs_diff
+df[f"PassedAll"] = True
 
 ctrl = df.loc[df['Group'] == 'Control']
 esrd = df.loc[df['Group'] == 'ESRD']

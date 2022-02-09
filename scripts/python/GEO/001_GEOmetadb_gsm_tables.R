@@ -5,6 +5,7 @@ setwd(path)
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 BiocManager::install("GEOmetadb")
+BiocManager::install("GEOquery")
 
 library(GEOmetadb)
 library("xlsx")
