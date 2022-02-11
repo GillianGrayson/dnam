@@ -9,23 +9,29 @@ library(devtools)
 library(minfi)
 library("regRCPqn")
 
-path <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_ICD10-V/R"
+path <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_ICD10-V/R/all_in_one"
 setwd(path)
 
 pd <- import("pandas")
 
 pheno <- pd$read_pickle("pheno.pkl")
+
+mvals <- pd$read_pickle("mvalsT.pkl")
+mvals <- cbind(ID_REF = rownames(mvals), mvals)
+rownames(mvals) <- 1:nrow(mvals)
+
 betas <- pd$read_pickle("betasT.pkl")
+mvals <- logit2(mvals)
+mvals <- cbind(ID_REF = rownames(mvals), mvals)
+rownames(mvals) <- 1:nrow(mvals)
 
-betas <- logit2(betas)
+mvals_norm <- regRCPqn(M_data=mvals, ref_path=paste(path, "/", sep=''), data_name="regRCPqn", save_ref=TRUE)
 
-betas <- cbind(ID_REF = rownames(betas), betas)
-rownames(betas) <- 1:nrow(betas)
-
-
-M_data_norm <- regRCPqn(M_data=betas, ref_path=path, data_name="regRCPqn", save_ref=TRUE)
-
-
+mvals_norm <- cbind(ID_REF = rownames(mvals_norm), mvals_norm)
+rownames(mvals_norm) <- 1:nrow(mvals_norm)
+write.table(mvals_norm, file=paste(path, "/", "mvals_regRCPqn.txt", sep=''), col.name=TRUE, row.names=FALSE, sep="\t", quote=F)
+write.csv(mvals_norm, paste(path, "/", "mvals_regRCPqn.csv", sep=''), row.names = FALSE)
+save(mvals_norm, file="mvals_regRCPqn.RData")
 
 data(BloodParkinson1)
 betas <- as.data.frame.matrix(betas)

@@ -1,22 +1,12 @@
-import copy
 import pandas as pd
 from scripts.python.routines.manifest import get_manifest
-import numpy as np
-from scipy.stats import kruskal
-import matplotlib.pyplot as plt
 from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
 from scripts.python.pheno.datasets.features import get_column_name, get_status_dict, get_statuses_datasets_dict
-from sklearn.feature_selection import VarianceThreshold
 from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
 from scripts.python.preprocessing.serialization.routines.save import save_pheno_betas_to_pkl
 from scripts.python.routines.betas import betas_drop_na
 import json
 import pathlib
-from statsmodels.stats.multitest import multipletests
-from scripts.python.routines.plot.layout import add_layout, get_axis
-from scripts.python.routines.plot.save import save_figure
-import plotly.graph_objects as go
-from tqdm import tqdm
 
 
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -102,87 +92,3 @@ print(f"Number of total CpGs: {betas_all.shape[1]}")
 
 pheno_all, betas_all = get_pheno_betas_with_common_subjects(pheno_all, betas_all)
 save_pheno_betas_to_pkl(pheno_all, betas_all, f"{path_save}")
-
-df = pd.merge(pheno_all, betas_all, left_index=True, right_index=True)
-
-cpgs_metrics_dict = {'CpG': betas_all.columns.values}
-
-cpgs_metrics_dict['KW_Controls_pval'] = []
-for cpg_id, cpg in enumerate(tqdm(betas_all.columns.values)):
-    kw_vals = {}
-    for dataset in datasets:
-        vals_i = df.loc[(df['Status'] == 'Control') & (df['Dataset'] == dataset), cpg].values
-        kw_vals[dataset] = vals_i
-    stat, pval = kruskal(*kw_vals.values())
-    cpgs_metrics_dict['KW_Controls_pval'].append(pval)
-_, pvals_corr, _, _ = multipletests(cpgs_metrics_dict['KW_Controls_pval'], 0.05, method='fdr_bh')
-cpgs_metrics_dict['KW_Controls_pval_fdr_bh'] = pvals_corr
-_, pvals_corr, _, _ = multipletests(cpgs_metrics_dict['KW_Controls_pval'], 0.05, method='bonferroni')
-cpgs_metrics_dict['KW_Controls_pval_bonferroni'] = pvals_corr
-
-vt = VarianceThreshold(0.0)
-vt.fit(betas_all)
-vt_metrics = vt.variances_
-vt_bool = vt.get_support()
-cpgs_metrics_dict['variance'] = vt_metrics
-
-cpgs_metrics_df = pd.DataFrame(cpgs_metrics_dict)
-cpgs_metrics_df.set_index('CpG', inplace=True)
-cpgs_metrics_df.sort_values(['KW_Controls_pval_fdr_bh'], ascending=[False], inplace=True)
-cpgs_metrics_df.to_excel(f"{path_save}/cpgs_metrics.xlsx", index=True)
-
-plot = cpgs_metrics_df['variance'].plot.kde(ind=np.logspace(-5, 0, 501))
-plt.xlabel("Values", fontsize=15)
-plt.ylabel("PDF",fontsize=15)
-plt.xscale('log')
-plt.grid(True)
-fig = plot.get_figure()
-fig.savefig(f"{path_save}/figs/{'variance'}.pdf")
-fig.savefig(f"{path_save}/figs/{'variance'}.png")
-plt.close()
-
-cpgs_to_plot_df = cpgs_metrics_df.head(10)
-for cpg_id, (cpg, row) in enumerate(cpgs_to_plot_df.iterrows()):
-    pval = row['KW_Controls_pval_fdr_bh']
-    gene = manifest.at[cpg, 'Gene']
-
-    dist_num_bins = 30
-    fig = go.Figure()
-    for dataset in datasets:
-        vals_i = df.loc[(df['Status'] == 'Control') & (df['Dataset'] == dataset), cpg].values
-        fig.add_trace(
-            go.Violin(
-                y=vals_i,
-                name=dataset,
-                box_visible=True,
-                meanline_visible=True,
-                showlegend=False,
-                marker=dict(line=dict(width=0.3), opacity=0.8),
-                points='all',
-                bandwidth=np.ptp(vals_i) / dist_num_bins,
-                opacity=0.8
-            )
-        )
-    add_layout(fig, "", "Methylation level", f"{gene}<br>p-value: {pval:0.2e}")
-    fig.update_layout(title_xref='paper')
-    fig.update_layout(legend_font_size=20)
-    fig.update_xaxes(tickfont_size=15)
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=110,
-            r=20,
-            b=50,
-            t=80,
-            pad=0
-        )
-    )
-    fig.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.25,
-            xanchor="center",
-            x=0.5
-        )
-    )
-    save_figure(fig, f"{path_save}/figs/KW/{cpg_id:3d}_{cpg}")
