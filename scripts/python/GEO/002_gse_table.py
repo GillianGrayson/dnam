@@ -19,7 +19,7 @@ def process_characteristics_ch1(df, regex_split):
 
 
 GPL = 'GPL21145'
-n_gses = 100
+n_gses = 300
 
 characteristics_ch1_regex_findall = ';*([a-zA-Z0-9\^\/\=\-\:\,\.\s_\(\)]+): '
 characteristics_ch1_regex_split = '(;*[a-zA-Z0-9\^\/\=\-\,\:\.\s_\(\)]+: )'
