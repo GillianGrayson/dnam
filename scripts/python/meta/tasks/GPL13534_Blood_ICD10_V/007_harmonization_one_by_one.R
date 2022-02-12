@@ -15,6 +15,8 @@ setwd(path)
 pd <- import("pandas")
 
 pheno <- pd$read_pickle("pheno_GSE87571.pkl")
+# betas <- pd$read_pickle("betasT_GSE87571.pkl")
+# mvals <- logit2(betas)
 mvals <- pd$read_pickle("mvalsT_GSE87571.pkl")
 mvals <- cbind(ID_REF = rownames(mvals), mvals)
 rownames(mvals) <- 1:nrow(mvals)
@@ -24,21 +26,11 @@ mvals_norm <- cbind(ID_REF = rownames(mvals_norm), mvals_norm)
 rownames(mvals_norm) <- 1:nrow(mvals_norm)
 write.table(mvals_norm, file=paste(path, "/", "mvals_GSE87571_regRCPqn.txt", sep=''), col.name=TRUE, row.names=FALSE, sep="\t", quote=F)
 
-
-dataset <- "GSE80417"
-pheno <- pd$read_pickle(paste("pheno_", toString(dataset), ".pkl", sep=''))
-mvals <- pd$read_pickle(paste("mvalsT_", toString(dataset), ".pkl", sep=''))
-mvals <- cbind(ID_REF = rownames(mvals), mvals)
-rownames(mvals) <- 1:nrow(mvals)
-
-mvals_norm <- regRCPqnREF(M_data=mvals, ref_path=paste(path, "/reference/", sep=''), data_name="GSE87571")
-mvals_norm <- cbind(ID_REF = rownames(mvals_norm), mvals_norm)
-rownames(mvals_norm) <- 1:nrow(mvals_norm)
-write.table(mvals_norm, file=paste(path, "/", "mvals_GSE87571_regRCPqn.txt", sep=''), col.name=TRUE, row.names=FALSE, sep="\t", quote=F)
-
 datasets <- c("GSE80417", "GSE84727", "GSE125105", "GSE152027")
 for (dataset in datasets){
   pheno <- pd$read_pickle(paste("pheno_", toString(dataset), ".pkl", sep=''))
+  # betas <- pd$read_pickle(paste("betasT_", toString(dataset), ".pkl", sep=''))
+  # mvals <- logit2(betas)
   mvals <- pd$read_pickle(paste("mvalsT_", toString(dataset), ".pkl", sep=''))
   mvals <- cbind(ID_REF = rownames(mvals), mvals)
   rownames(mvals) <- 1:nrow(mvals)

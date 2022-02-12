@@ -1,8 +1,8 @@
 import numpy as np
 
 
-def logit2(beta):
-    return np.log2(beta / (1.0 - beta))
+def logit2(beta, alpha):
+    return np.log2((beta + alpha)/ (1.0 - beta + alpha))
 
 
 def expit2(mval):

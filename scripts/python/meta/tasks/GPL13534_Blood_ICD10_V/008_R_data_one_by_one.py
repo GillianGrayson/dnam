@@ -3,6 +3,7 @@ import pathlib
 from scripts.python.meta.tasks.GPL13534_Blood_ICD10_V.routines import KW_Control
 from scripts.python.routines.manifest import get_manifest
 from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
+import numpy as np
 
 
 path_global = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -22,6 +23,9 @@ for dataset in datasets:
     mvals_i = mvals_i.T
     mvals_i.index.name = "subject_id"
     print(mvals_i.shape)
+    print(f"Number of inf values in mvals: {np.isinf(mvals_i).values.sum()}")
+    cpgs_with_inf_mvals = mvals_i.columns.to_series()[np.isinf(mvals_i).any()]
+    print(f"Number of CpGs with inf in mvals: {len(cpgs_with_inf_mvals)}")
     mvals_df.append(mvals_i)
 
 mvals = pd.concat(mvals_df)

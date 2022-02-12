@@ -49,6 +49,8 @@ class BetasPhenoDataModule(LightningDataModule):
             path: str = "",
             cpgs_fn: str = "",
             statuses_fn: str = "",
+            dnam_fn: str = "betas.pkl",
+            pheno_fn: str = "pheno.pkl",
             outcome: str = "Status",
             train_val_test_split: Tuple[float, float, float] = (0.8, 0.1, 0.1),
             batch_size: int = 64,
@@ -63,6 +65,8 @@ class BetasPhenoDataModule(LightningDataModule):
         self.path = path
         self.cpgs_fn = cpgs_fn
         self.statuses_fn = statuses_fn
+        self.dnam_fn = dnam_fn
+        self.pheno_fn = pheno_fn
         self.outcome = outcome
         self.train_val_test_split = train_val_test_split
         self.batch_size = batch_size
@@ -82,8 +86,8 @@ class BetasPhenoDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
-        self.betas = pd.read_pickle(f"{self.path}/betas.pkl")
-        self.pheno = pd.read_pickle(f"{self.path}/pheno.pkl")
+        self.betas = pd.read_pickle(f"{self.path}/{self.dnam_fn}")
+        self.pheno = pd.read_pickle(f"{self.path}/{self.pheno_fn}")
         cpgs_df = pd.read_excel(self.cpgs_fn)
         self.cpgs = cpgs_df.loc[:, 'CpG'].values
 
@@ -109,27 +113,42 @@ class BetasPhenoDataModule(LightningDataModule):
 
         assert abs(1.0 - sum(self.train_val_test_split)) < 1.0e-8, "Sum of train_val_test_split must be 1"
 
-        self.ids_train_val, self.ids_test = train_test_split(
-            self.ids_all,
-            test_size=self.train_val_test_split[-1],
-            stratify=self.dataset.ys[self.ids_all],
-            random_state=self.seed
-        )
+        if self.train_val_test_split[-1] < 1e-6:
+            self.ids_train, self.ids_val = train_test_split(
+                self.ids_all,
+                test_size=self.train_val_test_split[1],  # self.train_val_test_split[-2]
+                stratify=self.dataset.ys[self.ids_all],
+                random_state=self.seed
+            )
+            self.ids_test = []
+            dict_to_plot = {
+                "all": self.ids_all,
+                "train": self.ids_train,
+                "val": self.ids_val,
+            }
+        else:
+            self.ids_train_val, self.ids_test = train_test_split(
+                self.ids_all,
+                test_size=self.train_val_test_split[-1],
+                stratify=self.dataset.ys[self.ids_all],
+                random_state=self.seed
+            )
+            corrected_val_size = self.train_val_test_split[1] / (self.train_val_test_split[0] + self.train_val_test_split[1])
+            self.ids_train, self.ids_val = train_test_split(
+                self.ids_train_val,
+                test_size=corrected_val_size, # self.train_val_test_split[-2]
+                stratify=self.dataset.ys[self.ids_train_val],
+                random_state=self.seed
+            )
+            dict_to_plot = {
+                "all": self.ids_all,
+                "train_val": self.ids_train_val,
+                "train": self.ids_train,
+                "val": self.ids_val,
+                "test": self.ids_test
+            }
 
-        corrected_val_size = self.train_val_test_split[1] / (self.train_val_test_split[0] + self.train_val_test_split[1])
-
-        self.ids_train, self.ids_val = train_test_split(
-            self.ids_train_val,
-            test_size=corrected_val_size, # self.train_val_test_split[-2]
-            stratify=self.dataset.ys[self.ids_train_val],
-            random_state=self.seed
-        )
-
-        for name, ids in {"all": self.ids_all,
-                          "train_val": self.ids_train_val,
-                         "train": self.ids_train,
-                         "val": self.ids_val,
-                         "test": self.ids_test}.items():
+        for name, ids in dict_to_plot.items():
             if not os.path.exists(f"{self.path}/figs"):
                 os.makedirs(f"{self.path}/figs")
 
