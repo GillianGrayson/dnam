@@ -162,6 +162,12 @@ class BetasPhenoDataModule(LightningDataModule):
             fig.update_xaxes(showticklabels=False)
             save_figure(fig, f"bar_{name}")
 
+        self.pheno.loc[self.pheno.index[self.ids_train], 'Part'] = "train"
+        self.pheno.loc[self.pheno.index[self.ids_val], 'Part'] = "val"
+        self.pheno.loc[self.pheno.index[self.ids_test], 'Part'] = "test"
+
+        self.pheno.to_excel(f"pheno.xlsx", index=True)
+
         self.dataset_train = Subset(self.dataset, self.ids_train)
         self.dataset_val = Subset(self.dataset, self.ids_val)
         self.dataset_test = Subset(self.dataset, self.ids_test)

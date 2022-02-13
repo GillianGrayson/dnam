@@ -9,8 +9,8 @@ folder_name = f"GPL13534_Blood_ICD10-V"
 path = f"{path_global}/meta/tasks/GPL13534_Blood_ICD10-V"
 pathlib.Path(f"{path}/R/one_by_one").mkdir(parents=True, exist_ok=True)
 
-betas = pd.read_pickle(f"{path}/betas.pkl")
-pheno = pd.read_pickle(f"{path}/pheno.pkl")
+betas = pd.read_pickle(f"{path}/train_val/betas.pkl")
+pheno = pd.read_pickle(f"{path}/train_val/pheno.pkl")
 
 max_val = betas.values.max()
 min_val = betas.values.min()
