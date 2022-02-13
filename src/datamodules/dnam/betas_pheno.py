@@ -227,3 +227,72 @@ class BetasPhenoDataModule(LightningDataModule):
             pin_memory=self.pin_memory,
             shuffle=False,
         )
+
+
+class DNAmPhenoInferenceDataModule(LightningDataModule):
+
+    def __init__(
+            self,
+            path: str = "",
+            cpgs_fn: str = "",
+            statuses_fn: str = "",
+            dnam_fn: str = "betas.pkl",
+            pheno_fn: str = "pheno.pkl",
+            outcome: str = "Status",
+            batch_size: int = 64,
+            num_workers: int = 0,
+            pin_memory: bool = False,
+            **kwargs,
+    ):
+        super().__init__()
+
+        self.path = path
+        self.cpgs_fn = cpgs_fn
+        self.statuses_fn = statuses_fn
+        self.dnam_fn = dnam_fn
+        self.pheno_fn = pheno_fn
+        self.outcome = outcome
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+
+        self.dataset: Optional[Dataset] = None
+
+    def prepare_data(self):
+        """Download data if needed. This method is called only from a single GPU.
+        Do not use it to assign state (self.x = y)."""
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        """Load data. Set variables: self.data_train, self.data_val, self.data_test."""
+        self.betas = pd.read_pickle(f"{self.path}/{self.dnam_fn}")
+        self.pheno = pd.read_pickle(f"{self.path}/{self.pheno_fn}")
+        cpgs_df = pd.read_excel(self.cpgs_fn)
+        self.cpgs = cpgs_df.loc[:, 'CpG'].values
+
+        statuses_df = pd.read_excel(self.statuses_fn)
+        self.statuses = {}
+        for st_id, st in enumerate(statuses_df.loc[:, self.outcome].values):
+            self.statuses[st] = st_id
+        self.pheno = self.pheno.loc[self.pheno[self.outcome].isin(self.statuses)]
+        self.pheno['Status_Origin'] = self.pheno[self.outcome]
+        self.pheno[self.outcome].replace(self.statuses, inplace=True)
+
+        self.betas = self.betas.loc[self.pheno.index.values, self.cpgs]
+        if not list(self.pheno.index.values) == list(self.betas.index.values):
+            log.info(f"Error! In pheno and betas subjects have different order")
+            raise ValueError(f"Error! In pheno and betas subjects have different order")
+
+        # self.dims is returned when you call datamodule.size()
+        self.dims = (1, self.betas.shape[1])
+
+        self.dataset = BetasPhenoDataset(self.betas, self.pheno, self.outcome)
+
+    def test_dataloader(self):
+        return DataLoader(
+            dataset=self.dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )

@@ -76,3 +76,5 @@ def KW_Control(datasets, manifest, df, cpgs, path, y_label):
             )
         )
         save_figure(fig, f"{path}/fig/{cpg_id:3d}_{cpg}")
+
+    return cpgs_metrics_df
