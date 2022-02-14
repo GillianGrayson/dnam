@@ -242,6 +242,7 @@ class DNAmPhenoInferenceDataModule(LightningDataModule):
             batch_size: int = 64,
             num_workers: int = 0,
             pin_memory: bool = False,
+            imputation: str = "median",
             **kwargs,
     ):
         super().__init__()
@@ -255,6 +256,7 @@ class DNAmPhenoInferenceDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
+        self.imputation = imputation
 
         self.dataset: Optional[Dataset] = None
 
@@ -269,6 +271,7 @@ class DNAmPhenoInferenceDataModule(LightningDataModule):
         self.pheno = pd.read_pickle(f"{self.path}/{self.pheno_fn}")
         cpgs_df = pd.read_excel(self.cpgs_fn)
         self.cpgs = cpgs_df.loc[:, 'CpG'].values
+        cpgs_df.set_index('CpG', inplace=True)
 
         statuses_df = pd.read_excel(self.statuses_fn)
         self.statuses = {}
@@ -277,6 +280,17 @@ class DNAmPhenoInferenceDataModule(LightningDataModule):
         self.pheno = self.pheno.loc[self.pheno[self.outcome].isin(self.statuses)]
         self.pheno['Status_Origin'] = self.pheno[self.outcome]
         self.pheno[self.outcome].replace(self.statuses, inplace=True)
+
+        missed_cpgs = list(set(self.cpgs) - set(self.betas.columns.values))
+        if len(missed_cpgs) > 0:
+            log.info(f"Perform imputation for {len(missed_cpgs)} CpGs with {self.imputation}")
+            if self.imputation in ["mean", "median"]:
+                for cpg in  missed_cpgs:
+                    self.betas.loc[:, cpg] = cpgs_df.at[cpg, self.imputation]
+            else:
+                raise ValueError(f"Unsupported imputation: {self.imputation}")
+
+        self.betas = self.betas.astype('float32')
 
         self.betas = self.betas.loc[self.pheno.index.values, self.cpgs]
         if not list(self.pheno.index.values) == list(self.betas.index.values):

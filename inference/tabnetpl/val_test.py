@@ -53,26 +53,19 @@ def main(config: DictConfig):
     datamodule_val.setup()
     dataloader_val = datamodule_val.val_dataloader()
     df_val = pd.merge(datamodule_val.pheno, datamodule_val.betas, left_index=True, right_index=True)
+    statuses = datamodule_val.statuses
 
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule_test._target_}>")
     datamodule_test: LightningDataModule = hydra.utils.instantiate(config.datamodule_test)
     datamodule_test.setup()
-    dataloader_test = datamodule_test.val_dataloader()
+    dataloader_test = datamodule_test.test_dataloader()
     df_test = pd.merge(datamodule_test.pheno, datamodule_test.betas, left_index=True, right_index=True)
-
-    manifest = get_manifest('GPL13534')
-
-    num_top_features = config.num_top_features
-    num_examples = config.num_examples
-    explainer_type = config.explainer_type
-
-
 
     outs_real_all = np.empty(0, dtype=int)
     outs_pred_all = np.empty(0, dtype=int)
     outs_prob_all = np.empty(shape=(0, len(statuses)), dtype=int)
-    for x, outs_real, indexes in tqdm(test_dataloader):
+    for x, outs_real, indexes in tqdm(dataloader_test):
         outs_real = outs_real.cpu().detach().numpy()
         outs_prob = model(x).cpu().detach().numpy()
         outs_pred = np.argmax(outs_prob, axis=1)
@@ -81,7 +74,7 @@ def main(config: DictConfig):
         outs_prob_all = np.append(outs_prob_all, outs_prob, axis=0)
 
     conf_mtx = confusion_matrix(outs_real_all, outs_pred_all)
-    fig = ff.create_annotated_heatmap(conf_mtx, x=statuses, y=statuses, colorscale='Viridis')
+    fig = ff.create_annotated_heatmap(conf_mtx, x=list(statuses.keys()), y=list(statuses.keys()), colorscale='Viridis')
     fig.add_annotation(dict(font=dict(color="black", size=14),
                             x=0.5,
                             y=-0.1,
@@ -100,8 +93,10 @@ def main(config: DictConfig):
     fig.update_layout(margin=dict(t=50, l=200))
     fig['data'][0]['showscale'] = True
     save_figure(fig, 'test_confusion_matrix')
+
     roc_auc = roc_auc_score(outs_real_all, outs_prob_all, average='macro', multi_class='ovr')
     log.info(f"roc_auc for test set: {roc_auc}")
+
 
     feature_importances = np.zeros((model.hparams.input_dim))
     for data, targets, indexes in tqdm(train_dataloader):
