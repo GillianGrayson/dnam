@@ -26,7 +26,7 @@ defaults:
   - override /hydra/job_logging: colorlog
 
 datamodule_train_val:
-  _target_: src.datamodules.dnam.betas_pheno.BetasPhenoDataModule
+  _target_: src.datamodules.dnam.betas_pheno.DNAmSingleDataModule
   path: ${data_dir}
   cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   statuses_fn: "${data_dir}/statuses/${out_dim}.xlsx"

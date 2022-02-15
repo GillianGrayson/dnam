@@ -1,4 +1,4 @@
-_target_: src.datamodules.dnam.betas_pheno.BetasPhenoDataModule
+_target_: src.datamodules.dnam.betas_pheno.DNAmSingleDataModule
 
 path: "E:/YandexDisk/Work/pydnameth/datasets/meta/d11b5f9b6efd089db42a3d5e6b375430"
 cpgs_fn: "E:/YandexDisk/Work/pydnameth/datasets/meta/d11b5f9b6efd089db42a3d5e6b375430/cpgs/375614.xlsx"

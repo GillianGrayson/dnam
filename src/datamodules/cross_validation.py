@@ -96,7 +96,7 @@ class StratifiedKFoldCVDataModule(CVDataModule):
         """
         # 0. Get data to split
         self.data_module.setup()
-        train_val_dataset, train_val_labels = self.data_module.get_train_val_dataset_and_labels()
+        train_val_dataset, train_val_labels = self.data_module.get_trn_val_dataset_and_labels()
         weighted_sampler = self.data_module.get_weighted_sampler()
 
         # 1. Iterate through splits
