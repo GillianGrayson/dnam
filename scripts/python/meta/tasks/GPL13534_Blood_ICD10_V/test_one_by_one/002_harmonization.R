@@ -15,7 +15,7 @@ setwd(path_wd)
 
 pd <- import("pandas")
 
-datasets <- c("GSE113725")
+datasets <- c("GSE113725", "GSE116378", "GSE116379", "GSE41169")
 for (dataset in datasets){
   pheno <- pd$read_pickle(paste("pheno_", toString(dataset), ".pkl", sep=''))
   mvals <- pd$read_pickle(paste("mvalsT_", toString(dataset), ".pkl", sep=''))

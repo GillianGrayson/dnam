@@ -55,224 +55,55 @@ def main(config: DictConfig):
     df_val = pd.merge(datamodule_val.pheno, datamodule_val.betas, left_index=True, right_index=True)
     statuses = datamodule_val.statuses
 
-    # Init Lightning datamodule for test
-    log.info(f"Instantiating datamodule <{config.datamodule_test._target_}>")
-    datamodule_test: LightningDataModule = hydra.utils.instantiate(config.datamodule_test)
-    datamodule_test.setup()
-    dataloader_test = datamodule_test.test_dataloader()
-    df_test = pd.merge(datamodule_test.pheno, datamodule_test.betas, left_index=True, right_index=True)
+    test_datasets = {
+        'GSE116379': ['Control', 'Schizophrenia'],
+        'GSE113725': ['Control', 'Depression'],
+        'GSE41169': ['Control', 'Schizophrenia'],
+        'GSE116378': ['Control', 'Schizophrenia'],
+    }
 
-    outs_real_all = np.empty(0, dtype=int)
-    outs_pred_all = np.empty(0, dtype=int)
-    outs_prob_all = np.empty(shape=(0, len(statuses)), dtype=int)
-    for x, outs_real, indexes in tqdm(dataloader_test):
-        outs_real = outs_real.cpu().detach().numpy()
-        outs_prob = model(x).cpu().detach().numpy()
-        outs_pred = np.argmax(outs_prob, axis=1)
-        outs_real_all = np.append(outs_real_all, outs_real, axis=0)
-        outs_pred_all = np.append(outs_pred_all, outs_pred, axis=0)
-        outs_prob_all = np.append(outs_prob_all, outs_prob, axis=0)
+    for dataset in test_datasets:
 
-    conf_mtx = confusion_matrix(outs_real_all, outs_pred_all)
-    fig = ff.create_annotated_heatmap(conf_mtx, x=list(statuses.keys()), y=list(statuses.keys()), colorscale='Viridis')
-    fig.add_annotation(dict(font=dict(color="black", size=14),
-                            x=0.5,
-                            y=-0.1,
-                            showarrow=False,
-                            text="Predicted value",
-                            xref="paper",
-                            yref="paper"))
-    fig.add_annotation(dict(font=dict(color="black", size=14),
-                            x=-0.33,
-                            y=0.5,
-                            showarrow=False,
-                            text="Real value",
-                            textangle=-90,
-                            xref="paper",
-                            yref="paper"))
-    fig.update_layout(margin=dict(t=50, l=200))
-    fig['data'][0]['showscale'] = True
-    save_figure(fig, 'test_confusion_matrix')
+        # Init Lightning datamodule for test
+        log.info(f"Instantiating datamodule <{config.datamodule_test._target_}> for {dataset}")
+        config.datamodule_test.dnam_fn = f"mvals_{dataset}_regRCPqn.pkl"
+        config.datamodule_test.pheno_fn = f"pheno_{dataset}.pkl"
+        datamodule_test: LightningDataModule = hydra.utils.instantiate(config.datamodule_test)
+        datamodule_test.setup()
+        dataloader_test = datamodule_test.test_dataloader()
+        df_test = pd.merge(datamodule_test.pheno, datamodule_test.betas, left_index=True, right_index=True)
 
-    roc_auc = roc_auc_score(outs_real_all, outs_prob_all, average='macro', multi_class='ovr')
-    log.info(f"roc_auc for test set: {roc_auc}")
+        outs_real_all = np.empty(0, dtype=int)
+        outs_pred_all = np.empty(0, dtype=int)
+        outs_prob_all = np.empty(shape=(0, len(statuses)), dtype=int)
+        for x, outs_real, indexes in tqdm(dataloader_test):
+            outs_real = outs_real.cpu().detach().numpy()
+            outs_prob = model(x).cpu().detach().numpy()
+            outs_pred = np.argmax(outs_prob, axis=1)
+            outs_real_all = np.append(outs_real_all, outs_real, axis=0)
+            outs_pred_all = np.append(outs_pred_all, outs_pred, axis=0)
+            outs_prob_all = np.append(outs_prob_all, outs_prob, axis=0)
 
-
-    feature_importances = np.zeros((model.hparams.input_dim))
-    for data, targets, indexes in tqdm(train_dataloader):
-        M_explain, masks = model.forward_masks(data)
-        feature_importances += M_explain.sum(dim=0).cpu().detach().numpy()
-
-    feature_importances = feature_importances / np.sum(feature_importances)
-    feature_importances_df = pd.DataFrame.from_dict(
-        {
-            'feature': datamodule.betas.columns.values,
-            'importance': feature_importances
-        }
-    )
-    feature_importances_df.set_index('feature', inplace=True)
-    feature_importances_df.to_excel("./feature_importances.xlsx", index=True)
-
-    background_dataloader = test_dataloader
-
-    background, outs_real, indexes = next(iter(background_dataloader))
-    probs = model(background)
-    background_np = background.cpu().detach().numpy()
-    outs_real_np = outs_real.cpu().detach().numpy()
-    indexes_np = indexes.cpu().detach().numpy()
-    probs_np = probs.cpu().detach().numpy()
-    outs_pred_np = np.argmax(probs_np, axis=1)
-
-    is_correct_pred = (outs_real_np == outs_pred_np)
-    mistakes_ids = np.where(is_correct_pred == False)[0]
-
-    if explainer_type == "deep":
-        explainer = shap.DeepExplainer(model, background)
-        shap_values = explainer.shap_values(background)
-    elif explainer_type == "kernel":
-        def proba(X):
-            X = torch.from_numpy(X)
-            tmp = model(X)
-            return tmp.cpu().detach().numpy()
-
-        explainer = shap.KernelExplainer(proba, background_np)
-        shap_values = explainer.shap_values(background_np)
-    else:
-        raise ValueError("Unsupported explainer type")
-
-    shap.summary_plot(
-        shap_values=shap_values,
-        features=background_np,
-        feature_names=datamodule.betas.columns.values,
-        max_display=num_top_features,
-        class_names=statuses,
-        class_inds=list(range(len(statuses))),
-        plot_size=(14, 10),
-        show=False,
-        color=plt.get_cmap("Set1")
-    )
-    plt.savefig('SHAP_bar.png')
-    plt.savefig('SHAP_bar.pdf')
-    plt.close()
-
-    for st_id, st in enumerate(statuses):
-        shap.summary_plot(
-            shap_values=shap_values[st_id],
-            features=background_np,
-            feature_names=datamodule.betas.columns.values,
-            max_display=num_top_features,
-            plot_size=(14, 10),
-            plot_type="violin",
-            title=st,
-            show=False
-        )
-        plt.savefig(f"{st}/beeswarm.png")
-        plt.savefig(f"{st}/beeswarm.pdf")
-        plt.close()
-
-    print(f"Number of errors: {len(mistakes_ids)}")
-    for m_id in mistakes_ids:
-        subj_cl = outs_real_np[m_id]
-        subj_pred_cl = outs_pred_np[m_id]
-        subj_global_id = indexes_np[m_id]
-        subj_name = datamodule.betas.index.values[subj_global_id]
-        for st_id, st in enumerate(statuses):
-            probs_real = probs_np[m_id, st_id]
-            probs_expl = explainer.expected_value[st_id] + sum(shap_values[st_id][m_id])
-            if abs(probs_real - probs_expl) > 1e-6:
-                print(f"diff between prediction: {abs(probs_real - probs_expl)}")
-            shap.waterfall_plot(
-                shap.Explanation(
-                    values=shap_values[st_id][m_id],
-                    base_values=explainer.expected_value[st_id],
-                    data=background_np[m_id],
-                    feature_names=datamodule.betas.columns.values
-                ),
-                max_display=num_top_features,
-                show=False
-            )
-            fig = plt.gcf()
-            fig.set_size_inches(18, 10, forward=True)
-            Path(f"errors/real({statuses[subj_cl]})_pred({statuses[subj_pred_cl]})/{subj_name}").mkdir(parents=True, exist_ok=True)
-            fig.savefig(f"errors/real({statuses[subj_cl]})_pred({statuses[subj_pred_cl]})/{subj_name}/waterfall_{st}.pdf")
-            fig.savefig(f"errors/real({statuses[subj_cl]})_pred({statuses[subj_pred_cl]})/{subj_name}/waterfall_{st}.png")
-            plt.close()
-
-    passed_examples = {x: 0 for x in range(len(statuses))}
-    for subj_id in range(background_np.shape[0]):
-        subj_cl = outs_real_np[subj_id]
-        if passed_examples[subj_cl] < num_examples:
-            subj_global_id = indexes_np[subj_id]
-            subj_name = datamodule.betas.index.values[subj_global_id]
-
-            for st_id, st in enumerate(statuses):
-
-                probs_real = probs_np[subj_id, st_id]
-                probs_expl = explainer.expected_value[st_id] + sum(shap_values[st_id][subj_id])
-                if abs(probs_real - probs_expl) > 1e-6:
-                    print(f"diff between prediction: {abs(probs_real - probs_expl)}")
-
-                shap.waterfall_plot(
-                    shap.Explanation(
-                        values=shap_values[st_id][subj_id],
-                        base_values=explainer.expected_value[st_id],
-                        data=background_np[subj_id],
-                        feature_names=datamodule.betas.columns.values
-                    ),
-                    max_display=num_top_features,
-                    show=False
-                )
-                fig = plt.gcf()
-                fig.set_size_inches(18, 10, forward=True)
-                Path(f"{statuses[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}").mkdir(parents=True, exist_ok=True)
-                fig.savefig(f"{statuses[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}/waterfall_{st}.pdf")
-                fig.savefig(f"{statuses[subj_cl]}/{passed_examples[subj_cl]}_{subj_name}/waterfall_{st}.png")
-                plt.close()
-            passed_examples[subj_cl] += 1
-
-    mean_abs_shap_vals = np.sum([np.mean(np.absolute(shap_values[cl_id]), axis=0) for cl_id, cl in enumerate(statuses)], axis=0)
-    order = np.argsort(mean_abs_shap_vals)[::-1]
-    features = datamodule.betas.columns.values[order]
-    features_best = features[0:num_top_features]
-
-    for feat_id, feat in enumerate(features_best):
-        fig = go.Figure()
-        for st_id, st in enumerate(statuses):
-            class_shap_values = shap_values[st_id][:, order[feat_id]]
-            real_values = background_np[:, order[feat_id]]
-            add_scatter_trace(fig, real_values, class_shap_values, st)
-        add_layout(fig, f"{feat} ({manifest.at[feat, 'Gene']})", f"SHAP values", f"")
-        fig.update_layout({'colorway': px.colors.qualitative.Set1})
-        Path(f"features/scatter").mkdir(parents=True, exist_ok=True)
-        save_figure(fig, f"features/scatter/{feat_id}_{feat}")
-
-        fig = go.Figure()
-        for st_id, st in enumerate(statuses):
-            add_violin_trace(fig, common_df.loc[common_df['Status'] == st_id, feat].values, st)
-        add_layout(fig, "", f"{feat} ({manifest.at[feat, 'Gene']})", f"")
-        fig.update_xaxes(showticklabels=False)
-        fig.update_layout({'colorway': px.colors.qualitative.Set1})
-        Path(f"features/violin").mkdir(parents=True, exist_ok=True)
-        save_figure(fig, f"features/violin/{feat_id}_{feat}")
-
-    for st_id, st in enumerate(statuses):
-        class_shap_values = shap_values[st_id]
-        shap_abs = np.absolute(class_shap_values)
-        shap_mean_abs = np.mean(shap_abs, axis=0)
-        order = np.argsort(shap_mean_abs)[::-1]
-        features = datamodule.betas.columns.values
-        features_best = features[order[0:num_top_features]]
-        subject_indices = indexes.flatten().cpu().detach().numpy()
-        subjects = datamodule.betas.index.values[subject_indices]
-        d = {'subjects': subjects}
-        for f_id in range(0, num_top_features):
-            feat = features_best[f_id]
-            curr_beta = background_np[:, order[f_id]]
-            curr_shap = class_shap_values[:, order[f_id]]
-            d[f"{feat}_beta"] = curr_beta
-            d[f"{feat}_shap"] = curr_shap
-        df_features = pd.DataFrame(d)
-        df_features.to_excel(f"{st}/shap.xlsx", index=False)
+        conf_mtx = confusion_matrix(outs_real_all, outs_pred_all, labels=list(range(len(statuses))))
+        fig = ff.create_annotated_heatmap(conf_mtx, x=list(statuses.keys()), y=list(statuses.keys()), colorscale='Viridis')
+        fig.add_annotation(dict(font=dict(color="black", size=14),
+                                x=0.5,
+                                y=-0.1,
+                                showarrow=False,
+                                text="Predicted value",
+                                xref="paper",
+                                yref="paper"))
+        fig.add_annotation(dict(font=dict(color="black", size=14),
+                                x=-0.33,
+                                y=0.5,
+                                showarrow=False,
+                                text="Real value",
+                                textangle=-90,
+                                xref="paper",
+                                yref="paper"))
+        fig.update_layout(margin=dict(t=50, l=200))
+        fig['data'][0]['showscale'] = True
+        save_figure(fig, f'confusion_matrix_{dataset}')
 
 
 if __name__ == "__main__":

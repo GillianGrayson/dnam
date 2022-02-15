@@ -129,46 +129,25 @@ def get_columns_dict(dataset: str):
             'Age': 'age',
             'Sex': 'gender',
         }
-
-
-
-
-    elif dataset == "GSE42861":
+    elif dataset == "GSE41169":
         d = {
-            'Status': 'subject',
+            'Status': 'diseasestatus (1=control, 2=scz patient)',
             'Age': 'age',
             'Sex': 'gender',
         }
-    elif dataset == "GSE147221":
+    elif dataset == "GSE116378":
         d = {
-            'Status': 'status',
-            'Age': 'age',
-            'Sex': 'Sex',
-        }
-    elif dataset == "GSE168739":
-        d = {
-            '': '',
+            'Status': 'group',
             'Age': 'age',
             'Sex': 'gender',
         }
-    elif dataset == "GSE128235":
+    elif dataset == "GSE116379":
         d = {
-            'Status': 'diagnosis',
-            'Age': 'age',
-            'Sex': 'Sex',
-        }
-    elif dataset == "GSE87648":
-        d = {
-            'Status': 'simplified_diagnosis',
-            'Age': 'age',
-            'Sex': 'Sex',
-        }
-    elif dataset == "GSE106648":
-        d = {
-            'Status': 'disease status',
+            'Status': 'group',
             'Age': 'age',
             'Sex': 'gender',
         }
+
     return d
 
 
@@ -180,9 +159,9 @@ def get_column_name(dataset: str, feature: str):
 def get_status_dict(dataset: str):
     d = None
     if dataset == "GSE152027":
-        d = {"Control": [Field('Control', 'CON')], "Cases": [Field('Schizophrenia', 'SCZ'), Field('First episode psychosis', 'FEP')]}
+        d = {"Control": [Field('Control', 'CON')], "Case": [Field('Schizophrenia', 'SCZ'), Field('First episode psychosis', 'FEP')]}
     elif dataset == "GSE145361":
-        d = {"Control": [Field('Control', 'Control')], "Cases": [Field('Parkinson', "Parkinson's disease")]}
+        d = {"Control": [Field('Control', 'Control')], "Case": [Field('Parkinson', "Parkinson's disease")]}
     elif dataset == "GSE111629":
         d = {"Control": [Field('Control', "PD-free control")], "Case": [Field('Parkinson', "Parkinson's disease (PD)")]}
     elif dataset == "GSE72774":
@@ -221,28 +200,12 @@ def get_status_dict(dataset: str):
         d = {"Control": [Field('Control', 'Control')], "Case": [Field('Case', 'Case')]}
     elif dataset == "GSE52588":
         d = {"Control": [Field('Siblings', 'Siblings'), Field('Mothers', 'Mothers')], "Case": [Field('Down syndrome', 'DS')]}
-
-
-
-
-    elif dataset == "GSE42861":
-        d = {"Control": "Normal", "Cases": ["Patient"]}
-    elif dataset == "GSE147221":
-        d = {"Control": "Control", "Case": "Case"}
-    elif dataset == "GSE152027":
-        d = {"Control": "CON", "Case": "SCZ"}
-    elif dataset == "GSE168739":
-        d = {"Control": "", "": ""}
-    elif dataset == "GSE111629":
-        d = {"Control": "PD-free control", "Case": "Parkinson's disease (PD)"}
-    elif dataset == "GSE128235":
-        d = {"Control": "control", "Case": "case"}
-    elif dataset == "GSE87648":
-        d = {"Control": "HL", "Case": "CD"}
-    elif dataset == "GSE144858":
-        d = {"Control": "control", "Case": "Alzheimer's disease"}
-    elif dataset == "GSE106648":
-        d = {"Control": "Healthy control", "Case": "MS case"}
+    elif dataset == "GSE41169":
+        d = {"Control": [Field('Control', 1)], "Case": [Field('Schizophrenia', 2)]}
+    elif dataset == "GSE116378":
+        d = {"Control": [Field('Control', 'CTR')], "Case": [Field('Schizophrenia', 'SCZ')]}
+    elif dataset == "GSE116379":
+        d = {"Control": [Field('Control', 'CTR_Non_Famine'), Field('Control', 'CTR_Famine')], "Case": [Field('Schizophrenia', 'SCZ_Non_Famine'), Field('Schizophrenia', 'SCZ_Famine')]}
 
     return d
 
@@ -290,6 +253,13 @@ def get_default_statuses_ids(dataset: str):
         statuses = {"Control": [0], 'Case': [0]}
     elif dataset == "GSE52588":
         statuses = {"Control": [0], 'Case': [0]}
+    elif dataset == "GSE41169":
+        statuses = {"Control": [0], 'Case': [0]}
+    elif dataset == "GSE116378":
+        statuses = {"Control": [0], 'Case': [0]}
+    elif dataset == "GSE116379":
+        statuses = {"Control": [0], 'Case': [0]}
+
     return statuses
 
 
@@ -301,6 +271,16 @@ def get_default_statuses(dataset: str):
         for i in indices:
             statuses.append(status_dict[part][i].label)
     return statuses
+
+
+def get_status_dict_default(dataset: str):
+    status_dict = get_status_dict(dataset)
+    default_statuses_ids = get_default_statuses_ids(dataset)
+    status_dict_default = {}
+    for status, fields in status_dict.items():
+        default_fields = [fields[def_id] for def_id in default_statuses_ids[status]]
+        status_dict_default[status] = default_fields
+    return status_dict_default
 
 
 def get_statuses_datasets_dict():
@@ -365,18 +345,11 @@ def get_sex_dict(dataset: str):
         d = {"F": "F", "M": "M"}
     elif dataset == "GSE52588":
         d = {"F": "Female", "M": "Male"}
+    elif dataset == "GSE41169":
+        d = {"F": "Female", "M": "Male"}
+    elif dataset == "GSE116378":
+        d = {"F": "F", "M": "M"}
+    elif dataset == "GSE116379":
+        d = {"F": "F", "M": "M"}
 
-
-    elif dataset == "GSE42861":
-        d = {"F": "f", "M": "m"}
-    elif dataset == "GSE147221":
-        d = {"F": "F", "M": "M"}
-    elif dataset == "GSE168739":
-        d = {"F": "F", "M": "M"}
-    elif dataset == "GSE128235":
-        d = {"F": "F", "M": "M"}
-    elif dataset == "GSE87648":
-        d = {"F": "F", "M": "M"}
-    elif dataset == "GSE106648":
-        d = {"F": "female", "M": "male"}
     return d

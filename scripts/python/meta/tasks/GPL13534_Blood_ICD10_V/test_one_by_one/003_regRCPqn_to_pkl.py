@@ -10,7 +10,10 @@ path_wd = path_save = f"{path}/meta/tasks/{task_name}/test"
 manifest = get_manifest('GPL13534')
 
 test_datasets = {
-    'GSE113725': ['Control', 'Depression']
+    'GSE116379': ['Control', 'Schizophrenia'],
+    'GSE113725': ['Control', 'Depression'],
+    'GSE41169': ['Control', 'Schizophrenia'],
+    'GSE116378': ['Control', 'Schizophrenia'],
 }
 
 for d_id, dataset in enumerate(test_datasets):
