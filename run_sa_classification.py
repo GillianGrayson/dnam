@@ -15,6 +15,7 @@ def main(config: DictConfig):
     from src.utils import utils
     from models_sa.classification.catboost import train_catboost
     from models_sa.classification.xgboost import train_xgboost
+    from models_sa.classification.lightgbm import train_lightgbm
     import torch
 
     # A couple of optional utilities:
@@ -39,6 +40,8 @@ def main(config: DictConfig):
         return train_catboost(config)
     elif config.sa_model == "xgboost":
         return train_xgboost(config)
+    elif config.sa_model == "lightgbm":
+        return train_lightgbm(config)
     else:
         raise ValueError(f"Not supported config.sa_model: {config.sa_model}")
 

@@ -10,21 +10,23 @@ from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from models_sa.metrics_multiclass import get_metrics_dict
 from src.utils import utils
-import xgboost as xgb
+import lightgbm as lgb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
+from models_sa.classification.routines import eval_classification, eval_loss
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
+import plotly.express as px
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
-from models_sa.classification.routines import eval_classification, eval_loss
 from typing import List
+import pathlib
 import wandb
 
 
 log = utils.get_logger(__name__)
 
-def train_xgboost(config: DictConfig):
+def train_lightgbm(config: DictConfig):
 
     # Set seed for random number generators in pytorch, numpy and python.random
     if "seed" in config:
@@ -59,37 +61,41 @@ def train_xgboost(config: DictConfig):
     X_test = test_data.loc[:, datamodule.dnam.columns.values].values
     y_test = test_data.loc[:, datamodule.outcome].values
 
-    dmat_train = xgb.DMatrix(X_train, y_train, feature_names=feature_names)
-    dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names)
-    dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
+    ds_train = lgb.Dataset(X_train, label=y_train, feature_name=feature_names)
+    ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_train, feature_name=feature_names)
+    ds_test = lgb.Dataset(X_test, label=y_test, reference=ds_train, feature_name=feature_names)
 
     class_names = list(datamodule.statuses.keys())
 
     model_params = {
         'num_class': config.output_dim,
-        'booster': config.booster,
-        'eta': config.learning_rate,
-        'max_depth': config.max_depth,
-        'gamma': config.gamma,
-        'sampling_method': config.sampling_method,
-        'subsample': config.subsample,
         'objective': config.objective,
-        'verbosity': config.verbosity,
-        'eval_metric': config.eval_metric,
+        'boosting': config.boosting,
+        'learning_rate': config.learning_rate,
+        'num_leaves': config.num_leaves,
+        'device': config.device,
+        'max_depth': config.max_depth,
+        'min_data_in_leaf': config.min_data_in_leaf,
+        'feature_fraction': config.feature_fraction,
+        'bagging_fraction': config.bagging_fraction,
+        'bagging_freq': config.bagging_freq,
+        'verbose': config.verbose,
+        'metric': config.metric
     }
-    evals_result = {}
-    bst = xgb.train(
+    evals_result = {}  # to record eval results for plotting
+    bst = lgb.train(
         params=model_params,
-        dtrain=dmat_train,
-        evals=[(dmat_train, "train"), (dmat_val, "val")],
+        train_set=ds_train,
         num_boost_round=config.max_epochs,
+        valid_sets=[ds_val, ds_train],
+        valid_names=['val', 'train'],
+        evals_result=evals_result,
         early_stopping_rounds=config.patience,
-        evals_result=evals_result
+        verbose_eval=True
     )
-    bst.save_model(f"epoch_{bst.best_iteration}.model")
+    bst.save_model(f"epoch_{bst.best_iteration}.txt", num_iteration=bst.best_iteration)
 
-    fi = bst.get_score(importance_type='weight')
-    feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
+    feature_importances = pd.DataFrame.from_dict({'feature': bst.feature_name(), 'importance': list(bst.feature_importance())})
     feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
     fig = go.Figure()
     ys = feature_importances['feature'][0:config.num_top_features][::-1]
@@ -103,11 +109,11 @@ def train_xgboost(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("feature_importances.xlsx", index=True)
 
-    y_train_pred_probs = bst.predict(dmat_train)
+    y_train_pred_probs = bst.predict(X_train, num_iteration=bst.best_iteration)
     y_train_pred = np.argmax(y_train_pred_probs, 1)
-    y_val_pred_probs = bst.predict(dmat_val)
+    y_val_pred_probs = bst.predict(X_val, num_iteration=bst.best_iteration)
     y_val_pred = np.argmax(y_val_pred_probs, 1)
-    y_test_pred_probs = bst.predict(dmat_test)
+    y_test_pred_probs = bst.predict(X_test, num_iteration=bst.best_iteration)
     y_test_pred = np.argmax(y_test_pred_probs, 1)
 
     eval_classification(config, 'train', class_names, y_train, y_train_pred, y_train_pred_probs)
@@ -115,9 +121,9 @@ def train_xgboost(config: DictConfig):
     eval_classification(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs)
 
     loss_info = {
-        'epoch': list(range(len(evals_result['train'][config.eval_metric]))),
-        'train/loss': evals_result['train'][config.eval_metric],
-        'val/loss': evals_result['val'][config.eval_metric]
+        'epoch': list(range(len(evals_result['train'][config.metric]))),
+        'train/loss': evals_result['train'][config.metric],
+        'val/loss': evals_result['val'][config.metric]
     }
     eval_loss(loss_info)
 
