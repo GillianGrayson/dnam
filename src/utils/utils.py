@@ -52,15 +52,16 @@ def extras(config: DictConfig) -> None:
         config.trainer.fast_dev_run = True
 
     # force debugger friendly configuration if <config.trainer.fast_dev_run=True>
-    if config.trainer.get("fast_dev_run"):
-        log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
-        # Debuggers don't like GPUs or multiprocessing
-        if config.trainer.get("gpus"):
-            config.trainer.gpus = 0
-        if config.datamodule.get("pin_memory"):
-            config.datamodule.pin_memory = False
-        if config.datamodule.get("num_workers"):
-            config.datamodule.num_workers = 0
+    if 'trainer' in config:
+        if config.trainer.get("fast_dev_run"):
+            log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
+            # Debuggers don't like GPUs or multiprocessing
+            if config.trainer.get("gpus"):
+                config.trainer.gpus = 0
+            if config.datamodule.get("pin_memory"):
+                config.datamodule.pin_memory = False
+            if config.datamodule.get("num_workers"):
+                config.datamodule.num_workers = 0
 
     # disable adding new keys to config
     OmegaConf.set_struct(config, True)

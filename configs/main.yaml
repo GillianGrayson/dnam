@@ -1,7 +1,5 @@
 # @package _global_
 
-sa_model: catboost
-
 # specify here defaults
 defaults:
   - trainer: null

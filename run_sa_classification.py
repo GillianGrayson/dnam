@@ -14,6 +14,7 @@ def main(config: DictConfig):
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
     from models_sa.classification.catboost import train_catboost
+    from models_sa.classification.xgboost import train_xgboost
     import torch
 
     # A couple of optional utilities:
@@ -36,6 +37,8 @@ def main(config: DictConfig):
 
     if config.sa_model == "catboost":
         return train_catboost(config)
+    elif config.sa_model == "xgboost":
+        return train_xgboost(config)
     else:
         raise ValueError(f"Not supported config.sa_model: {config.sa_model}")
 

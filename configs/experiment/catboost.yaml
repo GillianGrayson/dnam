@@ -2,6 +2,8 @@
 
 project_name: catboost
 
+sa_model: ${project_name}
+
 is_cv: False
 n_splits: 5
 is_stratified: True
@@ -40,7 +42,7 @@ num_top_features: 20
 
 # specify here default training configuration
 defaults:
-  - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
+  - override /trainer: null # choose trainer from 'configs/trainer/'
   - override /model: null
   - override /datamodule: null
   - override /callbacks: none.yaml
