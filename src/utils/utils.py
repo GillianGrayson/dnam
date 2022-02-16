@@ -91,7 +91,7 @@ def print_config(
     style = "dim"
     tree = rich.tree.Tree("CONFIG", style=style, guide_style=style)
 
-    for field in fields:
+    for field in config:
         branch = tree.add(field, style=style, guide_style=style)
 
         config_section = config.get(field)

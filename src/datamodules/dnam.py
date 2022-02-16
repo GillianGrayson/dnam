@@ -325,7 +325,6 @@ class DNAmDoubleDataModule(LightningDataModule):
             stratify=self.dataset.ys[self.ids_trn_val],
             random_state=self.seed
         )
-        self.ids_tst = []
         dict_to_plot = {
             "trn": self.ids_trn,
             "val": self.ids_val,

@@ -1,19 +1,81 @@
 # @package _global_
 
+project_name: catboost
+
+is_cv: False
+n_splits: 5
+is_stratified: True
+
+debug: False
+print_config: True
+ignore_warnings: True
+test_after_training: True
+
+seed: 322
+in_dim: 30866
+out_dim: 2
+
+data_type: "one_by_one"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
+work_dir: "${base_dir}/models/${project_name}"
+data_dir: "${base_dir}/${data_type}"
+
+datamodule_type: "datamodule_double"
+
+# CatBoost model params
+input_dim: ${in_dim}
+output_dim: ${out_dim}
+loss_function: 'MultiClass'
+learning_rate: 0.05
+depth: 6
+min_data_in_leaf: 1
+max_leaves: 31
+task_type: 'CPU'
+verbose: 1
+max_epochs: 10
+patience: 50
+
+# Plot params
+num_top_features: 20
+
 # specify here default training configuration
 defaults:
-  - override /trainer: catboost.yaml # choose trainer from 'configs/trainer/'
-  - override /model: catboost.yaml
-  - override /datamodule: betas_pheno_datamodule.yaml
+  - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /datamodule: null
   - override /callbacks: none.yaml
   - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
 
-trainer:
-  max_epochs: 500
-  patience: 100
+datamodule_tmp:
+  _target_: src.datamodules.dnam.DNAmSingleDataModule
+  path: ${data_dir}
+  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
+  dnam_fn: "mvals_train_val.pkl"
+  pheno_fn: "pheno_train_val.pkl"
+  outcome: "Status"
+  batch_size: 64
+  trn_val_tst_split: [0.8, 0.2, 0.0]
+  num_workers: 0
+  pin_memory: False
+  seed: ${seed}
+  weighted_sampler: True
 
 datamodule:
+  _target_: src.datamodules.dnam.DNAmDoubleDataModule
+  path: ${data_dir}
+  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
+  dnam_trn_val_fn: "mvals_train_val.pkl"
+  pheno_trn_val_fn: "pheno_train_val.pkl"
+  dnam_tst_fn: "mvals_test.pkl"
+  pheno_tst_fn: "pheno_test.pkl"
+  outcome: "Status"
   batch_size: 64
-  train_val_test_split: [0.7, 0.15, 0.15]
+  trn_val_tst_split: [0.8, 0.2]
+  num_workers: 0
+  pin_memory: False
+  seed: ${seed}
+  weighted_sampler: True
