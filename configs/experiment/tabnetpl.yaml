@@ -12,10 +12,10 @@ ignore_warnings: True
 test_after_training: True
 
 seed: 322
-in_dim: 30866
+in_dim: 314367
 out_dim: 2
 
-data_type: "one_by_one"
+data_type: "all_together"
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
