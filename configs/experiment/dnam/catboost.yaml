@@ -29,7 +29,7 @@ input_dim: ${in_dim}
 output_dim: ${out_dim}
 loss_function: 'MultiClass'
 learning_rate: 0.05
-depth: 6
+depth: 4
 min_data_in_leaf: 1
 max_leaves: 31
 task_type: 'CPU'

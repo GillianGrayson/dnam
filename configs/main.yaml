@@ -8,7 +8,7 @@ defaults:
   - callbacks: null
   - logger: null
 
-  - experiment: tabnetpl
+  - experiment: dnam/tabnetpl
   - hparams_search: null
 
   - hydra: default.yaml
