@@ -1,0 +1,48 @@
+# @package _global_
+
+project_name: inference
+
+sa_model: lightgbm
+
+is_cv: False
+n_splits: 5
+is_stratified: True
+
+debug: False
+print_config: True
+ignore_warnings: True
+test_after_training: True
+
+seed: 322
+in_dim: 30866
+out_dim: 2
+
+data_type: "one_by_one"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
+work_dir: "${base_dir}/models/${project_name}"
+data_dir: "${base_dir}/${data_type}"
+
+ckpt_path: "${base_dir}/models/lightgbm/runs/2022-02-16_23-22-25/epoch_508.txt"
+
+# specify here default training configuration
+defaults:
+  - override /trainer: null # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /datamodule: null
+  - override /callbacks: none.yaml
+  - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+datamodule:
+  _target_: src.datamodules.dnam.DNAmPhenoInferenceDataModule
+  path: ${data_dir}
+  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
+  dnam_fn: "mvals_train_val.pkl"
+  pheno_fn: "pheno_train_val.pkl"
+  outcome: "Status"
+  batch_size: 64
+  num_workers: 0
+  pin_memory: False
+  imputation: "median"

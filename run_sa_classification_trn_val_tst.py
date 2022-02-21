@@ -13,9 +13,9 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from models_sa.classification.catboost import train_catboost
-    from models_sa.classification.xgboost import train_xgboost
-    from models_sa.classification.lightgbm import train_lightgbm
+    from sa.classification.trn_val_tst.catboost import train_catboost
+    from sa.classification.trn_val_tst.xgboost import train_xgboost
+    from sa.classification.trn_val_tst.lightgbm import train_lightgbm
     import torch
 
     # A couple of optional utilities:

@@ -36,7 +36,7 @@ log = utils.get_logger(__name__)
 
 dotenv.load_dotenv(override=True)
 
-@hydra.main(config_path="../../configs/", config_name="main.yaml")
+@hydra.main(config_path="../../../../configs/", config_name="main.yaml")
 def main(config: DictConfig):
 
     if "seed" in config:

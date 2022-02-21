@@ -28,6 +28,7 @@ rownames(mvals_norm) <- 1:nrow(mvals_norm)
 write.table(mvals_norm, file=paste(path_save, "/", "mvals_", dataset_ref, "_regRCPqn.txt", sep=''), col.name=TRUE, row.names=FALSE, sep="\t", quote=F)
 
 datasets <- c("GSE116378", "GSE116379", "GSE41169")
+datasets <- c("GSE87571")
 for (dataset in datasets){
   pheno <- pd$read_pickle(paste(path_load, "/pheno_", toString(dataset), ".pkl", sep=''))
   mvals <- pd$read_pickle(paste(path_load, "/mvalsT_", toString(dataset), ".pkl", sep=''))

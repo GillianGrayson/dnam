@@ -13,7 +13,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from models_sa.lightgbm.train import train_lightgbm
+    from sa.lightgbm.train import train_lightgbm
     import torch
 
     # A couple of optional utilities:

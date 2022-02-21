@@ -7,13 +7,13 @@ from omegaconf import DictConfig
 dotenv.load_dotenv(override=True)
 
 
-@hydra.main(config_path="configs/", config_name="main_catboost.yaml")
+@hydra.main(config_path="configs/", config_name="main.yaml")
 def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from sa.catboost.train import train_catboost
+    from sa.classification.inference.inference import inference_lightgbm
     import torch
 
     # A couple of optional utilities:
@@ -34,7 +34,10 @@ def main(config: DictConfig):
     if config.get("print_config"):
         utils.print_config(config, resolve=True)
 
-    return train_catboost(config)
+    if config.sa_model == "lightgbm":
+        return inference_lightgbm(config)
+    else:
+        raise ValueError(f"Not supported config.sa_model: {config.sa_model}")
 
 
 if __name__ == "__main__":

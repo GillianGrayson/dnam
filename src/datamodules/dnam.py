@@ -481,6 +481,7 @@ class DNAmPhenoInferenceDataModule(LightningDataModule):
 
         # self.dims is returned when you call datamodule.size()
         self.dims = (1, self.dnam.shape[1])
+        self.ids = np.arange(self.pheno.shape[0])
 
         self.dataset = DNAmDataset(self.dnam, self.pheno, self.outcome)
 

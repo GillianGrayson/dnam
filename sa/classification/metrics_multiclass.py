@@ -55,6 +55,17 @@ def get_metrics_dict(num_classes, base_class):
                 "__call__": calc_metric
             }
         ),
+        "accuracy_micro": type(
+            "accuracy_micro",
+            (base_class,),
+            {
+                "metric_type": "accuracy",
+                "average": "micro",
+                "num_classes": num_classes,
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
         "accuracy_weighted": type(
             "accuracy_weighted",
             (base_class,),

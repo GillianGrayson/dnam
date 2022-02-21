@@ -5,22 +5,17 @@ from pytorch_lightning import (
     LightningDataModule,
     seed_everything,
 )
-from models_sa.logging import log_hyperparameters
+from sa.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
-from models_sa.metrics_multiclass import get_metrics_dict
 from src.utils import utils
 import lightgbm as lgb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
-from models_sa.classification.routines import eval_classification, eval_loss
+from sa.classification.routines import eval_classification, eval_loss
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-import plotly.express as px
-from sklearn.metrics import confusion_matrix
-import plotly.figure_factory as ff
 from typing import List
-import pathlib
 import wandb
 
 
@@ -116,17 +111,19 @@ def train_lightgbm(config: DictConfig):
     y_test_pred_probs = bst.predict(X_test, num_iteration=bst.best_iteration)
     y_test_pred = np.argmax(y_test_pred_probs, 1)
 
-    eval_classification(config, 'train', class_names, y_train, y_train_pred, y_train_pred_probs)
-    metrics_val = eval_classification(config, 'val', class_names, y_val, y_val_pred, y_val_pred_probs)
-    eval_classification(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs)
+    eval_classification(config, 'train', class_names, y_train, y_train_pred, y_train_pred_probs, loggers)
+    metrics_val = eval_classification(config, 'val', class_names, y_val, y_val_pred, y_val_pred_probs, loggers)
+    eval_classification(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs, loggers)
 
     loss_info = {
         'epoch': list(range(len(evals_result['train'][config.metric]))),
         'train/loss': evals_result['train'][config.metric],
         'val/loss': evals_result['val'][config.metric]
     }
-    eval_loss(loss_info)
+    eval_loss(loss_info, loggers)
 
+    for logger in loggers:
+        logger.save()
     wandb.finish()
 
     optimized_metric = config.get("optimized_metric")
