@@ -2,7 +2,8 @@
 
 project_name: inference
 
-sa_model: lightgbm
+# sa_model: lightgbm
+sa_model: tabnetpl
 
 is_cv: False
 n_splits: 5
@@ -22,7 +23,8 @@ base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schiz
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
-ckpt_path: "${base_dir}/models/lightgbm/runs/2022-02-16_23-22-25/epoch_508.txt"
+# ckpt_path: "${base_dir}/models/${sa_model}/runs/2022-02-16_23-22-25/epoch_508.txt"
+ckpt_path: "${base_dir}/models/${sa_model}/runs/2022-02-17_01-37-15/checkpoints/100.ckpt"
 
 # specify here default training configuration
 defaults:

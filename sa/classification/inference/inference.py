@@ -50,7 +50,7 @@ import wandb
 
 log = utils.get_logger(__name__)
 
-def inference_lightgbm(config: DictConfig):
+def inference(config: DictConfig):
 
     if "seed" in config:
         seed_everything(config.seed)
@@ -68,12 +68,15 @@ def inference_lightgbm(config: DictConfig):
     log.info("Logging hyperparameters!")
     log_hyperparameters(loggers, config)
 
-    model = lgb.Booster(model_file=config.ckpt_path)
-
-    # model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}/{config.ckpt_name}")
-    # model.produce_probabilities = True
-    # model.eval()
-    # model.freeze()
+    if config.sa_model == "lightgbm":
+        model = lgb.Booster(model_file=config.ckpt_path)
+    elif config.sa_model == "tabnetpl":
+        model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}")
+        model.produce_probabilities = True
+        model.eval()
+        model.freeze()
+    else:
+        raise ValueError(f"Unsupported sa_model")
 
     test_datasets = {
         'GSE87571': ['Control'],
@@ -94,13 +97,20 @@ def inference_lightgbm(config: DictConfig):
         X_test = test_data.loc[:, datamodule.dnam.columns.values].values
         y_test = test_data.loc[:, datamodule.outcome].values
 
-        y_test_pred_probs = model.predict(X_test)
+        if config.sa_model == "lightgbm":
+            y_test_pred_probs = model.predict(X_test)
+        elif config.sa_model == "tabnetpl":
+            X_test_pt = torch.from_numpy(X_test)
+            y_test_pred_probs = model(X_test_pt).cpu().detach().numpy()
+        else:
+            raise ValueError(f"Unsupported sa_model")
+
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         class_names = list(datamodule.statuses.keys())
 
-        eval_classification(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs, loggers, probs=False)
+        eval_classification(config, dataset, class_names, y_test, y_test_pred, y_test_pred_probs, loggers, probs=False)
 
-        for logger in loggers:
-            logger.save()
-        wandb.finish()
+    for logger in loggers:
+        logger.save()
+    wandb.finish()
