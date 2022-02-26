@@ -143,7 +143,6 @@ ctrl = pheno.loc[pheno['Group'] == 'Control']
 ctrl_train = ctrl.loc[ctrl.index[best_train_idx], :]
 ctrl_val = ctrl.loc[ctrl.index[best_val_idx], :]
 esrd = pheno.loc[pheno['Group'] == 'ESRD']
-pheno.to_excel(f'{path_save}/pheno.xlsx', index=True)
 
 ctrl_train_color = 'lime'
 ctrl_val_color = 'cyan'
@@ -155,6 +154,8 @@ model_linear = smf.ols(formula=formula, data=ctrl_train).fit()
 ctrl_train[f"{clock_name}_acceleration"] = ctrl_train[f'{clock_name}'] - model_linear.predict(ctrl_train)
 ctrl_val[f"{clock_name}_acceleration"] = ctrl_val[f'{clock_name}'] - model_linear.predict(ctrl_val)
 esrd[f"{clock_name}_acceleration"] = esrd[f'{clock_name}'] - model_linear.predict(esrd)
+pheno[f"{clock_name}_acceleration"] = pheno[f'{clock_name}'] - model_linear.predict(pheno)
+pheno.to_excel(f'{path_save}/pheno.xlsx', index=True)
 
 values_ctrl_train = ctrl_train.loc[:, f"{clock_name}_acceleration"].values
 values_ctrl_val = ctrl_val.loc[:, f"{clock_name}_acceleration"].values
@@ -233,6 +234,64 @@ fig.update_layout(
     )
 )
 save_figure(fig, f"{path_save}/venn")
+
+
+for metric, name in {f"{clock_name}": "Estimated age", f"{clock_name}_acceleration": "Estimated age acceleration"}.items():
+    stat, pval = mannwhitneyu(pheno.loc[pheno['Disease outcome'] == 'alive', metric].values, pheno.loc[pheno['Disease outcome'] == 'dead', metric].values, alternative='two-sided')
+    fig = go.Figure()
+    fig.add_trace(
+        go.Violin(
+            y=pheno.loc[pheno['Disease outcome'] == 'alive', metric].values,
+            name=f"Alive",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor='blue',
+            marker=dict(color='blue', line=dict(color='black', width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=np.ptp(pheno.loc[pheno['Disease outcome'] == 'alive', metric].values) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    fig.add_trace(
+        go.Violin(
+            y=pheno.loc[pheno['Disease outcome'] == 'dead', metric].values,
+            name=f"Dead",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor='red',
+            marker=dict(color='red', line=dict(color='black', width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=np.ptp(values_esrd) / 50,
+            opacity=0.8
+        )
+    )
+    add_layout(fig, "", name, f"Mann-Whitney p-value: {pval:0.2e}")
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=140,
+            r=20,
+            b=50,
+            t=80,
+            pad=0
+        )
+    )
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.01,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    save_figure(fig, f"{path_save}/{metric}")
+
 
 fig = go.Figure()
 add_scatter_trace(fig, ctrl_train.loc[:, target].values, ctrl_train.loc[:, f"{clock_name}"].values, f"Control (train)")
