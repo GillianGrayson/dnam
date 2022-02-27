@@ -46,6 +46,8 @@ from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
 from typing import List
 import wandb
+from catboost import CatBoost
+import xgboost as xgb
 
 
 log = utils.get_logger(__name__)
@@ -70,6 +72,12 @@ def inference(config: DictConfig):
 
     if config.sa_model == "lightgbm":
         model = lgb.Booster(model_file=config.ckpt_path)
+    if config.sa_model == "catboost":
+        model = CatBoost()
+        model.load_model(config.ckpt_path)
+    if config.sa_model == "xgboost":
+        model = xgb.Booster()
+        model.load_model(config.ckpt_path)
     elif config.sa_model == "tabnetpl":
         model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}")
         model.produce_probabilities = True
@@ -99,6 +107,11 @@ def inference(config: DictConfig):
 
         if config.sa_model == "lightgbm":
             y_test_pred_probs = model.predict(X_test)
+        if config.sa_model == "catboost":
+            y_test_pred_probs = model.predict(X_test)
+        if config.sa_model == "xgboost":
+            dmat_test = xgb.DMatrix(X_test, y_test, feature_names=datamodule.dnam.columns.values)
+            y_test_pred_probs = model.predict(dmat_test)
         elif config.sa_model == "tabnetpl":
             X_test_pt = torch.from_numpy(X_test)
             y_test_pred_probs = model(X_test_pt).cpu().detach().numpy()
