@@ -14,8 +14,8 @@ path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 manifest = get_manifest('GPL13534')
 dataset_statuses = {
-    'GSE152027': ['Control', 'Schizophrenia'],
     'GSE84727': ['Control', 'Schizophrenia'],
+    'GSE152027': ['Control', 'Schizophrenia'],
     'GSE80417': ['Control', 'Schizophrenia'],
     'GSE116379': ['Control', 'Schizophrenia'],
     'GSE41169': ['Control', 'Schizophrenia'],
