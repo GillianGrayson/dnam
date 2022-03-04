@@ -6,6 +6,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from scripts.python.routines.betas import betas_drop_na
 import pickle
 import random
+import plotly.express as px
 import copy
 import statsmodels.formula.api as smf
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -54,12 +55,17 @@ agena_cpgs = list(set(agena.columns.values) - set(['Group']))
 
 subjects_common = sorted(list(set(agena.index.values).intersection(set(df_ctrl.index.values))))
 subjects_agena_only = set(agena.index.values) - set(df_ctrl.index.values)
+cpgs_common = list(set(agena_cpgs).intersection(set(betas.columns.values)))
+
+rel_diff_df = pd.DataFrame(index=subjects_common, columns=cpgs_common+['Group'])
 
 for subject in subjects_common:
     agena_i = agena.loc[subject, agena_cpgs]
     agena_i.dropna(how='all')
     cpgs_i = sorted(list(set(agena_i.index.values).intersection(set(betas.columns.values))))
     df_i = df_ctrl.loc[subject, cpgs_i]
+
+    rel_diff_df.at[subject, 'Group'] = agena.at[subject, 'Group']
 
     fig = go.Figure()
     for cpg_id, cpg in enumerate(cpgs_i):
@@ -80,10 +86,15 @@ for subject in subjects_common:
         if cpg_id == 0:
             showlegend = True
 
+        meth_epic = df_ctrl.at[subject, cpg]
+        meth_agena = agena_i.at[cpg] * 0.01
+        tmp = (meth_agena - meth_epic) / meth_epic * 100.0
+        rel_diff_df.at[subject, cpg] = tmp
+
         fig.add_trace(
             go.Scatter(
                 x=[cpg],
-                y=[df_ctrl.at[subject, cpg]],
+                y=[meth_epic],
                 showlegend=showlegend,
                 name="850K",
                 mode="markers",
@@ -101,7 +112,7 @@ for subject in subjects_common:
         fig.add_trace(
             go.Scatter(
                 x=[cpg],
-                y=[agena_i.at[cpg] * 0.01],
+                y=[meth_agena],
                 showlegend=showlegend,
                 name="Agena",
                 mode="markers",
@@ -127,3 +138,78 @@ for subject in subjects_common:
         pad=0
     ))
     save_figure(fig, f"{path_save}/figs/{subject}")
+
+colors = px.colors.qualitative.Set1
+groups = sorted(rel_diff_df['Group'].unique())
+rel_diff_df.to_excel(f"{path_save}/rel_diff.xlsx", index=True)
+
+fig = go.Figure()
+for cpg_id, cpg in enumerate(cpgs_common):
+    series_i = rel_diff_df.loc[subjects_common, cpg].dropna()
+    series_i = series_i.astype('float64')
+    distrib_i = series_i.values
+
+    showlegend = False
+    if cpg_id == 0:
+        showlegend = True
+
+    fig.add_trace(
+        go.Violin(
+            x=[cpg] * len(distrib_i),
+            y=distrib_i,
+            showlegend=False,
+            box_visible=True,
+            meanline_visible=True,
+            line_color='black',
+            line=dict(width=0.35),
+            fillcolor='grey',
+            marker=dict(color='grey', line=dict(color='black', width=0.3), opacity=0.8),
+            points=False,
+            bandwidth=np.ptp(distrib_i) / 25,
+            opacity=0.8
+        )
+    )
+    for g_id, g in enumerate(groups):
+        series_i = rel_diff_df.loc[rel_diff_df['Group'] == g, cpg].dropna()
+        series_i = series_i.astype('float64')
+        distrib_i = series_i.values
+        fig.add_trace(
+            go.Box(
+                x=[cpg] * len(distrib_i),
+                name=g,
+                y=distrib_i,
+                boxpoints='all',
+                fillcolor='rgba(255,255,255,0)',
+                hoveron = 'points',
+                line = {'color': 'rgba(255,255,255,0)'},
+                pointpos = -2,
+                showlegend = showlegend,
+                marker=dict(size=4, color=colors[g_id], line=dict(color='black', width=0.3), opacity=0.6),
+            )
+        )
+
+add_layout(fig, "", "Relative difference, %", f"")
+fig.update_xaxes(tickangle=270)
+fig.update_xaxes(tickfont_size=15)
+fig.update_layout(margin=go.layout.Margin(
+    l=120,
+    r=20,
+    b=120,
+    t=50,
+    pad=0
+))
+fig.update_layout(title_xref='paper')
+fig.update_layout(legend= {'itemsizing': 'constant'})
+fig.update_layout(legend_font_size=20)
+fig.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="center",
+        x=0.5
+    )
+)
+save_figure(fig, f"{path_save}/figs/reldiff")
+
+ololo = 1
