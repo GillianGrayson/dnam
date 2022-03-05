@@ -53,7 +53,7 @@ def KW_Control(datasets, manifest, df, cpgs, path, y_label):
                     opacity=0.8
                 )
             )
-        add_layout(fig, "", y_label, f"{gene}<br>p-value: {pval:0.2e}")
+        add_layout(fig, "", y_label, f"{cpg} ({gene})<br>p-value: {pval:0.2e}")
         fig.update_layout(title_xref='paper')
         fig.update_layout(legend_font_size=20)
         fig.update_xaxes(tickfont_size=15)
