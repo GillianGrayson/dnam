@@ -72,10 +72,10 @@ def inference(config: DictConfig):
 
     if config.sa_model == "lightgbm":
         model = lgb.Booster(model_file=config.ckpt_path)
-    if config.sa_model == "catboost":
+    elif config.sa_model == "catboost":
         model = CatBoost()
         model.load_model(config.ckpt_path)
-    if config.sa_model == "xgboost":
+    elif config.sa_model == "xgboost":
         model = xgb.Booster()
         model.load_model(config.ckpt_path)
     elif config.sa_model == "tabnetpl":
@@ -107,9 +107,9 @@ def inference(config: DictConfig):
 
         if config.sa_model == "lightgbm":
             y_test_pred_probs = model.predict(X_test)
-        if config.sa_model == "catboost":
+        elif config.sa_model == "catboost":
             y_test_pred_probs = model.predict(X_test)
-        if config.sa_model == "xgboost":
+        elif config.sa_model == "xgboost":
             dmat_test = xgb.DMatrix(X_test, y_test, feature_names=datamodule.dnam.columns.values)
             y_test_pred_probs = model.predict(dmat_test)
         elif config.sa_model == "tabnetpl":

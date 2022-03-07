@@ -328,7 +328,7 @@ class DNAmDoubleDataModule(LightningDataModule):
         dict_to_plot = {
             "trn": self.ids_trn,
             "val": self.ids_val,
-            "tsr": self.ids_tst
+            "tst": self.ids_tst
         }
 
         for name, ids in dict_to_plot.items():
