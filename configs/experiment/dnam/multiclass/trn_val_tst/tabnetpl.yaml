@@ -33,7 +33,7 @@ defaults:
   - override /hydra/job_logging: colorlog
 
 datamodule_tmp:
-  _target_: src.datamodules.dnam.DNAmSingleDataModule
+  _target_: src.datamodules.dnam.DNAmDataModuleTogether
   path: ${data_dir}
   cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
@@ -48,7 +48,7 @@ datamodule_tmp:
   weighted_sampler: True
 
 datamodule:
-  _target_: src.datamodules.dnam.DNAmDoubleDataModule
+  _target_: src.datamodules.dnam.DNAmDataModuleSeparate
   path: ${data_dir}
   cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"

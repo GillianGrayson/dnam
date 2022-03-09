@@ -42,7 +42,7 @@ class DNAmDataset(Dataset):
         return self.num_subjects
 
 
-class DNAmSingleDataModule(LightningDataModule):
+class DNAmDataModuleTogether(LightningDataModule):
 
     def __init__(
             self,
@@ -228,7 +228,7 @@ class DNAmSingleDataModule(LightningDataModule):
         )
 
 
-class DNAmDoubleDataModule(LightningDataModule):
+class DNAmDataModuleSeparate(LightningDataModule):
 
     def __init__(
             self,

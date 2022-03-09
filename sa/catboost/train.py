@@ -8,7 +8,7 @@ from pytorch_lightning import (
 from sa.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
-from sa.classification.metrics_multiclass import get_metrics_dict
+from sa.multiclass.metrics import get_metrics_dict
 from src.utils import utils
 from catboost import CatBoost
 import plotly.graph_objects as go

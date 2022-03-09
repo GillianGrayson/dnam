@@ -1,4 +1,4 @@
-_target_: src.datamodules.dnam.betas_pheno.DNAmSingleDataModule
+_target_: src.datamodules.dnam.betas_pheno.DNAmDataModuleTogether
 
 path: ""
 cpgs_fn: ""

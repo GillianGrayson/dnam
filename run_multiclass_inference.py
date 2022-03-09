@@ -13,9 +13,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from sa.classification.trn_val_tst.catboost import train_catboost
-    from sa.classification.trn_val_tst.xgboost import train_xgboost
-    from sa.classification.trn_val_tst.lightgbm import train_lightgbm
+    from sa.multiclass.inference import inference
     import torch
 
     # A couple of optional utilities:
@@ -36,14 +34,8 @@ def main(config: DictConfig):
     if config.get("print_config"):
         utils.print_config(config, resolve=True)
 
-    if config.sa_model == "catboost":
-        return train_catboost(config)
-    elif config.sa_model == "xgboost":
-        return train_xgboost(config)
-    elif config.sa_model == "lightgbm":
-        return train_lightgbm(config)
-    else:
-        raise ValueError(f"Not supported config.sa_model: {config.sa_model}")
+    return inference(config)
+
 
 if __name__ == "__main__":
     main()

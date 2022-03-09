@@ -13,7 +13,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from sa.classification.inference.inference import inference
+    from sa.multiclass.trn_val_tst import process
     import torch
 
     # A couple of optional utilities:
@@ -34,7 +34,7 @@ def main(config: DictConfig):
     if config.get("print_config"):
         utils.print_config(config, resolve=True)
 
-    return inference(config)
+    return process(config)
 
 
 if __name__ == "__main__":

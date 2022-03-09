@@ -1,6 +1,6 @@
 # @package _global_
 
-project_name: catboost
+project_name: lightgbm
 
 sa_model: ${project_name}
 
@@ -14,30 +14,35 @@ ignore_warnings: True
 test_after_training: True
 
 seed: 322
-in_dim: 314367
+in_dim: 30866
 out_dim: 2
 
-data_type: "all_together"
+data_type: "one_by_one"
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
 datamodule_type: "datamodule_double"
 
-# CatBoost model params
+# LightGBM model params
 input_dim: ${in_dim}
 output_dim: ${out_dim}
-loss_function: 'MultiClass'
-learning_rate: 0.05
-depth: 4
-min_data_in_leaf: 1
-max_leaves: 31
-task_type: 'CPU'
-verbose: 1
+objective: 'multiclass'
+boosting: 'gbdt'
+learning_rate: 0.01
+num_leaves: 31
+device: 'cpu'
+max_depth: -1
+min_data_in_leaf: 20
+feature_fraction: 0.9
+bagging_fraction: 0.8
+bagging_freq: 5
+verbose: 0
+metric: 'multi_logloss'
 
-# CatBoost train params
-max_epochs: 2000
-patience: 50
+# LightGBM train params
+max_epochs: 10
+patience: 10
 
 # Plot params
 num_top_features: 20
@@ -53,7 +58,7 @@ defaults:
   - override /hydra/job_logging: colorlog
 
 datamodule_tmp:
-  _target_: src.datamodules.dnam.DNAmSingleDataModule
+  _target_: src.datamodules.dnam.DNAmDataModuleTogether
   path: ${data_dir}
   cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
@@ -68,7 +73,7 @@ datamodule_tmp:
   weighted_sampler: True
 
 datamodule:
-  _target_: src.datamodules.dnam.DNAmDoubleDataModule
+  _target_: src.datamodules.dnam.DNAmDataModuleSeparate
   path: ${data_dir}
   cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"

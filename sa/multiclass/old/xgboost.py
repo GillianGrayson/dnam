@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from sa.classification.routines import eval_classification, eval_loss
+from sa.multiclass.routines import eval_classification, eval_loss
 from typing import List
 import wandb
 
