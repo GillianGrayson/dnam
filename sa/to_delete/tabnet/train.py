@@ -8,9 +8,9 @@ from pytorch_lightning import (
 import pandas as pd
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_tabnet.tab_model import TabNetClassifier
-from sa.tabnet.metrics import get_metrics_dict
+from sa.to_delete.tabnet.metrics import get_metrics_dict
 from sa.logging import log_hyperparameters
-from sa.tabnet.callbacks import get_custom_callback
+from sa.to_delete.tabnet.callbacks import get_custom_callback
 from src.utils import utils
 from typing import List
 

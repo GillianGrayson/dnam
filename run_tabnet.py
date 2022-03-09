@@ -13,7 +13,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from sa.tabnet.train import train_tabnet
+    from sa.to_delete.tabnet.train import train_tabnet
     import torch
 
     # A couple of optional utilities:

@@ -1,36 +1,8 @@
 import numpy as np
 from src.models.dnam.tabnet import TabNetModel
 import torch
-import os
-import matplotlib.pyplot as plt
-import plotly.express as px
-import pickle
-from src.datamodules.datasets.dnam_dataset import DNAmDataset
-from torch.utils.data import DataLoader
-from scipy.sparse import csc_matrix
-from scipy.special import log_softmax
-from scipy.special import softmax
-import plotly.graph_objects as go
-from collections import Counter
 import lightgbm as lgb
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.scatter import add_scatter_trace
-from scripts.python.routines.plot.violin import add_violin_trace
-from scripts.python.routines.plot.layout import add_layout
-from tqdm import tqdm
 import pandas as pd
-import dotenv
-from pytorch_lightning import LightningModule, LightningDataModule
-from torch.utils.data import DataLoader, ConcatDataset, Subset
-from pytorch_lightning import seed_everything
-import hydra
-from src.utils import utils
-from omegaconf import DictConfig
-import shap
-from pathlib import Path
-from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, ConfusionMatrixDisplay, RocCurveDisplay
-import plotly.figure_factory as ff
-from scripts.python.routines.manifest import get_manifest
 import hydra
 from omegaconf import DictConfig
 from pytorch_lightning import (
@@ -40,10 +12,7 @@ from pytorch_lightning import (
 from sa.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 from src.utils import utils
-from scripts.python.routines.plot.save import save_figure
-from sa.multiclass.routines import eval_classification, eval_loss
-from scripts.python.routines.plot.bar import add_bar_trace
-from scripts.python.routines.plot.layout import add_layout
+from sa.multiclass.routines import eval_classification
 from typing import List
 import wandb
 from catboost import CatBoost

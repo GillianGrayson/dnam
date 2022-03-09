@@ -98,9 +98,9 @@ def process(config: DictConfig):
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         loss_info = {
-            'epoch': list(range(len(evals_result['train'][config.eval_metric]))),
-            'train/loss': evals_result['train'][config.eval_metric],
-            'val/loss': evals_result['val'][config.eval_metric]
+            'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
+            'train/loss': evals_result['train'][config.xgboost.eval_metric],
+            'val/loss': evals_result['val'][config.xgboost.eval_metric]
         }
 
         fi = bst.get_score(importance_type='weight')
@@ -182,9 +182,9 @@ def process(config: DictConfig):
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         loss_info = {
-            'epoch': list(range(len(evals_result['train'][config.metric]))),
-            'train/loss': evals_result['train'][config.metric],
-            'val/loss': evals_result['val'][config.metric]
+            'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
+            'train/loss': evals_result['train'][config.lightgbm.metric],
+            'val/loss': evals_result['val'][config.lightgbm.metric]
         }
 
         feature_importances = pd.DataFrame.from_dict({'feature': bst.feature_name(), 'importance': list(bst.feature_importance())})

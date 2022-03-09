@@ -2,7 +2,7 @@ from src.models.fcmlp_model import FCMLPModel
 from src.models.fcvae_model_v2 import FCVAEModelV2
 from src.models.extractor_mlp_model import ExtractorFCMLPModel
 import pickle
-from src.datamodules.datasets.dnam_dataset import DNAmDataset
+from src.datamodules.to_delete.datasets.dnam_dataset import DNAmDataset
 from torch.utils.data import DataLoader
 
 

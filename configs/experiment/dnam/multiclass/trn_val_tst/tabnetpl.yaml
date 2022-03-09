@@ -1,6 +1,8 @@
 # @package _global_
 
-project_name: tabnetpl
+data_type: dnam
+
+project_name: ${data_type}_multiclass_tabnet
 
 is_cv: False
 n_splits: 5
@@ -12,15 +14,13 @@ ignore_warnings: True
 test_after_training: True
 
 seed: 322
-in_dim: 314367
+in_dim: 30866
 out_dim: 2
 
-data_type: "all_together"
+dnam_data_type: "one_by_one"
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
 work_dir: "${base_dir}/models/${project_name}"
-data_dir: "${base_dir}/${data_type}"
-
-datamodule_type: "datamodule_double"
+data_dir: "${base_dir}/${dnam_data_type}"
 
 # specify here default training configuration
 defaults:
@@ -31,21 +31,6 @@ defaults:
   - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
-
-datamodule_tmp:
-  _target_: src.datamodules.dnam.DNAmDataModuleTogether
-  path: ${data_dir}
-  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
-  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
-  dnam_fn: "mvals_train_val.pkl"
-  pheno_fn: "pheno_train_val.pkl"
-  outcome: "Status"
-  batch_size: 64
-  trn_val_tst_split: [0.8, 0.2, 0.0]
-  num_workers: 0
-  pin_memory: False
-  seed: ${seed}
-  weighted_sampler: True
 
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleSeparate

@@ -13,7 +13,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from sa.catboost.train import train_catboost
+    from sa.to_delete.catboost import train_catboost
     import torch
 
     # A couple of optional utilities:

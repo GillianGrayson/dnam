@@ -560,7 +560,7 @@ logger:
 
 ### Workflow
 1. Write your PyTorch Lightning model (see [mnist_model.py](src/models/mnist_model.py) for example)
-2. Write your PyTorch Lightning datamodule (see [mnist_datamodule.py](src/datamodules/mnist_datamodule.py) for example)
+2. Write your PyTorch Lightning datamodule (see [mnist_datamodule.py](src/datamodules/to_delete/mnist_datamodule.py) for example)
 3. Write your experiment config, containing paths to your model and datamodule
 4. Run training with chosen experiment config: `python run.py experiment=experiment_name`
 <br>
