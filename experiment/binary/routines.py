@@ -1,11 +1,9 @@
 import pandas as pd
-from experiment.multiclass.metrics import get_metrics_dict
+from experiment.binary.metrics import get_metrics_dict
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
 import wandb
-import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.layout import add_layout
 
 
 def eval_classification(config, part, class_names, y_real, y_pred, y_pred_probs, loggers, probs=True):
@@ -15,9 +13,10 @@ def eval_classification(config, part, class_names, y_real, y_pred, y_pred_probs,
         'accuracy_micro': 'max',
         'accuracy_weighted': 'max',
         'f1_macro': 'max',
+        'f1_micro': 'max',
+        'f1_weighted': 'max',
         'cohen_kappa': 'max',
         'matthews_corrcoef': 'max',
-        'f1_weighted': 'max'
     }
     if probs:
         metrics_summary['auroc_weighted'] = 'max'

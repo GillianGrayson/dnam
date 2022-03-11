@@ -1,9 +1,9 @@
 # @package _global_
 
 data_type: dnam
-model_sa: xgboost
+model_sa: lightgbm
 
-project_name: ${data_type}_multiclass_trn_val_tst_${model_sa}
+project_name: ${data_type}_binary_trn_val_tst_${model_sa}
 
 is_cv: False
 n_splits: 5
@@ -18,8 +18,8 @@ seed: 322
 in_dim: 30866
 out_dim: 2
 
-max_epochs: 100
-patience: 50
+max_epochs: 20
+patience: 5
 
 dnam_data_type: "one_by_one"
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
@@ -60,24 +60,22 @@ datamodule:
 # XGBoost model params
 xgboost:
   input_dim: ${in_dim}
-  output_dim: ${out_dim}
   booster: 'gbtree'
-  learning_rate: 0.01
+  learning_rate: 0.03
   max_depth: 6
   gamma: 0
   sampling_method: 'uniform'
   subsample: 1
-  objective: 'multi:softprob'
+  objective: 'binary:logistic'
   verbosity: 1
-  eval_metric: 'mlogloss'
+  eval_metric: 'logloss'
   max_epochs: ${max_epochs}
   patience: ${patience}
 
 # CatBoost model params
 catboost:
   input_dim: ${in_dim}
-  output_dim: ${out_dim}
-  loss_function: 'MultiClass'
+  loss_function: 'Logloss'
   learning_rate: 0.05
   depth: 4
   min_data_in_leaf: 1
@@ -90,8 +88,7 @@ catboost:
 # LightGBM model params
 lightgbm:
   input_dim: ${in_dim}
-  output_dim: ${out_dim}
-  objective: 'multiclass'
+  objective: 'binary'
   boosting: 'gbdt'
   learning_rate: 0.01
   num_leaves: 31
@@ -102,6 +99,6 @@ lightgbm:
   bagging_fraction: 0.8
   bagging_freq: 5
   verbose: 0
-  metric: 'multi_logloss'
+  metric: 'binary_logloss'
   max_epochs: ${max_epochs}
   patience: ${patience}

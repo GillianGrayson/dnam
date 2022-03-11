@@ -14,11 +14,13 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from experiment.multiclass.routines import eval_classification, eval_loss
+from experiment.binary.routines import eval_classification
+from experiment.routines import eval_loss
 from typing import List
-from catboost import CatBoost
+from catboost import CatBoost, CatBoostClassifier
 import lightgbm as lgb
 import wandb
+import shap
 
 
 log = utils.get_logger(__name__)
@@ -58,7 +60,6 @@ def process(config: DictConfig):
 
     if config.model_sa == "xgboost":
         model_params = {
-            'num_class': config.xgboost.output_dim,
             'booster': config.xgboost.booster,
             'eta': config.xgboost.learning_rate,
             'max_depth': config.xgboost.max_depth,
@@ -75,7 +76,7 @@ def process(config: DictConfig):
         dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
 
         evals_result = {}
-        bst = xgb.train(
+        model = xgb.train(
             params=model_params,
             dtrain=dmat_train,
             evals=[(dmat_train, "train"), (dmat_val, "val")],
@@ -83,14 +84,14 @@ def process(config: DictConfig):
             early_stopping_rounds=config.patience,
             evals_result=evals_result
         )
-        bst.save_model(f"epoch_{bst.best_iteration}.model")
+        model.save_model(f"epoch_{model.best_iteration}.model")
 
-        y_train_pred_probs = bst.predict(dmat_train)
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
-        y_val_pred_probs = bst.predict(dmat_val)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
-        y_test_pred_probs = bst.predict(dmat_test)
-        y_test_pred = np.argmax(y_test_pred_probs, 1)
+        y_train_pred_probs = model.predict(dmat_train)
+        y_val_pred_probs = model.predict(dmat_val)
+        y_test_pred_probs = model.predict(dmat_test)
+        y_train_pred = np.array([1 if pred > 0.5 else 0 for pred in y_train_pred_probs])
+        y_val_pred = np.array([1 if pred > 0.5 else 0 for pred in y_val_pred_probs])
+        y_test_pred = np.array([1 if pred > 0.5 else 0 for pred in y_test_pred_probs])
 
         loss_info = {
             'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
@@ -98,11 +99,10 @@ def process(config: DictConfig):
             'val/loss': evals_result['val'][config.xgboost.eval_metric]
         }
 
-        fi = bst.get_score(importance_type='weight')
+        fi = model.get_score(importance_type='weight')
         feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
     elif config.model_sa == "catboost":
         model_params = {
-            'classes_count': config.catboost.output_dim,
             'loss_function': config.catboost.loss_function,
             'learning_rate': config.catboost.learning_rate,
             'depth': config.catboost.depth,
@@ -114,16 +114,17 @@ def process(config: DictConfig):
             'early_stopping_rounds': config.catboost.patience
         }
 
-        bst = CatBoost(params=model_params)
-        bst.fit(X_train, y_train, eval_set=(X_val, y_val))
-        bst.set_feature_names(feature_names)
-        bst.save_model(f"epoch_{bst.best_iteration_}.model")
+        model = CatBoost(params=model_params)
 
-        y_train_pred_probs = bst.predict(X_train, prediction_type="Probability")
+        model.fit(X_train, y_train, eval_set=(X_val, y_val))
+        model.set_feature_names(feature_names)
+        model.save_model(f"epoch_{model.best_iteration_}.model")
+
+        y_train_pred_probs = model.predict(X_train, prediction_type="Probability")
+        y_val_pred_probs = model.predict(X_val, prediction_type="Probability")
+        y_test_pred_probs = model.predict(X_test, prediction_type="Probability")
         y_train_pred = np.argmax(y_train_pred_probs, 1)
-        y_val_pred_probs = bst.predict(X_val, prediction_type="Probability")
         y_val_pred = np.argmax(y_val_pred_probs, 1)
-        y_test_pred_probs = bst.predict(X_test, prediction_type="Probability")
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
@@ -134,10 +135,9 @@ def process(config: DictConfig):
             'val/loss': metrics_test.iloc[:, 1]
         }
 
-        feature_importances = pd.DataFrame.from_dict({'feature': bst.feature_names_, 'importance': list(bst.feature_importances_)})
+        feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
     elif config.model_sa == "lightgbm":
         model_params = {
-            'num_class': config.lightgbm.output_dim,
             'objective': config.lightgbm.objective,
             'boosting': config.lightgbm.boosting,
             'learning_rate': config.lightgbm.learning_rate,
@@ -156,7 +156,7 @@ def process(config: DictConfig):
         ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_train, feature_name=feature_names)
 
         evals_result = {}
-        bst = lgb.train(
+        model = lgb.train(
             params=model_params,
             train_set=ds_train,
             num_boost_round=config.max_epochs,
@@ -166,14 +166,14 @@ def process(config: DictConfig):
             early_stopping_rounds=config.patience,
             verbose_eval=True
         )
-        bst.save_model(f"epoch_{bst.best_iteration}.txt", num_iteration=bst.best_iteration)
+        model.save_model(f"epoch_{model.best_iteration}.txt", num_iteration=model.best_iteration)
 
-        y_train_pred_probs = bst.predict(X_train, num_iteration=bst.best_iteration)
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
-        y_val_pred_probs = bst.predict(X_val, num_iteration=bst.best_iteration)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
-        y_test_pred_probs = bst.predict(X_test, num_iteration=bst.best_iteration)
-        y_test_pred = np.argmax(y_test_pred_probs, 1)
+        y_train_pred_probs = model.predict(X_train, num_iteration=model.best_iteration)
+        y_val_pred_probs = model.predict(X_val, num_iteration=model.best_iteration)
+        y_test_pred_probs = model.predict(X_test, num_iteration=model.best_iteration)
+        y_train_pred = np.array([1 if pred > 0.5 else 0 for pred in y_train_pred_probs])
+        y_val_pred = np.array([1 if pred > 0.5 else 0 for pred in y_val_pred_probs])
+        y_test_pred = np.array([1 if pred > 0.5 else 0 for pred in y_test_pred_probs])
 
         loss_info = {
             'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
@@ -181,7 +181,7 @@ def process(config: DictConfig):
             'val/loss': evals_result['val'][config.lightgbm.metric]
         }
 
-        feature_importances = pd.DataFrame.from_dict({'feature': bst.feature_name(), 'importance': list(bst.feature_importance())})
+        feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
     else:
         raise ValueError(f"Model {config.model_sa} is not supported")
 

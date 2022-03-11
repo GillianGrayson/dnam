@@ -14,7 +14,8 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from experiment.multiclass.routines import eval_classification, eval_loss
+from experiment.multiclass.routines import eval_classification
+from experiment.routines import eval_loss
 from typing import List
 from catboost import CatBoost
 import lightgbm as lgb
@@ -86,10 +87,10 @@ def process(config: DictConfig):
         bst.save_model(f"epoch_{bst.best_iteration}.model")
 
         y_train_pred_probs = bst.predict(dmat_train)
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
         y_val_pred_probs = bst.predict(dmat_val)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred_probs = bst.predict(dmat_test)
+        y_train_pred = np.argmax(y_train_pred_probs, 1)
+        y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         loss_info = {
@@ -120,10 +121,10 @@ def process(config: DictConfig):
         bst.save_model(f"epoch_{bst.best_iteration_}.model")
 
         y_train_pred_probs = bst.predict(X_train, prediction_type="Probability")
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
         y_val_pred_probs = bst.predict(X_val, prediction_type="Probability")
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred_probs = bst.predict(X_test, prediction_type="Probability")
+        y_train_pred = np.argmax(y_train_pred_probs, 1)
+        y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
@@ -169,10 +170,10 @@ def process(config: DictConfig):
         bst.save_model(f"epoch_{bst.best_iteration}.txt", num_iteration=bst.best_iteration)
 
         y_train_pred_probs = bst.predict(X_train, num_iteration=bst.best_iteration)
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
         y_val_pred_probs = bst.predict(X_val, num_iteration=bst.best_iteration)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred_probs = bst.predict(X_test, num_iteration=bst.best_iteration)
+        y_train_pred = np.argmax(y_train_pred_probs, 1)
+        y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred = np.argmax(y_test_pred_probs, 1)
 
         loss_info = {
