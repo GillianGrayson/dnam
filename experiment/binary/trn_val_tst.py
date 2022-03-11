@@ -5,7 +5,7 @@ from pytorch_lightning import (
     LightningDataModule,
     seed_everything,
 )
-from sa.logging import log_hyperparameters
+from experiment.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from src.utils import utils
@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from sa.multiclass.routines import eval_classification, eval_loss
+from experiment.multiclass.routines import eval_classification, eval_loss
 from typing import List
 from catboost import CatBoost
 import lightgbm as lgb
@@ -46,20 +46,15 @@ def process(config: DictConfig):
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.setup()
-    feature_names = datamodule.dnam.columns.to_list()
-    class_names = list(datamodule.statuses.keys())
-    data = pd.merge(datamodule.pheno.loc[:, datamodule.outcome], datamodule.dnam, left_index=True, right_index=True)
-    train_data = data.iloc[datamodule.ids_trn]
-    val_data = data.iloc[datamodule.ids_val]
-    test_data = data.iloc[datamodule.ids_tst]
-    X_train = train_data.loc[:, datamodule.dnam.columns.values].values
-    y_train = train_data.loc[:, datamodule.outcome].values
-    X_val = val_data.loc[:, datamodule.dnam.columns.values].values
-    y_val = val_data.loc[:, datamodule.outcome].values
-    X_test = test_data.loc[:, datamodule.dnam.columns.values].values
-    y_test = test_data.loc[:, datamodule.outcome].values
-
-    dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
+    feature_names = datamodule.get_feature_names()
+    class_names = datamodule.get_class_names()
+    raw_data = datamodule.get_raw_data()
+    X_train = raw_data['X_train']
+    y_train = raw_data['y_train']
+    X_val = raw_data['X_val']
+    y_val = raw_data['y_val']
+    X_test = raw_data['X_test']
+    y_test = raw_data['y_test']
 
     if config.model_sa == "xgboost":
         model_params = {
@@ -159,7 +154,6 @@ def process(config: DictConfig):
 
         ds_train = lgb.Dataset(X_train, label=y_train, feature_name=feature_names)
         ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_train, feature_name=feature_names)
-        ds_test = lgb.Dataset(X_test, label=y_test, reference=ds_train, feature_name=feature_names)
 
         evals_result = {}
         bst = lgb.train(

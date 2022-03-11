@@ -7,13 +7,13 @@ from omegaconf import DictConfig
 dotenv.load_dotenv(override=True)
 
 
-@hydra.main(config_path="configs/", config_name="main_tabnet.yaml")
+@hydra.main(config_path="../configs/", config_name="main_tabnet.yaml")
 def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from sa.to_delete.tabnet.train import train_tabnet
+    from experiment.to_delete.tabnet.train import train_tabnet
     import torch
 
     # A couple of optional utilities:

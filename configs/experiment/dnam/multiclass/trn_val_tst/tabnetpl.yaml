@@ -2,7 +2,7 @@
 
 data_type: dnam
 
-project_name: ${data_type}_multiclass_tabnet
+project_name: ${data_type}_multiclass_trn_val_tst_tabnet
 
 is_cv: False
 n_splits: 5

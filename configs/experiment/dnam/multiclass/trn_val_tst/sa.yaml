@@ -3,7 +3,7 @@
 data_type: dnam
 model_sa: xgboost
 
-project_name: ${data_type}_multiclass_${model_sa}
+project_name: ${data_type}_multiclass_trn_val_tst_${model_sa}
 
 is_cv: False
 n_splits: 5

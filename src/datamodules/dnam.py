@@ -227,6 +227,26 @@ class DNAmDataModuleTogether(LightningDataModule):
             shuffle=False,
         )
 
+    def get_feature_names(self):
+        return self.dnam.columns.to_list()
+
+    def get_class_names(self):
+        return list(self.statuses.keys())
+
+    def get_raw_data(self):
+        data = pd.merge(self.pheno.loc[:, self.outcome], self.dnam, left_index=True, right_index=True)
+        train_data = data.iloc[self.ids_trn]
+        val_data = data.iloc[self.ids_val]
+        test_data = data.iloc[self.ids_tst]
+        raw_data = {}
+        raw_data['X_train'] = train_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_train'] = train_data.loc[:, self.outcome].values
+        raw_data['X_val'] = val_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_val'] = val_data.loc[:, self.outcome].values
+        raw_data['X_test'] = test_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_test'] = test_data.loc[:, self.outcome].values
+        return raw_data
+
 
 class DNAmDataModuleSeparate(LightningDataModule):
 
@@ -411,6 +431,26 @@ class DNAmDataModuleSeparate(LightningDataModule):
             shuffle=False,
         )
 
+    def get_feature_names(self):
+        return self.dnam.columns.to_list()
+
+    def get_class_names(self):
+        return list(self.statuses.keys())
+
+    def get_raw_data(self):
+        data = pd.merge(self.pheno.loc[:, self.outcome], self.dnam, left_index=True, right_index=True)
+        train_data = data.iloc[self.ids_trn]
+        val_data = data.iloc[self.ids_val]
+        test_data = data.iloc[self.ids_tst]
+        raw_data = {}
+        raw_data['X_train'] = train_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_train'] = train_data.loc[:, self.outcome].values
+        raw_data['X_val'] = val_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_val'] = val_data.loc[:, self.outcome].values
+        raw_data['X_test'] = test_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_test'] = test_data.loc[:, self.outcome].values
+        return raw_data
+
 
 class DNAmPhenoInferenceDataModule(LightningDataModule):
 
@@ -493,3 +533,17 @@ class DNAmPhenoInferenceDataModule(LightningDataModule):
             pin_memory=self.pin_memory,
             shuffle=False,
         )
+
+    def get_feature_names(self):
+        return self.dnam.columns.to_list()
+
+    def get_class_names(self):
+        return list(self.statuses.keys())
+
+    def get_raw_data(self):
+        data = pd.merge(self.pheno.loc[:, self.outcome], self.dnam, left_index=True, right_index=True)
+        test_data = data.iloc[self.ids]
+        raw_data = {}
+        raw_data['X_test'] = test_data.loc[:, self.dnam.columns.values].values
+        raw_data['y_test'] = test_data.loc[:, self.outcome].values
+        return raw_data

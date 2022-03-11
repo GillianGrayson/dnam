@@ -7,12 +7,12 @@ from omegaconf import DictConfig
 dotenv.load_dotenv(override=True)
 
 
-@hydra.main(config_path="configs/", config_name="main.yaml")
+@hydra.main(config_path="../configs/", config_name="main_fcmlp.yaml")
 def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
-    from src.train import train
+    from experiment.multiclass.trn_val_tst.pl import process
     from src.train_cv import train_cv
     from src.utils import utils
     import torch
@@ -41,7 +41,7 @@ def main(config: DictConfig):
     if is_cv:
         return train_cv(config)
     else:
-        return train(config)
+        return process(config)
 
 
 

@@ -5,12 +5,12 @@ from pytorch_lightning import (
     LightningDataModule,
     seed_everything,
 )
-from sa.logging import log_hyperparameters
+from experiment.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
-from sa.multiclass.metrics import get_metrics_dict
+from experiment.multiclass.metrics import get_metrics_dict
 from src.utils import utils
-import xgboost as xgb
+from catboost import CatBoost
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
@@ -23,7 +23,7 @@ import wandb
 
 log = utils.get_logger(__name__)
 
-def train_xgboost(config: DictConfig):
+def train_catboost(config: DictConfig):
 
     # Set seed for random number generators in pytorch, numpy and python.random
     if "seed" in config:
@@ -59,37 +59,28 @@ def train_xgboost(config: DictConfig):
     X_test = test_data.loc[:, datamodule.betas.columns.values].values
     y_test = test_data.loc[:, datamodule.outcome].values
 
-    dmat_train = xgb.DMatrix(X_train, y_train, feature_names=feature_names)
-    dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names)
-    dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
-
     class_names = list(datamodule.statuses.keys())
 
     model_params = {
-        'num_class': config.model.output_dim,
-        'booster': config.model.booster,
-        'eta': config.model.learning_rate,
-        'max_depth': config.model.max_depth,
-        'gamma': config.model.gamma,
-        'sampling_method': config.model.sampling_method,
-        'subsample': config.model.subsample,
-        'objective': config.model.objective,
-        'verbosity': config.model.verbosity,
+        'classes_count': config.model.output_dim,
+        'loss_function': config.model.loss_function,
+        'learning_rate': config.model.learning_rate,
+        'depth': config.model.depth,
+        'min_data_in_leaf': config.model.min_data_in_leaf,
+        'max_leaves': config.model.max_leaves,
+        'task_type': config.model.task_type,
+        'verbose': config.model.verbose,
+        'iterations': config.trainer.max_epochs,
+        'early_stopping_rounds': config.trainer.patience
     }
 
-    num_boost_round = config.trainer.max_epochs
-    early_stopping_rounds = config.trainer.patience
-    bst = xgb.train(
-        params=model_params,
-        dtrain=dmat_train,
-        evals=[(dmat_train, "train"), (dmat_val, "val"), (dmat_test, "test")],
-        num_boost_round=num_boost_round,
-        early_stopping_rounds=early_stopping_rounds
-    )
-    bst.save_model(f"epoch_{bst.best_iteration}.model")
+    bst = CatBoost(params=model_params)
+    bst.fit(X_train, y_train, eval_set=(X_val, y_val))
+    bst.set_feature_names(feature_names)
 
-    fi = bst.get_score(importance_type='weight')
-    feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
+    bst.save_model(f"epoch_{bst.best_iteration_}.model")
+
+    feature_importances = pd.DataFrame.from_dict({'feature': bst.feature_names_, 'importance': list(bst.feature_importances_)})
     feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
     fig = go.Figure()
     ys = feature_importances['feature'][0:num_top_features][::-1]
@@ -102,11 +93,11 @@ def train_xgboost(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("feature_importances.xlsx", index=True)
 
-    y_train_pred_probs = bst.predict(dmat_train)
+    y_train_pred_probs = bst.predict(X_train, prediction_type="Probability")
     y_train_pred = np.argmax(y_train_pred_probs, 1)
-    y_val_pred_probs = bst.predict(dmat_val)
+    y_val_pred_probs = bst.predict(X_val, prediction_type="Probability")
     y_val_pred = np.argmax(y_val_pred_probs, 1)
-    y_test_pred_probs = bst.predict(dmat_test)
+    y_test_pred_probs = bst.predict(X_test, prediction_type="Probability")
     y_test_pred = np.argmax(y_test_pred_probs, 1)
 
     metrics_classes_dict = get_metrics_dict(config.model.output_dim, object)

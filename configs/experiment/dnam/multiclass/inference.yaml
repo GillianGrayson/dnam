@@ -1,11 +1,19 @@
 # @package _global_
 
-project_name: inference
+data_type: dnam
 
-sa_model: lightgbm
-# sa_model: tabnetpl
-# sa_model: catboost
-# sa_model: xgboost
+model_type: lightgbm
+# model_sa: tabnetpl
+# model_sa: catboost
+# model_sa: xgboost
+ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-16_23-22-25/epoch_508.txt"
+# ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_01-37-15/checkpoints/100.ckpt"
+# ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_00-52-21/epoch_587.model"
+# ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-16_23-43-45/epoch_472.model"
+
+project_name: ${data_type}_multiclass_inference_${model_type}
+
+dataset: "GSE87571"
 
 is_cv: False
 n_splits: 5
@@ -20,15 +28,12 @@ seed: 322
 in_dim: 30866
 out_dim: 2
 
-data_type: "one_by_one"
+dnam_data_type: "one_by_one"
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
 work_dir: "${base_dir}/models/${project_name}"
-data_dir: "${base_dir}/${data_type}"
+data_dir: "${base_dir}/${dnam_data_type}"
 
-ckpt_path: "${base_dir}/models/${sa_model}/runs/2022-02-16_23-22-25/epoch_508.txt"
-# ckpt_path: "${base_dir}/models/${sa_model}/runs/2022-02-17_01-37-15/checkpoints/100.ckpt"
-# ckpt_path: "${base_dir}/models/${sa_model}/runs/2022-02-17_00-52-21/epoch_587.model"
-# ckpt_path: "${base_dir}/models/${sa_model}/runs/2022-02-16_23-43-45/epoch_472.model"
+
 
 # specify here default training configuration
 defaults:
@@ -45,8 +50,8 @@ datamodule:
   path: ${data_dir}
   cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
-  dnam_fn: "mvals_train_val.pkl"
-  pheno_fn: "pheno_train_val.pkl"
+  dnam_fn: "mvals_${dataset}.pkl"
+  pheno_fn: "pheno_${dataset}.pkl"
   outcome: "Status"
   batch_size: 64
   num_workers: 0

@@ -26,7 +26,7 @@ to your `README.md`.
 -->
 
 ## 📌&nbsp;&nbsp;Introduction
-This template tries to be as general as possible - you can easily delete any unwanted features from the pipeline or rewire the configuration, by modifying behavior in [src/train.py](src/train.py).
+This template tries to be as general as possible - you can easily delete any unwanted features from the pipeline or rewire the configuration, by modifying behavior in [src/train.py](experiment/multiclass/trn_val_tst/pl.py).
 
 > Effective usage of this template requires learning of a couple of technologies: [PyTorch](https://pytorch.org), [PyTorch Lightning](https://www.pytorchlightning.ai) and [Hydra](https://hydra.cc). Knowledge of some experiment logging framework like [Weights&Biases](https://wandb.com), [Neptune](https://neptune.ai) or [MLFlow](https://mlflow.org) is also recommended.
 
@@ -49,7 +49,7 @@ It makes your code neatly organized and provides lots of useful features, like a
 ## Main Ideas Of This Template
 - **Predefined Structure**: clean and scalable so that work can easily be extended and replicated (see [#Project Structure](#project-structure))
 - **Rapid Experimentation**: thanks to automating pipeline with config files and hydra command line superpowers (see [#Your Superpowers](#your-superpowers))
-- **Little Boilerplate**: so pipeline can be easily modified (see [src/train.py](src/train.py))
+- **Little Boilerplate**: so pipeline can be easily modified (see [src/train.py](experiment/multiclass/trn_val_tst/pl.py))
 - **Main Configuration**: main config file specifies default training configuration (see [#Main Project Configuration](#main-project-configuration))
 - **Experiment Configurations**: stored in a separate folder, they can be composed out of smaller configs, override chosen parameters or define everything from scratch (see [#Experiment Configuration](#experiment-configuration))
 - **Workflow**: comes down to 4 simple steps (see [#Workflow](#workflow))
@@ -395,7 +395,7 @@ Have a question? Found a bug? Missing a specific feature? Ran into a problem? Fe
 
 
 ### How it works
-By design, every run is initialized by [run.py](run_fcmlp.py) file. All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
+By design, every run is initialized by [run.py](to_delete/run_fcmlp.py) file. All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
 ```yaml
 _target_: src.models.mnist_model.MNISTLitModel
 input_size: 784
@@ -411,7 +411,7 @@ model = hydra.utils.instantiate(config.model)
 ```
 This allows you to easily iterate over new models!<br>
 Every time you create a new one, just specify its module path and parameters in appriopriate config file. <br>
-The whole pipeline managing the instantiation logic is placed in [src/train.py](src/train.py).
+The whole pipeline managing the instantiation logic is placed in [src/train.py](experiment/multiclass/trn_val_tst/pl.py).
 
 <br>
 
@@ -809,7 +809,7 @@ List of extra utilities available in the template:
 - debug mode
 <!-- - (TODO) resuming latest run -->
 
-You can easily remove any of those by modifying [run.py](run_fcmlp.py) and [src/train.py](src/train.py).
+You can easily remove any of those by modifying [run.py](to_delete/run_fcmlp.py) and [src/train.py](experiment/multiclass/trn_val_tst/pl.py).
 <br><br>
 
 <!--
@@ -1126,7 +1126,7 @@ This way you can reference any datamodule attribute from your config like this:
 # this will get 'datamodule.some_param' field
 some_parameter: ${datamodule: some_param}
 ```
-When later accessing this field, say in your lightning model, it will get automatically resolved based on all resolvers that are registered. Remember not to access this field before datamodule is initialized. **You also need to set resolve to false in print_config() in [run.py](run_fcmlp.py) method or it will throw errors!**
+When later accessing this field, say in your lightning model, it will get automatically resolved based on all resolvers that are registered. Remember not to access this field before datamodule is initialized. **You also need to set resolve to false in print_config() in [run.py](to_delete/run_fcmlp.py) method or it will throw errors!**
 ```python
 utils.print_config(config, resolve=False)
 ```
