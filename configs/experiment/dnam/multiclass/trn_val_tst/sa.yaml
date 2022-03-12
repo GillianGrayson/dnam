@@ -18,8 +18,8 @@ seed: 322
 in_dim: 30866
 out_dim: 2
 
-max_epochs: 100
-patience: 50
+max_epochs: 10
+patience: 5
 
 dnam_data_type: "one_by_one"
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"

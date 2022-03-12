@@ -104,8 +104,10 @@ class EEGDataModuleSeparate(LightningDataModule):
         self.tst[self.outcome].replace(self.classes_dict, inplace=True)
 
         self.data_trn_val = self.trn_val.loc[:, self.features_names]
+        self.data_trn_val = self.data_trn_val.astype('float32')
         self.output_trn_val = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin']]
         self.data_tst = self.tst.loc[:, self.features_names]
+        self.data_tst = self.data_tst.astype('float32')
         self.output_tst = self.tst.loc[:, [self.outcome, f'{self.outcome}_origin']]
 
         self.data = pd.concat([self.data_trn_val, self.data_tst])
