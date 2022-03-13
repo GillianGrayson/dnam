@@ -27,10 +27,11 @@ work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 is_shap: True
+shap_explainer: Tree
 
 # Plot params
 num_top_features: 20
-num_examples: 10
+num_examples: 3
 
 # specify here default training configuration
 defaults:

@@ -6,53 +6,68 @@ from pathlib import Path
 
 
 def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_prob, feature_names, class_names, ids_train, ids_val, ids_test):
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(X)
+    if config.shap_explainer == "Tree":
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(X)
 
-    if y_prob.shape[1] != len(explainer.expected_value):
-        raise ValueError(f"Wrong number of classes in explainer.expected_value")
+        if y_prob.shape[1] != len(explainer.expected_value):
+            raise ValueError(f"Wrong number of classes in explainer.expected_value")
 
-    # Calculate base prob
-    base_prob = []
-    base_prob_num = []
-    base_prob_den = 0
-    for class_id in range(0, len(explainer.expected_value)):
-        base_prob_num.append(np.exp(explainer.expected_value[class_id]))
-        base_prob_den += np.exp(explainer.expected_value[class_id])
-    for class_id in range(0, len(explainer.expected_value)):
-        base_prob.append(base_prob_num[class_id] / base_prob_den)
+        # Calculate base prob
+        base_prob = []
+        base_prob_num = []
+        base_prob_den = 0
+        for class_id in range(0, len(explainer.expected_value)):
+            base_prob_num.append(np.exp(explainer.expected_value[class_id]))
+            base_prob_den += np.exp(explainer.expected_value[class_id])
+        for class_id in range(0, len(explainer.expected_value)):
+            base_prob.append(base_prob_num[class_id] / base_prob_den)
 
-    # Checking conversion to probability space
-    delta_probs = []
-    for class_id in range(0, y_prob.shape[1]):
-        delta_probs.append([])
-        for subject_id in range(0, y_prob.shape[0]):
-            real_prob = y_prob[subject_id, class_id]
-            expl_prob_num = np.exp(explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id]))
-            expl_prob_den = 0
-            for c_id in range(0, len(explainer.expected_value)):
-                expl_prob_den += np.exp(explainer.expected_value[c_id] + sum(shap_values[c_id][subject_id]))
-            expl_prob = expl_prob_num / expl_prob_den
-            delta_probs[class_id].append(expl_prob - base_prob[class_id])
-            diff_prob = real_prob - expl_prob
-            if abs(diff_prob) > 1e-6:
-                print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+        # Checking conversion to probability space
+        delta_probs = []
+        for class_id in range(0, y_prob.shape[1]):
+            delta_probs.append([])
+            for subject_id in range(0, y_prob.shape[0]):
+                real_prob = y_prob[subject_id, class_id]
+                expl_prob_num = np.exp(explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id]))
+                expl_prob_den = 0
+                for c_id in range(0, len(explainer.expected_value)):
+                    expl_prob_den += np.exp(explainer.expected_value[c_id] + sum(shap_values[c_id][subject_id]))
+                expl_prob = expl_prob_num / expl_prob_den
+                delta_probs[class_id].append(expl_prob - base_prob[class_id])
+                diff_prob = real_prob - expl_prob
+                if abs(diff_prob) > 1e-6:
+                    print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
 
-    # Convert logloss SHAP values to probability SHAP values
-    shap_values_prob = copy.deepcopy(shap_values)
-    for class_id in range(0, len(explainer.expected_value)):
-        for subject_id in range(0, y_prob.shape[0]):
-            shap_contrib_logloss = np.sum(shap_values[class_id][subject_id])
-            shap_contrib_prob = delta_probs[class_id][subject_id]
-            if np.sign(shap_contrib_logloss) != np.sign(shap_contrib_prob):
-                print(f"Different signs in logloss and probability SHAP contribution for subject {subject_id} in class {class_id}")
-            coeff = shap_contrib_prob / shap_contrib_logloss
-            for feature_id in range(0, X.shape[1]):
-                shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
-            diff_check = shap_contrib_prob - sum(shap_values_prob[class_id][subject_id])
-            if abs(diff_check) > 1e-5:
-                print(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
-    shap_values = shap_values_prob
+        # Convert logloss SHAP values to probability SHAP values
+        shap_values_prob = copy.deepcopy(shap_values)
+        for class_id in range(0, len(explainer.expected_value)):
+            for subject_id in range(0, y_prob.shape[0]):
+                shap_contrib_logloss = np.sum(shap_values[class_id][subject_id])
+                shap_contrib_prob = delta_probs[class_id][subject_id]
+                if np.sign(shap_contrib_logloss) != np.sign(shap_contrib_prob):
+                    print(f"Different signs in logloss and probability SHAP contribution for subject {subject_id} in class {class_id}")
+                coeff = shap_contrib_prob / shap_contrib_logloss
+                for feature_id in range(0, X.shape[1]):
+                    shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
+                diff_check = shap_contrib_prob - sum(shap_values_prob[class_id][subject_id])
+                if abs(diff_check) > 1e-5:
+                    print(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
+        shap_values = shap_values_prob
+
+    elif config.shap_explainer == "Kernel":
+        explainer = shap.KernelExplainer(shap_proba, data=X)
+        shap_values = explainer.shap_values(X)
+        for class_id in range(0, y_prob.shape[1]):
+            for subject_id in range(0, y_prob.shape[0]):
+                real_prob = y_prob[subject_id, class_id]
+                expl_prob = explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id])
+                diff_prob = real_prob - expl_prob
+                if abs(diff_prob) > 1e-6:
+                    print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+
+    else:
+        raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
     shap_values_train = copy.deepcopy(shap_values)
     for cl_id, cl in enumerate(class_names):
@@ -70,8 +85,8 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
         color=plt.get_cmap("Set1")
     )
     Path(f"shap").mkdir(parents=True, exist_ok=True)
-    plt.savefig('shap/bar.png', bbox_inches='tight', dpi=600)
-    plt.savefig('shap/bar.pdf', bbox_inches='tight', dpi=600)
+    plt.savefig('shap/bar.png', bbox_inches='tight')
+    plt.savefig('shap/bar.pdf', bbox_inches='tight')
     plt.close()
 
     for cl_id, cl in enumerate(class_names):
@@ -85,8 +100,8 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
             title=cl,
             show=False,
         )
-        plt.savefig(f"shap/beeswarm_{cl}.png", bbox_inches='tight', dpi=600)
-        plt.savefig(f"shap/beeswarm_{cl}.pdf", bbox_inches='tight', dpi=600)
+        plt.savefig(f"shap/beeswarm_{cl}.png", bbox_inches='tight')
+        plt.savefig(f"shap/beeswarm_{cl}.pdf", bbox_inches='tight')
         plt.close()
 
     is_correct_pred = (np.array(y_real) == np.array(y_pred))
@@ -94,6 +109,7 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
     num_mistakes = min(len(mistakes_ids), config.num_examples)
 
     for m_id in mistakes_ids[0:num_mistakes]:
+        print(f"Plotting sample with mistake #{m_id}")
         subj_cl = y_real[m_id]
         subj_pred_cl = y_pred[m_id]
         for st_id, st in enumerate(class_names):
@@ -110,14 +126,15 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
             fig = plt.gcf()
             fig.set_size_inches(20, 10, forward=True)
             Path(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}").mkdir(parents=True, exist_ok=True)
-            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.pdf", bbox_inches='tight', dpi=600)
-            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.png", bbox_inches='tight', dpi=600)
+            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.pdf", bbox_inches='tight')
+            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.png", bbox_inches='tight')
             plt.close()
 
     passed_examples = {x: 0 for x in range(len(class_names))}
     for subj_id in range(X.shape[0]):
         subj_cl = y_real[subj_id]
         if passed_examples[subj_cl] < config.num_examples:
+            print(f"Plotting coorect sample #{passed_examples[subj_cl]} for {subj_cl}")
             for st_id, st in enumerate(class_names):
                 shap.waterfall_plot(
                     shap.Explanation(
@@ -132,7 +149,7 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
                 fig = plt.gcf()
                 fig.set_size_inches(20, 10, forward=True)
                 Path(f"shap/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}").mkdir(parents=True, exist_ok=True)
-                fig.savefig(f"shap/corrects//{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.pdf", bbox_inches='tight', dpi=600)
-                fig.savefig(f"shap/corrects//{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.png", bbox_inches='tight', dpi=600)
+                fig.savefig(f"shap/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.pdf", bbox_inches='tight')
+                fig.savefig(f"shap/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.png", bbox_inches='tight')
                 plt.close()
             passed_examples[subj_cl] += 1

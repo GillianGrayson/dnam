@@ -210,7 +210,7 @@ def process(config: DictConfig):
     add_layout(fig, f"Feature importance", f"", "")
     fig.update_yaxes(tickfont_size=10)
     fig.update_xaxes(showticklabels=True)
-    fig.update_layout(margin=go.layout.Margin(l=110, r=20, b=75, t=25, pad=0))
+    fig.update_layout(margin=go.layout.Margin(l=130, r=20, b=75, t=25, pad=0))
     save_figure(fig, f"feature_importances")
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("feature_importances.xlsx", index=True)
