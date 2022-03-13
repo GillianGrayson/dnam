@@ -15,12 +15,14 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
 from experiment.multiclass.routines import eval_classification
+from experiment.multiclass.shap import perform_shap_explanation
 from experiment.routines import eval_loss
 from typing import List
 from catboost import CatBoost
 import lightgbm as lgb
 import wandb
 import shap
+import copy
 
 
 log = utils.get_logger(__name__)
@@ -100,6 +102,11 @@ def process(config: DictConfig):
             'val/loss': evals_result['val'][config.xgboost.eval_metric]
         }
 
+        def shap_proba(X):
+            X = xgb.DMatrix(X, feature_names=feature_names)
+            y = model.predict(X)
+            return y
+
         fi = model.get_score(importance_type='weight')
         feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
     elif config.model_sa == "catboost":
@@ -135,6 +142,10 @@ def process(config: DictConfig):
             'train/loss': metrics_train.iloc[:, 1],
             'val/loss': metrics_test.iloc[:, 1]
         }
+
+        def shap_proba(X):
+            y = model.predict(X, prediction_type="Probability")
+            return y
 
         feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
     elif config.model_sa == "lightgbm":
@@ -183,6 +194,10 @@ def process(config: DictConfig):
             'val/loss': evals_result['val'][config.lightgbm.metric]
         }
 
+        def shap_proba(X):
+            y = model.predict(X)
+            return y
+
         feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
     else:
         raise ValueError(f"Model {config.model_sa} is not supported")
@@ -213,10 +228,12 @@ def process(config: DictConfig):
         logger.save()
     wandb.finish()
 
-    train_explainer = shap.TreeExplainer(model, data=X_train, model_output='probability', feature_dependence="independent")
-    train_shap_values = train_explainer.shap_values(X_train)
-    y_train_shap_probs = np.sum(train_shap_values, axis=1) + train_explainer.expected_value
-    prob_diff = max(y_train_shap_probs - y_train_pred_probs)
+    if config.is_shap == True:
+        X_all = np.concatenate((X_train, X_val, X_test))
+        y_all = np.concatenate((y_train, y_val, y_test))
+        y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
+        y_all_pred_probs = np.concatenate((y_train_pred_probs, y_val_pred_probs, y_test_pred_probs))
+        perform_shap_explanation(config, model, shap_proba, X_all, y_all, y_all_pred, y_all_pred_probs, feature_names, class_names)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:

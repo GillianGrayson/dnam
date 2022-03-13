@@ -1,6 +1,6 @@
 # @package _global_
 
-data_type: dnam
+data_type: eeg
 
 project_name: ${data_type}_multiclass_trn_val_tst_tabnet
 
@@ -14,13 +14,13 @@ ignore_warnings: True
 test_after_training: True
 
 seed: 322
-in_dim: 30866
-out_dim: 2
+in_dim: 768
+out_dim: 3
 
-dnam_data_type: "one_by_one"
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
+eeg_data_type: 1st_Day_right_im1_left_im1_background
+base_dir: "E:/YandexDisk/EEG/Files/${eeg_data_type}"
 work_dir: "${base_dir}/models/${project_name}"
-data_dir: "${base_dir}/${dnam_data_type}"
+data_dir: "${base_dir}"
 
 is_shap: True
 
@@ -34,18 +34,17 @@ defaults:
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
 
+# Separate (train/val separated from test) DataModule
 datamodule:
-  _target_: src.datamodules.dnam.DNAmDataModuleSeparate
+  _target_: src.datamodules.eeg.EEGDataModuleSeparate
   path: ${data_dir}
-  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
-  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
-  dnam_trn_val_fn: "mvals_train_val.pkl"
-  pheno_trn_val_fn: "pheno_train_val.pkl"
-  dnam_tst_fn: "mvals_test.pkl"
-  pheno_tst_fn: "pheno_test.pkl"
-  outcome: "Status"
-  batch_size: 64
-  trn_val_tst_split: [0.8, 0.2]
+  features_fn: "${data_dir}/features_df.xlsx"
+  classes_fn: "${data_dir}/classes_df.xlsx"
+  trn_val_fn: "train_val_df.xlsx"
+  tst_fn: "test_df.xlsx"
+  outcome: "class"
+  batch_size: 256
+  trn_val_tst_split: [0.80, 0.20]
   num_workers: 0
   pin_memory: False
   seed: ${seed}
@@ -71,9 +70,9 @@ model:
   virtual_batch_size: 128
   mask_type: "sparsemax"
   loss_type: "CrossEntropyLoss"
-  optimizer_lr: 0.02
+  optimizer_lr: 0.005
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 50
+  scheduler_step_size: 100
   scheduler_gamma: 0.9
 
 callbacks:
@@ -90,5 +89,5 @@ callbacks:
   early_stopping:
     monitor: "val/f1_weighted" # name of the logged metric which determines when model is improving
     mode: "max" # can be "max" or "min"
-    patience: 50 # how many epochs of not improving until training stops
+    patience: 200 # how many epochs of not improving until training stops
     min_delta: 0 # minimum change in the monitored metric needed to qualify as an improvement
