@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 
-def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_prob, feature_names, class_names):
+def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_prob, feature_names, class_names, ids_train, ids_val, ids_test):
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X)
 
@@ -54,9 +54,13 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
                 print(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
     shap_values = shap_values_prob
 
+    shap_values_train = copy.deepcopy(shap_values)
+    for cl_id, cl in enumerate(class_names):
+        shap_values_train[cl_id] = shap_values[cl_id][ids_train, :]
+
     shap.summary_plot(
-        shap_values=shap_values,
-        features=X,
+        shap_values=shap_values_train,
+        features=X[ids_train, :],
         feature_names=feature_names,
         max_display=30,
         class_names=class_names,
@@ -66,23 +70,23 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
         color=plt.get_cmap("Set1")
     )
     Path(f"shap").mkdir(parents=True, exist_ok=True)
-    plt.savefig('shap/bar.png')
-    plt.savefig('shap/bar.pdf')
+    plt.savefig('shap/bar.png', bbox_inches='tight', dpi=600)
+    plt.savefig('shap/bar.pdf', bbox_inches='tight', dpi=600)
     plt.close()
 
-    for st_id, st in enumerate(class_names):
+    for cl_id, cl in enumerate(class_names):
         shap.summary_plot(
-            shap_values=shap_values[st_id],
-            features=X,
+            shap_values=shap_values_train[cl_id],
+            features=X[ids_train, :],
             feature_names=feature_names,
             max_display=30,
             plot_size=(18, 10),
             plot_type="violin",
-            title=st,
-            show=False
+            title=cl,
+            show=False,
         )
-        plt.savefig(f"shap/beeswarm_{st}.png")
-        plt.savefig(f"shap/beeswarm_{st}.pdf")
+        plt.savefig(f"shap/beeswarm_{cl}.png", bbox_inches='tight', dpi=600)
+        plt.savefig(f"shap/beeswarm_{cl}.pdf", bbox_inches='tight', dpi=600)
         plt.close()
 
     is_correct_pred = (np.array(y_real) == np.array(y_pred))
@@ -104,10 +108,10 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
                 show=False
             )
             fig = plt.gcf()
-            fig.set_size_inches(18, 10, forward=True)
+            fig.set_size_inches(20, 10, forward=True)
             Path(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}").mkdir(parents=True, exist_ok=True)
-            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.pdf")
-            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.png")
+            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.pdf", bbox_inches='tight', dpi=600)
+            fig.savefig(f"shap/errors/real({class_names[subj_cl]})_pred({class_names[subj_pred_cl]})/{m_id}/waterfall_{st}.png", bbox_inches='tight', dpi=600)
             plt.close()
 
     passed_examples = {x: 0 for x in range(len(class_names))}
@@ -126,13 +130,9 @@ def perform_shap_explanation(config, model, shap_proba, X, y_real, y_pred, y_pro
                     show=False
                 )
                 fig = plt.gcf()
-                fig.set_size_inches(18, 10, forward=True)
+                fig.set_size_inches(20, 10, forward=True)
                 Path(f"shap/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}").mkdir(parents=True, exist_ok=True)
-                fig.savefig(f"shap/corrects//{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.pdf")
-                fig.savefig(f"shap/corrects//{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.png")
+                fig.savefig(f"shap/corrects//{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.pdf", bbox_inches='tight', dpi=600)
+                fig.savefig(f"shap/corrects//{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.png", bbox_inches='tight', dpi=600)
                 plt.close()
             passed_examples[subj_cl] += 1
-
-
-    #explainer_ker = shap.KernelExplainer(shap_proba, data=X)
-    #shap_values_ker = explainer_ker.shap_values(X)

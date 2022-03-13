@@ -233,7 +233,10 @@ def process(config: DictConfig):
         y_all = np.concatenate((y_train, y_val, y_test))
         y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
         y_all_pred_probs = np.concatenate((y_train_pred_probs, y_val_pred_probs, y_test_pred_probs))
-        perform_shap_explanation(config, model, shap_proba, X_all, y_all, y_all_pred, y_all_pred_probs, feature_names, class_names)
+        ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
+        ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
+        ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
+        perform_shap_explanation(config, model, shap_proba, X_all, y_all, y_all_pred, y_all_pred_probs, feature_names, class_names, ids_train, ids_val, ids_test)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
