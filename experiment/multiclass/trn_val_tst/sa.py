@@ -33,7 +33,8 @@ def process(config: DictConfig):
     if "seed" in config:
         seed_everything(config.seed, workers=True)
 
-    config.logger.wandb["project"] = config.project_name
+    if 'wandb' in config.logger:
+        config.logger.wandb["project"] = config.project_name
 
     # Init lightning loggers
     loggers: List[LightningLoggerBase] = []
@@ -219,14 +220,16 @@ def process(config: DictConfig):
     metrics_val = eval_classification(config, 'val', class_names, y_val, y_val_pred, y_val_pred_probs, loggers)
     eval_classification(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs, loggers)
 
-    wandb.define_metric(f"epoch")
-    wandb.define_metric(f"train/loss")
-    wandb.define_metric(f"val/loss")
+    if 'wandb' in config.logger:
+        wandb.define_metric(f"epoch")
+        wandb.define_metric(f"train/loss")
+        wandb.define_metric(f"val/loss")
     eval_loss(loss_info, loggers)
 
     for logger in loggers:
         logger.save()
-    wandb.finish()
+    if 'wandb' in config.logger:
+        wandb.finish()
 
     if config.is_shap == True:
         X_all = np.concatenate((X_train, X_val, X_test))

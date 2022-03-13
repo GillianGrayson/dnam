@@ -25,8 +25,9 @@ def eval_classification(config, part, class_names, y_real, y_pred, y_pred_probs,
 
     metrics = [metrics_classes_dict[m]() for m in metrics_summary]
 
-    for m, sum in metrics_summary.items():
-        wandb.define_metric(f"{part}/{m}", summary=sum)
+    if 'wandb' in config.logger:
+        for m, sum in metrics_summary.items():
+            wandb.define_metric(f"{part}/{m}", summary=sum)
 
     metrics_dict = {'metric': [m._name for m in metrics]}
     metrics_dict[part] = []
