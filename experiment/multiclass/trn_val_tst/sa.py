@@ -93,6 +93,9 @@ def process(config: DictConfig):
         y_train_pred_probs = model.predict(dmat_train)
         y_val_pred_probs = model.predict(dmat_val)
         y_test_pred_probs = model.predict(dmat_test)
+        y_train_pred_raw = model.predict(dmat_train, output_margin=True)
+        y_val_pred_raw = model.predict(dmat_val, output_margin=True)
+        y_test_pred_raw = model.predict(dmat_test, output_margin=True)
         y_train_pred = np.argmax(y_train_pred_probs, 1)
         y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred = np.argmax(y_test_pred_probs, 1)
@@ -132,6 +135,9 @@ def process(config: DictConfig):
         y_train_pred_probs = model.predict(X_train, prediction_type="Probability")
         y_val_pred_probs = model.predict(X_val, prediction_type="Probability")
         y_test_pred_probs = model.predict(X_test, prediction_type="Probability")
+        y_train_pred_raw = model.predict(X_train, prediction_type="RawFormulaVal")
+        y_val_pred_raw = model.predict(X_val, prediction_type="RawFormulaVal")
+        y_test_pred_raw = model.predict(X_test, prediction_type="RawFormulaVal")
         y_train_pred = np.argmax(y_train_pred_probs, 1)
         y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred = np.argmax(y_test_pred_probs, 1)
@@ -185,6 +191,9 @@ def process(config: DictConfig):
         y_train_pred_probs = model.predict(X_train, num_iteration=model.best_iteration)
         y_val_pred_probs = model.predict(X_val, num_iteration=model.best_iteration)
         y_test_pred_probs = model.predict(X_test, num_iteration=model.best_iteration)
+        y_train_pred_raw = model.predict(X_train, raw_score =True)
+        y_val_pred_raw = model.predict(X_val, raw_score =True)
+        y_test_pred_raw = model.predict(X_test, raw_score =True)
         y_train_pred = np.argmax(y_train_pred_probs, 1)
         y_val_pred = np.argmax(y_val_pred_probs, 1)
         y_test_pred = np.argmax(y_test_pred_probs, 1)
@@ -202,6 +211,16 @@ def process(config: DictConfig):
         feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
     else:
         raise ValueError(f"Model {config.model_sa} is not supported")
+
+    raw_data['y_train_pred_probs'] = y_train_pred_probs
+    raw_data['y_val_pred_probs'] = y_val_pred_probs
+    raw_data['y_test_pred_probs'] = y_test_pred_probs
+    raw_data['y_train_pred_raw'] = y_train_pred_raw
+    raw_data['y_val_pred_raw'] = y_val_pred_raw
+    raw_data['y_test_pred_raw'] = y_test_pred_raw
+    raw_data['y_train_pred'] = y_train_pred
+    raw_data['y_val_pred'] = y_val_pred
+    raw_data['y_test_pred'] = y_test_pred
 
     feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
     fig = go.Figure()
@@ -235,11 +254,20 @@ def process(config: DictConfig):
         X_all = np.concatenate((X_train, X_val, X_test))
         y_all = np.concatenate((y_train, y_val, y_test))
         y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
+        y_all_pred_raw = np.concatenate((y_train_pred_raw, y_val_pred_raw, y_test_pred_raw))
         y_all_pred_probs = np.concatenate((y_train_pred_probs, y_val_pred_probs, y_test_pred_probs))
         ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
         ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
         ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
-        perform_shap_explanation(config, model, shap_proba, X_all, y_all, y_all_pred, y_all_pred_probs, feature_names, class_names, ids_train, ids_val, ids_test)
+        raw_data['X_all'] = X_all
+        raw_data['y_all'] = y_all
+        raw_data['y_all_pred'] = y_all_pred
+        raw_data['y_all_pred_probs'] = y_all_pred_probs
+        raw_data['y_all_pred_raw'] = y_all_pred_raw
+        raw_data['ids_train'] = ids_train
+        raw_data['ids_val'] = ids_val
+        raw_data['ids_test'] = ids_test
+        perform_shap_explanation(config, model, shap_proba, raw_data, feature_names, class_names)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
