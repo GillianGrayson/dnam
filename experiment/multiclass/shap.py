@@ -3,6 +3,7 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 from pathlib import Path
+import torch
 
 
 def global_explain(shap_values, features, feature_names, class_names, path):
@@ -155,8 +156,6 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
                 # Сonvert raw SHAP values to probability SHAP values
                 shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
                 shap_contrib_prob = delta_prob
-                if np.sign(shap_contrib_logodd) != np.sign(shap_contrib_prob):
-                    print(f"Different signs in logodd and probability SHAP contribution for subject {subject_id} in class {class_id}")
                 coeff = shap_contrib_prob / shap_contrib_logodd
                 for feature_id in range(0, raw_data['X_all'].shape[1]):
                     shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
@@ -167,8 +166,21 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
         shap_values = shap_values_prob
 
     elif config.shap_explainer == "Kernel":
-        explainer = shap.KernelExplainer(shap_proba, data=raw_data['X_all'])
+        explainer = shap.KernelExplainer(shap_proba, raw_data['X_train'])
         shap_values = explainer.shap_values(raw_data['X_all'])
+        base_prob = explainer.expected_value
+        for class_id in range(0, raw_data['y_all_pred_probs'].shape[1]):
+            for subject_id in range(0, raw_data['y_all_pred_probs'].shape[0]):
+                real_prob = raw_data['y_all_pred_probs'][subject_id, class_id]
+                expl_prob = explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id])
+                diff_prob = real_prob - expl_prob
+                if abs(diff_prob) > 1e-6:
+                    print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+
+    elif config.shap_explainer == "Deep":
+        model.produce_probabilities = True
+        explainer = shap.DeepExplainer(model, torch.from_numpy(raw_data['X_train']))
+        shap_values = explainer.shap_values(torch.from_numpy(raw_data['X_all']))
         base_prob = explainer.expected_value
         for class_id in range(0, raw_data['y_all_pred_probs'].shape[1]):
             for subject_id in range(0, raw_data['y_all_pred_probs'].shape[0]):

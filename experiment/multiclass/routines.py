@@ -8,7 +8,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 
 
-def eval_classification(config, part, class_names, y_real, y_pred, y_pred_probs, loggers, probs=True):
+def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_probs, loggers, probs=True):
     metrics_classes_dict = get_metrics_dict(config.out_dim, object)
     metrics_summary = {
         'accuracy_macro': 'max',
@@ -39,12 +39,20 @@ def eval_classification(config, part, class_names, y_real, y_pred, y_pred_probs,
             m_val = m(y_real, y_pred)
         metrics_dict[part].append(m_val)
         log_dict[f"{part}/{m._name}"] = m_val
-    #wandb.log(log_dict)
     for logger in loggers:
         logger.log_metrics(log_dict)
 
-    conf_mtx = confusion_matrix(y_real, y_pred)
+    plot_confusion_matrix(y_real, y_pred, class_names, part)
 
+    metrics_df = pd.DataFrame.from_dict(metrics_dict)
+    metrics_df.set_index('metric', inplace=True)
+    metrics_df.to_excel(f"metrics_{part}.xlsx", index=True)
+
+    return metrics_df
+
+
+def plot_confusion_matrix(y_real, y_pred, class_names, part):
+    conf_mtx = confusion_matrix(y_real, y_pred)
     fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, colorscale='Viridis')
     fig.add_annotation(dict(font=dict(color="black", size=14),
                             x=0.5,
@@ -64,9 +72,3 @@ def eval_classification(config, part, class_names, y_real, y_pred, y_pred_probs,
     fig.update_layout(margin=dict(t=50, l=200))
     fig['data'][0]['showscale'] = True
     save_figure(fig, f"confusion_matrix_{part}")
-
-    metrics_df = pd.DataFrame.from_dict(metrics_dict)
-    metrics_df.set_index('metric', inplace=True)
-    metrics_df.to_excel(f"metrics_{part}.xlsx", index=True)
-
-    return metrics_df

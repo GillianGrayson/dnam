@@ -170,5 +170,4 @@ def finish(
     for lg in logger:
         if isinstance(lg, pl.loggers.wandb.WandbLogger):
             import wandb
-
             wandb.finish()

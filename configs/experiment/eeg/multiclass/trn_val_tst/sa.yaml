@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: eeg
-model_sa: catboost
+model_sa: lightgbm
 
 project_name: ${data_type}_multiclass_trn_val_tst_${model_sa}
 
@@ -18,7 +18,7 @@ seed: 322
 in_dim: 768
 out_dim: 3
 
-max_epochs: 1000
+max_epochs: 100
 patience: 10
 
 eeg_data_type: 1st_Day_right_im1_left_im1_background

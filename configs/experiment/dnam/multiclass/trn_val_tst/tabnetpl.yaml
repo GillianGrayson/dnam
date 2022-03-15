@@ -61,6 +61,7 @@ trainer:
   resume_from_checkpoint: null
 
 model:
+  _target_: src.models.dnam.tabnet.TabNetModel
   task: "classification"
   input_dim: ${in_dim}
   output_dim: ${out_dim}

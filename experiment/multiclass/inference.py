@@ -12,7 +12,7 @@ from pytorch_lightning import (
 from experiment.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 from src.utils import utils
-from experiment.multiclass.routines import eval_classification
+from experiment.multiclass.routines import eval_classification_sa
 from typing import List
 import wandb
 from catboost import CatBoost
@@ -73,7 +73,7 @@ def inference(config: DictConfig):
 
     y_test_pred = np.argmax(y_test_pred_probs, 1)
 
-    eval_classification(config, "inference", class_names, y_test, y_test_pred, y_test_pred_probs, loggers, probs=False)
+    eval_classification_sa(config, "inference", class_names, y_test, y_test_pred, y_test_pred_probs, loggers, probs=False)
 
     for logger in loggers:
         logger.save()
