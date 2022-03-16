@@ -12,7 +12,7 @@ from pytorch_lightning import (
 from experiment.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 from src.utils import utils
-from experiment.multiclass.routines import eval_classification_sa
+from experiment.routines import eval_classification_sa
 from typing import List
 import wandb
 from catboost import CatBoost

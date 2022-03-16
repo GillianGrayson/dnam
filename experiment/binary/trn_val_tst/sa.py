@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from experiment.binary.routines import eval_classification
+from experiment.routines import eval_classification_sa
 from experiment.routines import eval_loss
 from typing import List
 from catboost import CatBoost, CatBoostClassifier
@@ -198,9 +198,9 @@ def process(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("feature_importances.xlsx", index=True)
 
-    eval_classification(config, 'train', class_names, y_train, y_train_pred, y_train_pred_probs, loggers)
-    metrics_val = eval_classification(config, 'val', class_names, y_val, y_val_pred, y_val_pred_probs, loggers)
-    eval_classification(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs, loggers)
+    eval_classification_sa(config, 'train', class_names, y_train, y_train_pred, y_train_pred_probs, loggers)
+    metrics_val = eval_classification_sa(config, 'val', class_names, y_val, y_val_pred, y_val_pred_probs, loggers)
+    eval_classification_sa(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs, loggers)
 
     wandb.define_metric(f"epoch")
     wandb.define_metric(f"train/loss")

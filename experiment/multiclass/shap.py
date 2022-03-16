@@ -4,7 +4,10 @@ import copy
 import matplotlib.pyplot as plt
 from pathlib import Path
 import torch
+from src.utils import utils
 
+
+log = utils.get_logger(__name__)
 
 def global_explain(shap_values, features, feature_names, class_names, path):
     Path(f"{path}").mkdir(parents=True, exist_ok=True)
@@ -47,7 +50,7 @@ def local_explain(config, y_real, y_pred, shap_values, base_values, features, fe
     num_mistakes = min(len(mistakes_ids), config.num_examples)
 
     for m_id in mistakes_ids[0:num_mistakes]:
-        print(f"Plotting sample with error #{m_id}")
+        log.info(f"Plotting sample with error #{m_id}")
         subj_cl = y_real[m_id]
         subj_pred_cl = y_pred[m_id]
         for st_id, st in enumerate(class_names):
@@ -77,7 +80,7 @@ def local_explain(config, y_real, y_pred, shap_values, base_values, features, fe
     for subj_id in range(features.shape[0]):
         subj_cl = y_real[subj_id]
         if passed_examples[subj_cl] < config.num_examples:
-            print(f"Plotting correct sample #{passed_examples[subj_cl]} for {subj_cl}")
+            log.info(f"Plotting correct sample #{passed_examples[subj_cl]} for {subj_cl}")
             for st_id, st in enumerate(class_names):
                 shap.waterfall_plot(
                     shap.Explanation(
@@ -91,14 +94,9 @@ def local_explain(config, y_real, y_pred, shap_values, base_values, features, fe
                 )
                 fig = plt.gcf()
                 fig.set_size_inches(20, 10, forward=True)
-                Path(f"{path}/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}").mkdir(parents=True,
-                                                                                                           exist_ok=True)
-                fig.savefig(
-                    f"{path}/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.pdf",
-                    bbox_inches='tight')
-                fig.savefig(
-                    f"{path}/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.png",
-                    bbox_inches='tight')
+                Path(f"{path}/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}").mkdir(parents=True, exist_ok=True)
+                fig.savefig(f"{path}/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[subj_cl]}/{passed_examples[subj_cl]}_{subj_id}/waterfall_{st}.png", bbox_inches='tight')
                 plt.close()
             passed_examples[subj_cl] += 1
 
@@ -139,7 +137,7 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
                 expl_raw = explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id])
                 diff_raw = real_raw - expl_raw
                 if abs(diff_raw) > 1e-6:
-                    print(f"Difference between raw for subject {subject_id} in class {class_id}: {abs(diff_raw)}")
+                    log.warning(f"Difference between raw for subject {subject_id} in class {class_id}: {abs(diff_raw)}")
 
                 # Checking conversion to probability space
                 real_prob = raw_data['y_all_pred_probs'][subject_id, class_id]
@@ -151,7 +149,7 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
                 delta_prob = expl_prob - base_prob[class_id]
                 diff_prob = real_prob - expl_prob
                 if abs(diff_prob) > 1e-6:
-                    print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+                    log.warning(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
 
                 # Сonvert raw SHAP values to probability SHAP values
                 shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
@@ -161,7 +159,7 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
                     shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
                 diff_check = shap_contrib_prob - sum(shap_values_prob[class_id][subject_id])
                 if abs(diff_check) > 1e-6:
-                    print(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
+                    log.warning(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
 
         shap_values = shap_values_prob
 
@@ -175,7 +173,7 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
                 expl_prob = explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id])
                 diff_prob = real_prob - expl_prob
                 if abs(diff_prob) > 1e-6:
-                    print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+                    log.warning(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
 
     elif config.shap_explainer == "Deep":
         model.produce_probabilities = True
@@ -188,7 +186,7 @@ def perform_shap_explanation(config, model, shap_proba, raw_data, feature_names,
                 expl_prob = explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id])
                 diff_prob = real_prob - expl_prob
                 if abs(diff_prob) > 1e-6:
-                    print(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+                    log.warning(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
 
     else:
         raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
