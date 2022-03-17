@@ -253,8 +253,10 @@ class UNNDataModuleNoTest(LightningDataModule):
         raw_data = {}
         raw_data['X_train'] = train_data.loc[:, self.data.columns.values].values
         raw_data['y_train'] = train_data.loc[:, self.outcome].values
+        raw_data['indexes_train'] = train_data.index.values
         raw_data['X_val'] = val_data.loc[:, self.data.columns.values].values
         raw_data['y_val'] = val_data.loc[:, self.outcome].values
+        raw_data['indexes_val'] = val_data.index.values
         raw_data['train_data'] = train_data
         raw_data['val_data'] = val_data
         return raw_data

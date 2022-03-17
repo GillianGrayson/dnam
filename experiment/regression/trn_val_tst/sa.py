@@ -6,6 +6,7 @@ from pytorch_lightning import (
     seed_everything,
 )
 from experiment.logging import log_hyperparameters
+from experiment.regression.shap import perform_shap_explanation
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from src.utils import utils
@@ -58,14 +59,17 @@ def process(config: DictConfig):
     raw_data = datamodule.get_raw_data()
     X_train = raw_data['X_train']
     y_train = raw_data['y_train']
+    indexes_train = raw_data['indexes_train']
     X_val = raw_data['X_val']
     y_val = raw_data['y_val']
+    indexes_val = raw_data['indexes_val']
     train_data = raw_data['train_data']
     val_data = raw_data['val_data']
 
     if 'X_test' in raw_data:
         X_test = raw_data['X_test']
         y_test = raw_data['y_test']
+        indexes_test = raw_data['indexes_test']
         test_data = raw_data['test_data']
         is_test = True
     else:
@@ -114,7 +118,7 @@ def process(config: DictConfig):
             'val/loss': evals_result['val'][config.xgboost.eval_metric]
         }
 
-        def shap_proba(X):
+        def shap_kernel(X):
             X = xgb.DMatrix(X, feature_names=feature_names)
             y = model.predict(X)
             return y
@@ -156,7 +160,7 @@ def process(config: DictConfig):
             'val/loss': metrics_val.iloc[:, 1]
         }
 
-        def shap_proba(X):
+        def shap_kernel(X):
             y = model.predict(X, prediction_type="Probability")
             return y
 
@@ -208,7 +212,7 @@ def process(config: DictConfig):
             'val/loss': evals_result['val'][config.lightgbm.metric]
         }
 
-        def shap_proba(X):
+        def shap_kernel(X):
             y = model.predict(X)
             return y
 
@@ -359,10 +363,12 @@ def process(config: DictConfig):
         if is_test:
             X_all = np.concatenate((X_train, X_val, X_test))
             y_all = np.concatenate((y_train, y_val, y_test))
+            indexes_all = np.concatenate((indexes_train, indexes_val, indexes_test))
             y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
         else:
             X_all = np.concatenate((X_train, X_val))
             y_all = np.concatenate((y_train, y_val))
+            indexes_all = np.concatenate((indexes_train, indexes_val))
             y_all_pred = np.concatenate((y_train_pred, y_val_pred))
         ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
         ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
@@ -371,10 +377,12 @@ def process(config: DictConfig):
         raw_data['X_all'] = X_all
         raw_data['y_all'] = y_all
         raw_data['y_all_pred'] = y_all_pred
+        raw_data['indexes_all'] = indexes_all
         raw_data['ids_train'] = ids_train
         raw_data['ids_val'] = ids_val
         if is_test:
             raw_data['ids_test'] = ids_test
+        perform_shap_explanation(config, model, shap_kernel, raw_data, feature_names)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
