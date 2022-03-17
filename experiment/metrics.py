@@ -3,7 +3,7 @@ import torch
 
 
 def init_metric(self):
-    if self.average != '':
+    if hasattr(self, 'average') and self.average != '':
         self._name = f"{self.metric_type}_{self.average}"
     else:
         self._name = f"{self.metric_type}"

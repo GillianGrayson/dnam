@@ -1,11 +1,12 @@
 import pandas as pd
-from experiment.metrics import get_classification_metrics_dict
+from experiment.metrics import get_classification_metrics_dict, get_regression_metrics_dict
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
 import wandb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
+
 
 def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_probs, loggers, probs=True):
     metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
@@ -43,6 +44,40 @@ def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_pro
         logger.log_metrics(log_dict)
 
     plot_confusion_matrix(y_real, y_pred, class_names, part)
+
+    metrics_df = pd.DataFrame.from_dict(metrics_dict)
+    metrics_df.set_index('metric', inplace=True)
+    metrics_df.to_excel(f"metrics_{part}.xlsx", index=True)
+
+    return metrics_df
+
+
+def eval_regression_sa(config, part, y_real, y_pred, loggers):
+    metrics_classes_dict = get_regression_metrics_dict(object)
+    metrics_summary = {
+        'mean_absolute_error': 'min',
+        'mean_absolute_percentage_error': 'min',
+        'mean_squared_error': 'min',
+        'pearson_corrcoef': 'max',
+        'r2_score': 'max',
+        'spearman_corrcoef': 'max',
+    }
+
+    metrics = [metrics_classes_dict[m]() for m in metrics_summary]
+
+    if 'wandb' in config.logger:
+        for m, sum in metrics_summary.items():
+            wandb.define_metric(f"{part}/{m}", summary=sum)
+
+    metrics_dict = {'metric': [m._name for m in metrics]}
+    metrics_dict[part] = []
+    log_dict = {}
+    for m in metrics:
+        m_val = m(y_real, y_pred)
+        metrics_dict[part].append(m_val)
+        log_dict[f"{part}/{m._name}"] = m_val
+    for logger in loggers:
+        logger.log_metrics(log_dict)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)

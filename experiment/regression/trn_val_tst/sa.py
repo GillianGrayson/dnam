@@ -14,13 +14,16 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_classification_sa
-from experiment.multiclass.shap import perform_shap_explanation
+from experiment.routines import eval_regression_sa
 from experiment.routines import eval_loss
 from typing import List
 from catboost import CatBoost
 import lightgbm as lgb
+from scripts.python.routines.plot.scatter import add_scatter_trace
+import statsmodels.formula.api as smf
 import wandb
+from scripts.python.routines.plot.p_value import add_p_value_annotation
+from scipy.stats import mannwhitneyu
 import shap
 import copy
 
@@ -52,18 +55,24 @@ def process(config: DictConfig):
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.setup()
     feature_names = datamodule.get_feature_names()
-    class_names = datamodule.get_class_names()
     raw_data = datamodule.get_raw_data()
     X_train = raw_data['X_train']
     y_train = raw_data['y_train']
     X_val = raw_data['X_val']
     y_val = raw_data['y_val']
-    X_test = raw_data['X_test']
-    y_test = raw_data['y_test']
+    train_data = raw_data['train_data']
+    val_data = raw_data['val_data']
+
+    if 'X_test' in raw_data:
+        X_test = raw_data['X_test']
+        y_test = raw_data['y_test']
+        test_data = raw_data['test_data']
+        is_test = True
+    else:
+        is_test = False
 
     if config.model_sa == "xgboost":
         model_params = {
-            'num_class': config.xgboost.output_dim,
             'booster': config.xgboost.booster,
             'eta': config.xgboost.learning_rate,
             'max_depth': config.xgboost.max_depth,
@@ -77,7 +86,8 @@ def process(config: DictConfig):
 
         dmat_train = xgb.DMatrix(X_train, y_train, feature_names=feature_names)
         dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names)
-        dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
+        if is_test:
+            dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
 
         evals_result = {}
         model = xgb.train(
@@ -90,15 +100,13 @@ def process(config: DictConfig):
         )
         model.save_model(f"epoch_{model.best_iteration}.model")
 
-        y_train_pred_probs = model.predict(dmat_train)
-        y_val_pred_probs = model.predict(dmat_val)
-        y_test_pred_probs = model.predict(dmat_test)
-        y_train_pred_raw = model.predict(dmat_train, output_margin=True)
-        y_val_pred_raw = model.predict(dmat_val, output_margin=True)
-        y_test_pred_raw = model.predict(dmat_test, output_margin=True)
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
-        y_test_pred = np.argmax(y_test_pred_probs, 1)
+        y_train_pred = model.predict(dmat_train)
+        train_data['Estimation'] = y_train_pred
+        y_val_pred = model.predict(dmat_val)
+        val_data['Estimation'] = y_val_pred
+        if is_test:
+            y_test_pred = model.predict(dmat_test)
+            test_data['Estimation'] = y_test_pred
 
         loss_info = {
             'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
@@ -132,22 +140,20 @@ def process(config: DictConfig):
         model.set_feature_names(feature_names)
         model.save_model(f"epoch_{model.best_iteration_}.model")
 
-        y_train_pred_probs = model.predict(X_train, prediction_type="Probability")
-        y_val_pred_probs = model.predict(X_val, prediction_type="Probability")
-        y_test_pred_probs = model.predict(X_test, prediction_type="Probability")
-        y_train_pred_raw = model.predict(X_train, prediction_type="RawFormulaVal")
-        y_val_pred_raw = model.predict(X_val, prediction_type="RawFormulaVal")
-        y_test_pred_raw = model.predict(X_test, prediction_type="RawFormulaVal")
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
-        y_test_pred = np.argmax(y_test_pred_probs, 1)
+        y_train_pred = model.predict(X_train)
+        train_data['Estimation'] = y_train_pred
+        y_val_pred = model.predict(X_val)
+        val_data['Estimation'] = y_val_pred
+        if is_test:
+            y_test_pred = model.predict(X_test)
+            test_data['Estimation'] = y_test_pred
 
         metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
-        metrics_test = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
+        metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
         loss_info = {
             'epoch': metrics_train.iloc[:, 0],
             'train/loss': metrics_train.iloc[:, 1],
-            'val/loss': metrics_test.iloc[:, 1]
+            'val/loss': metrics_val.iloc[:, 1]
         }
 
         def shap_proba(X):
@@ -188,15 +194,13 @@ def process(config: DictConfig):
         )
         model.save_model(f"epoch_{model.best_iteration}.txt", num_iteration=model.best_iteration)
 
-        y_train_pred_probs = model.predict(X_train, num_iteration=model.best_iteration)
-        y_val_pred_probs = model.predict(X_val, num_iteration=model.best_iteration)
-        y_test_pred_probs = model.predict(X_test, num_iteration=model.best_iteration)
-        y_train_pred_raw = model.predict(X_train, raw_score =True)
-        y_val_pred_raw = model.predict(X_val, raw_score =True)
-        y_test_pred_raw = model.predict(X_test, raw_score =True)
-        y_train_pred = np.argmax(y_train_pred_probs, 1)
-        y_val_pred = np.argmax(y_val_pred_probs, 1)
-        y_test_pred = np.argmax(y_test_pred_probs, 1)
+        y_train_pred = model.predict(X_train, num_iteration=model.best_iteration)
+        train_data['Estimation'] = y_train_pred
+        y_val_pred = model.predict(X_val, num_iteration=model.best_iteration)
+        val_data['Estimation'] = y_val_pred
+        if is_test:
+            y_test_pred = model.predict(X_test, num_iteration=model.best_iteration)
+            test_data['Estimation'] = y_test_pred
 
         loss_info = {
             'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
@@ -212,15 +216,10 @@ def process(config: DictConfig):
     else:
         raise ValueError(f"Model {config.model_sa} is not supported")
 
-    raw_data['y_train_pred_probs'] = y_train_pred_probs
-    raw_data['y_val_pred_probs'] = y_val_pred_probs
-    raw_data['y_test_pred_probs'] = y_test_pred_probs
-    raw_data['y_train_pred_raw'] = y_train_pred_raw
-    raw_data['y_val_pred_raw'] = y_val_pred_raw
-    raw_data['y_test_pred_raw'] = y_test_pred_raw
     raw_data['y_train_pred'] = y_train_pred
     raw_data['y_val_pred'] = y_val_pred
-    raw_data['y_test_pred'] = y_test_pred
+    if is_test:
+        raw_data['y_test_pred'] = y_test_pred
 
     feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
     fig = go.Figure()
@@ -235,9 +234,115 @@ def process(config: DictConfig):
     feature_importances.set_index('feature', inplace=True)
     feature_importances.to_excel("feature_importances.xlsx", index=True)
 
-    eval_classification_sa(config, 'train', class_names, y_train, y_train_pred, y_train_pred_probs, loggers)
-    metrics_val = eval_classification_sa(config, 'val', class_names, y_val, y_val_pred, y_val_pred_probs, loggers)
-    eval_classification_sa(config, 'test', class_names, y_test, y_test_pred, y_test_pred_probs, loggers)
+    eval_regression_sa(config, 'train', y_train, y_train_pred, loggers)
+    metrics_val = eval_regression_sa(config, 'val', y_val, y_val_pred, loggers)
+    if is_test:
+        eval_regression_sa(config, 'test', y_test, y_test_pred, loggers)
+
+    formula = f"Estimation ~ {datamodule.outcome}"
+    model_linear = smf.ols(formula=formula, data=train_data).fit()
+    train_data[f"Estimation acceleration"] = train_data[f'Estimation'] - model_linear.predict(train_data)
+    val_data[f"Estimation acceleration"] = val_data[f'Estimation'] - model_linear.predict(val_data)
+    if is_test:
+        test_data[f"Estimation acceleration"] = test_data[f'Estimation'] - model_linear.predict(test_data)
+    fig = go.Figure()
+    add_scatter_trace(fig, train_data.loc[:, datamodule.outcome].values, train_data.loc[:, f"Estimation"].values, f"Train")
+    add_scatter_trace(fig, train_data.loc[:, datamodule.outcome].values, model_linear.fittedvalues.values, "", "lines")
+    add_scatter_trace(fig, val_data.loc[:, datamodule.outcome].values, val_data.loc[:, f"Estimation"].values, f"Val")
+    if is_test:
+        add_scatter_trace(fig, test_data.loc[:, datamodule.outcome].values, test_data.loc[:, f"Estimation"].values, f"Test")
+    add_layout(fig, datamodule.outcome, f"Estimation", f"")
+    fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=90,
+            r=20,
+            b=80,
+            t=65,
+            pad=0
+        )
+    )
+    save_figure(fig, f"scatter")
+
+    dist_num_bins = 15
+    fig = go.Figure()
+    fig.add_trace(
+        go.Violin(
+            y=train_data.loc[:, f"Estimation acceleration"].values,
+            name=f"Train",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor='blue',
+            marker=dict(color='blue', line=dict(color='black', width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=np.ptp(train_data.loc[:, f"Estimation acceleration"].values) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    fig.add_trace(
+        go.Violin(
+            y=val_data.loc[:, f"Estimation acceleration"].values,
+            name=f"Val",
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=True,
+            line_color='black',
+            fillcolor='red',
+            marker=dict(color='red', line=dict(color='black', width=0.3), opacity=0.8),
+            points='all',
+            bandwidth=np.ptp(val_data.loc[:, f"Estimation acceleration"].values) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    if is_test:
+        fig.add_trace(
+            go.Violin(
+                y=test_data.loc[:, f"Estimation acceleration"].values,
+                name=f"Test",
+                box_visible=True,
+                meanline_visible=True,
+                showlegend=True,
+                line_color='black',
+                fillcolor='green',
+                marker=dict(color='green', line=dict(color='black', width=0.3), opacity=0.8),
+                points='all',
+                bandwidth=np.ptp(test_data.loc[:, f"Estimation acceleration"].values) / 50,
+                opacity=0.8
+            )
+        )
+    add_layout(fig, "", "Estimation acceleration", f"")
+    fig.update_layout({'colorway': ['red', 'blue', 'green']})
+    stat_01, pval_01 = mannwhitneyu(train_data.loc[:, f"Estimation acceleration"].values, val_data.loc[:, f"Estimation acceleration"].values, alternative='two-sided')
+    if is_test:
+        stat_02, pval_02 = mannwhitneyu(train_data.loc[:, f"Estimation acceleration"].values, test_data.loc[:, f"Estimation acceleration"].values, alternative='two-sided')
+        stat_12, pval_12 = mannwhitneyu(val_data.loc[:, f"Estimation acceleration"].values, test_data.loc[:, f"Estimation acceleration"].values, alternative='two-sided')
+        fig = add_p_value_annotation(fig, {(0, 1): pval_01, (1, 2): pval_12, (0, 2): pval_02})
+    else:
+        fig = add_p_value_annotation(fig, {(0, 1): pval_01})
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=90,
+            pad=0
+        )
+    )
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.25,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    save_figure(fig, f"violin")
 
     if 'wandb' in config.logger:
         wandb.define_metric(f"epoch")
@@ -251,23 +356,25 @@ def process(config: DictConfig):
         wandb.finish()
 
     if config.is_shap == True:
-        X_all = np.concatenate((X_train, X_val, X_test))
-        y_all = np.concatenate((y_train, y_val, y_test))
-        y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
-        y_all_pred_raw = np.concatenate((y_train_pred_raw, y_val_pred_raw, y_test_pred_raw))
-        y_all_pred_probs = np.concatenate((y_train_pred_probs, y_val_pred_probs, y_test_pred_probs))
+        if is_test:
+            X_all = np.concatenate((X_train, X_val, X_test))
+            y_all = np.concatenate((y_train, y_val, y_test))
+            y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
+        else:
+            X_all = np.concatenate((X_train, X_val))
+            y_all = np.concatenate((y_train, y_val))
+            y_all_pred = np.concatenate((y_train_pred, y_val_pred))
         ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
         ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
-        ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
+        if is_test:
+            ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
         raw_data['X_all'] = X_all
         raw_data['y_all'] = y_all
         raw_data['y_all_pred'] = y_all_pred
-        raw_data['y_all_pred_probs'] = y_all_pred_probs
-        raw_data['y_all_pred_raw'] = y_all_pred_raw
         raw_data['ids_train'] = ids_train
         raw_data['ids_val'] = ids_val
-        raw_data['ids_test'] = ids_test
-        perform_shap_explanation(config, model, shap_proba, raw_data, feature_names, class_names)
+        if is_test:
+            raw_data['ids_test'] = ids_test
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
