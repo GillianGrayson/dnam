@@ -1,5 +1,5 @@
 import pandas as pd
-from experiment.metrics import get_metrics_dict
+from experiment.metrics import get_classification_metrics_dict
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
 import wandb
@@ -8,7 +8,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 
 def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_probs, loggers, probs=True):
-    metrics_classes_dict = get_metrics_dict(config.out_dim, object)
+    metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
     metrics_summary = {
         'accuracy_macro': 'max',
         'accuracy_micro': 'max',

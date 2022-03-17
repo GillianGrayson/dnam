@@ -25,6 +25,18 @@ def calc_metric(self, y_true, y_score):
         value = torchmetrics.functional.cohen_kappa(y_score_torch, y_true_torch, num_classes=self.num_classes)
     elif self.metric_type == "matthews_corrcoef":
         value = torchmetrics.functional.matthews_corrcoef(y_score_torch, y_true_torch, num_classes=self.num_classes)
+    elif self.metric_type == "mean_absolute_error":
+        value = torchmetrics.functional.mean_absolute_error(y_score_torch, y_true_torch)
+    elif self.metric_type == "mean_absolute_percentage_error":
+        value = torchmetrics.functional.mean_absolute_percentage_error(y_score_torch, y_true_torch)
+    elif self.metric_type == "mean_squared_error":
+        value = torchmetrics.functional.mean_squared_error(y_score_torch, y_true_torch)
+    elif self.metric_type == "pearson_corrcoef":
+        value = torchmetrics.functional.pearson_corrcoef(y_score_torch, y_true_torch)
+    elif self.metric_type == "r2_score":
+        value = torchmetrics.functional.r2_score(y_score_torch, y_true_torch)
+    elif self.metric_type == "spearman_corrcoef":
+        value = torchmetrics.functional.spearman_corrcoef(y_score_torch, y_true_torch)
     else:
         raise ValueError("Unsupported metrics")
     value = float(value.numpy())
@@ -42,7 +54,7 @@ def calc_metric_prob(self, y_true, y_prob):
     return value
 
 
-def get_metrics_dict(num_classes, base_class):
+def get_classification_metrics_dict(num_classes, base_class):
     d = {
         "accuracy_macro": type(
             "accuracy_macro",
@@ -168,3 +180,65 @@ def get_metrics_dict(num_classes, base_class):
     }
 
     return d
+
+
+def get_regression_metrics_dict(base_class):
+    d = {
+        "mean_absolute_error": type(
+            "mean_absolute_error",
+            (base_class,),
+            {
+                "metric_type": "mean_absolute_error",
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
+        "mean_absolute_percentage_error": type(
+            "mean_absolute_percentage_error",
+            (base_class,),
+            {
+                "metric_type": "mean_absolute_percentage_error",
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
+        "mean_squared_error": type(
+            "mean_squared_error",
+            (base_class,),
+            {
+                "metric_type": "mean_squared_error",
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
+        "pearson_corrcoef": type(
+            "pearson_corrcoef",
+            (base_class,),
+            {
+                "metric_type": "pearson_corrcoef",
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
+        "r2_score": type(
+            "r2_score",
+            (base_class,),
+            {
+                "metric_type": "r2_score",
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
+        "spearman_corrcoef": type(
+            "spearman_corrcoef",
+            (base_class,),
+            {
+                "metric_type": "spearman_corrcoef",
+                "__init__": init_metric,
+                "__call__": calc_metric
+            }
+        ),
+    }
+
+    return d
+
