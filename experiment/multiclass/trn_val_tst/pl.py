@@ -113,11 +113,11 @@ def process(config: DictConfig) -> Optional[float]:
     feature_names = datamodule.get_feature_names()
     class_names = datamodule.get_class_names()
     raw_data = datamodule.get_raw_data()
-    X_train = torch.from_numpy(raw_data['X_train'])
+    X_train = raw_data['X_train']
     y_train = raw_data['y_train']
-    X_val = torch.from_numpy(raw_data['X_val'])
+    X_val = raw_data['X_val']
     y_val = raw_data['y_val']
-    X_test = torch.from_numpy(raw_data['X_test'])
+    X_test = raw_data['X_test']
     y_test = raw_data['y_test']
 
     model.eval()
@@ -130,13 +130,13 @@ def process(config: DictConfig) -> Optional[float]:
         return tmp.cpu().detach().numpy()
 
     model.produce_probabilities = True
-    y_train_pred_probs = model(X_train).cpu().detach().numpy()
-    y_val_pred_probs = model(X_val).cpu().detach().numpy()
-    y_test_pred_probs = model(X_test).cpu().detach().numpy()
+    y_train_pred_probs = model(torch.from_numpy(X_train)).cpu().detach().numpy()
+    y_val_pred_probs = model(torch.from_numpy(X_val)).cpu().detach().numpy()
+    y_test_pred_probs = model(torch.from_numpy(X_test)).cpu().detach().numpy()
     model.produce_probabilities = False
-    y_train_pred_raw = model(X_train).cpu().detach().numpy()
-    y_val_pred_raw = model(X_val).cpu().detach().numpy()
-    y_test_pred_raw = model(X_test).cpu().detach().numpy()
+    y_train_pred_raw = model(torch.from_numpy(X_train)).cpu().detach().numpy()
+    y_val_pred_raw = model(torch.from_numpy(X_val)).cpu().detach().numpy()
+    y_test_pred_raw = model(torch.from_numpy(X_test)).cpu().detach().numpy()
     y_train_pred = np.argmax(y_train_pred_probs, 1)
     y_val_pred = np.argmax(y_val_pred_probs, 1)
     y_test_pred = np.argmax(y_test_pred_probs, 1)
@@ -153,7 +153,7 @@ def process(config: DictConfig) -> Optional[float]:
 
     if config.model._target_ == "src.models.dnam.tabnet.TabNetModel":
         feature_importances = np.zeros((model.hparams.input_dim))
-        M_explain, masks = model.forward_masks(X_train)
+        M_explain, masks = model.forward_masks(torch.from_numpy(X_train))
         feature_importances += M_explain.sum(dim=0).cpu().detach().numpy()
         feature_importances = feature_importances / np.sum(feature_importances)
         feature_importances_df = pd.DataFrame.from_dict(

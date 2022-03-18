@@ -60,10 +60,10 @@ def process(config: DictConfig):
     X_train = raw_data['X_train']
     y_train = raw_data['y_train']
     indexes_train = raw_data['indexes_train']
+    train_data = raw_data['train_data']
     X_val = raw_data['X_val']
     y_val = raw_data['y_val']
     indexes_val = raw_data['indexes_val']
-    train_data = raw_data['train_data']
     val_data = raw_data['val_data']
 
     if 'X_test' in raw_data:
