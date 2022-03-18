@@ -256,9 +256,9 @@ def process(config: DictConfig):
         y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
         y_all_pred_raw = np.concatenate((y_train_pred_raw, y_val_pred_raw, y_test_pred_raw))
         y_all_pred_probs = np.concatenate((y_train_pred_probs, y_val_pred_probs, y_test_pred_probs))
-        ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
-        ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
-        ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
+        ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0] - 1, dtype=int)
+        ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0] - 1, X_val.shape[0], dtype=int)
+        ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0] - 1, X_test.shape[0], dtype=int)
         raw_data['X_all'] = X_all
         raw_data['y_all'] = y_all
         raw_data['y_all_pred'] = y_all_pred

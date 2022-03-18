@@ -370,10 +370,10 @@ def process(config: DictConfig):
             y_all = np.concatenate((y_train, y_val))
             indexes_all = np.concatenate((indexes_train, indexes_val))
             y_all_pred = np.concatenate((y_train_pred, y_val_pred))
-        ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
-        ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
+        ids_train = np.linspace(0, X_train.shape[0] - 1, X_train.shape[0], dtype=int)
+        ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0] - 1, X_val.shape[0], dtype=int)
         if is_test:
-            ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
+            ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0] - 1, X_test.shape[0], dtype=int)
         raw_data['X_all'] = X_all
         raw_data['y_all'] = y_all
         raw_data['y_all_pred'] = y_all_pred
@@ -382,6 +382,9 @@ def process(config: DictConfig):
         raw_data['ids_val'] = ids_val
         if is_test:
             raw_data['ids_test'] = ids_test
+            raw_data['ids_all'] = np.concatenate((ids_train, ids_val, ids_test))
+        else:
+            raw_data['ids_all'] = np.concatenate((ids_train, ids_val))
         perform_shap_explanation(config, model, shap_kernel, raw_data, feature_names)
 
     optimized_metric = config.get("optimized_metric")

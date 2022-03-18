@@ -1,7 +1,7 @@
 from plotly import graph_objects as go
 
 
-def add_layout(fig, x_label, y_label, title):
+def add_layout(fig, x_label, y_label, title, font_size=25):
     fig.update_layout(
         template="none",
         legend=dict(
@@ -14,7 +14,7 @@ def add_layout(fig, x_label, y_label, title):
         title=dict(
             text=title,
             font=dict(
-                size=25
+                size=font_size
             )
         ),
         autosize=True,
@@ -26,8 +26,8 @@ def add_layout(fig, x_label, y_label, title):
             pad=0
         ),
         showlegend=True,
-        xaxis=get_axis(x_label, 25, 25),
-        yaxis=get_axis(y_label, 25, 25),
+        xaxis=get_axis(x_label, font_size, font_size),
+        yaxis=get_axis(y_label, font_size, font_size),
     )
 
 
