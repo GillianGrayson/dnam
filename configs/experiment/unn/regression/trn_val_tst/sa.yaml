@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_sa: xgboost
+model_sa: lightgbm
 outcome: "Age"
 
 project_name: unn_${data_type}_regression_${outcome}_trn_val_tst_${model_sa}
@@ -74,8 +74,7 @@ xgboost:
 
 # CatBoost model params
 catboost:
-  input_dim: ${in_dim}
-  loss_function: 'MultiClass'
+  loss_function: 'RMSE'
   learning_rate: 0.05
   depth: 4
   min_data_in_leaf: 1
@@ -87,8 +86,7 @@ catboost:
 
 # LightGBM model params
 lightgbm:
-  input_dim: ${in_dim}
-  objective: 'multiclass'
+  objective: 'regression'
   boosting: 'gbdt'
   learning_rate: 0.01
   num_leaves: 31
@@ -99,6 +97,6 @@ lightgbm:
   bagging_fraction: 0.8
   bagging_freq: 5
   verbose: 0
-  metric: 'multi_logloss'
+  metric: 'rmse'
   max_epochs: ${max_epochs}
   patience: ${patience}

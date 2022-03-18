@@ -127,7 +127,6 @@ def process(config: DictConfig):
         feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
     elif config.model_sa == "catboost":
         model_params = {
-            'classes_count': config.catboost.output_dim,
             'loss_function': config.catboost.loss_function,
             'learning_rate': config.catboost.learning_rate,
             'depth': config.catboost.depth,
@@ -144,12 +143,12 @@ def process(config: DictConfig):
         model.set_feature_names(feature_names)
         model.save_model(f"epoch_{model.best_iteration_}.model")
 
-        y_train_pred = model.predict(X_train)
+        y_train_pred = model.predict(X_train).astype('float32')
         train_data['Estimation'] = y_train_pred
-        y_val_pred = model.predict(X_val)
+        y_val_pred = model.predict(X_val).astype('float32')
         val_data['Estimation'] = y_val_pred
         if is_test:
-            y_test_pred = model.predict(X_test)
+            y_test_pred = model.predict(X_test).astype('float32')
             test_data['Estimation'] = y_test_pred
 
         metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
@@ -161,13 +160,12 @@ def process(config: DictConfig):
         }
 
         def shap_kernel(X):
-            y = model.predict(X, prediction_type="Probability")
+            y = model.predict(X)
             return y
 
         feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
     elif config.model_sa == "lightgbm":
         model_params = {
-            'num_class': config.lightgbm.output_dim,
             'objective': config.lightgbm.objective,
             'boosting': config.lightgbm.boosting,
             'learning_rate': config.lightgbm.learning_rate,
@@ -198,12 +196,12 @@ def process(config: DictConfig):
         )
         model.save_model(f"epoch_{model.best_iteration}.txt", num_iteration=model.best_iteration)
 
-        y_train_pred = model.predict(X_train, num_iteration=model.best_iteration)
+        y_train_pred = model.predict(X_train, num_iteration=model.best_iteration).astype('float32')
         train_data['Estimation'] = y_train_pred
-        y_val_pred = model.predict(X_val, num_iteration=model.best_iteration)
+        y_val_pred = model.predict(X_val, num_iteration=model.best_iteration).astype('float32')
         val_data['Estimation'] = y_val_pred
         if is_test:
-            y_test_pred = model.predict(X_test, num_iteration=model.best_iteration)
+            y_test_pred = model.predict(X_test, num_iteration=model.best_iteration).astype('float32')
             test_data['Estimation'] = y_test_pred
 
         loss_info = {
@@ -213,7 +211,7 @@ def process(config: DictConfig):
         }
 
         def shap_kernel(X):
-            y = model.predict(X)
+            y = model.predict(X, num_iteration=model.best_iteration)
             return y
 
         feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})

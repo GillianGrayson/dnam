@@ -205,7 +205,7 @@ def process(config: DictConfig):
         }
 
         def shap_proba(X):
-            y = model.predict(X)
+            y = model.predict(X, num_iteration=model.best_iteration)
             return y
 
         feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
