@@ -52,7 +52,7 @@ def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_pro
     return metrics_df
 
 
-def eval_regression_sa(config, part, y_real, y_pred, loggers):
+def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, suffix=''):
     metrics_classes_dict = get_regression_metrics_dict(object)
     metrics_summary = {
         'mean_absolute_error': 'min',
@@ -65,9 +65,10 @@ def eval_regression_sa(config, part, y_real, y_pred, loggers):
 
     metrics = [metrics_classes_dict[m]() for m in metrics_summary]
 
-    if 'wandb' in config.logger:
-        for m, sum in metrics_summary.items():
-            wandb.define_metric(f"{part}/{m}", summary=sum)
+    if is_log:
+        if 'wandb' in config.logger:
+            for m, sum in metrics_summary.items():
+                wandb.define_metric(f"{part}/{m}", summary=sum)
 
     metrics_dict = {'metric': [m._name for m in metrics]}
     metrics_dict[part] = []
@@ -77,11 +78,13 @@ def eval_regression_sa(config, part, y_real, y_pred, loggers):
         metrics_dict[part].append(m_val)
         log_dict[f"{part}/{m._name}"] = m_val
     for logger in loggers:
-        logger.log_metrics(log_dict)
+        if is_log:
+            logger.log_metrics(log_dict)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
-    metrics_df.to_excel(f"metrics_{part}.xlsx", index=True)
+    if is_log:
+        metrics_df.to_excel(f"metrics_{part}{suffix}.xlsx", index=True)
 
     return metrics_df
 

@@ -5,7 +5,7 @@ from pytorch_lightning import seed_everything
 import hydra
 from omegaconf import DictConfig
 from src.utils import utils
-from src.datamodules.cross_validation import KFoldCVDataModule, StratifiedKFoldCVDataModule
+from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVDataModule
 
 log = utils.get_logger(__name__)
 
@@ -32,10 +32,7 @@ def train_cv(config: DictConfig) -> Optional[float]:
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
 
-    if is_stratified:
-        cv_datamodule = StratifiedKFoldCVDataModule(datamodule, n_splits)
-    else:
-        cv_datamodule = KFoldCVDataModule(datamodule, n_splits)
+    cv_datamodule = RepeatedStratifiedKFoldCVDataModule(datamodule, n_splits)
 
     ckpt_name = config.callbacks.model_checkpoint["filename"]
 

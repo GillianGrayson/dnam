@@ -90,9 +90,9 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.features_names = features_df.loc[:, 'features'].values
 
         if self.task in ['binary', 'multiclass']:
-            classes_df = pd.read_excel(self.classes_fn)
+            self.classes_df = pd.read_excel(self.classes_fn)
             self.classes_dict = {}
-            for cl_id, cl in enumerate(classes_df.loc[:, self.outcome].values):
+            for cl_id, cl in enumerate(self.classes_df.loc[:, self.outcome].values):
                 self.classes_dict[cl] = cl_id
 
             self.trn_val = self.trn_val.loc[self.trn_val[self.outcome].isin(self.classes_dict)]
@@ -109,12 +109,16 @@ class UNNDataModuleNoTest(LightningDataModule):
             log.info(f"Error! Indexes have different order")
             raise ValueError(f"Error! Indexes have different order")
 
-        self.ids_trn_val = np.arange(self.trn_val.shape[0])
-
         # self.dims is returned when you call datamodule.size()
         self.dims = (1, self.data.shape[1])
 
         self.dataset = UNNDataset(self.data, self.output, self.outcome)
+
+        self.ids_trn_val = np.arange(self.trn_val.shape[0])
+
+        self.raw_data = {}
+
+    def perform_split(self):
 
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
 
@@ -139,6 +143,9 @@ class UNNDataModuleNoTest(LightningDataModule):
                 random_state=self.seed
             )
 
+        self.ids_tst = None
+
+    def plot_split(self, suffix=''):
         dict_to_plot = {
             "Train": self.ids_trn,
             "Val": self.ids_val
@@ -149,14 +156,14 @@ class UNNDataModuleNoTest(LightningDataModule):
         if self.task in ['binary', 'multiclass']:
             for name, ids in dict_to_plot.items():
                 classes_counts = pd.DataFrame(Counter(self.output[f'{self.outcome}_origin'].values[ids]), index=[0])
-                classes_counts = classes_counts.reindex(classes_df.loc[:, self.outcome].values, axis=1)
+                classes_counts = classes_counts.reindex(self.classes_df.loc[:, self.outcome].values, axis=1)
                 fig = go.Figure()
                 for st, st_id in self.classes_dict.items():
                     add_bar_trace(fig, x=[st], y=[classes_counts.at[0, st]], text=[classes_counts.at[0, st]], name=st)
                 add_layout(fig, f"", f"Count", "")
                 fig.update_layout({'colorway': ["blue", "red", "green"]})
                 fig.update_xaxes(showticklabels=False)
-                save_figure(fig, f"bar_{name}")
+                save_figure(fig, f"bar_{name}{suffix}")
 
         elif self.task == 'regression':
             ptp = np.ptp(self.output[f'{self.outcome}'].values)
@@ -181,12 +188,12 @@ class UNNDataModuleNoTest(LightningDataModule):
             fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=75, t=50, pad=0))
             fig.update_layout(legend_font_size=20)
             fig.update_layout({'colorway': ["blue", "red", "green"]}, barmode='overlay')
-            save_figure(fig, f"hist")
+            save_figure(fig, f"hist{suffix}")
 
         self.output.loc[self.output.index[self.ids_trn], 'Part'] = "trn"
         self.output.loc[self.output.index[self.ids_val], 'Part'] = "val"
 
-        self.output.to_excel(f"output.xlsx", index=True)
+        self.output.to_excel(f"output{suffix}.xlsx", index=True)
 
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
@@ -195,7 +202,7 @@ class UNNDataModuleNoTest(LightningDataModule):
         log.info(f"trn_count: {len(self.dataset_trn)}")
         log.info(f"val_count: {len(self.dataset_val)}")
 
-    def get_trn_val_dataset_and_labels(self):
+    def get_trn_val_X_and_y(self):
         return Subset(self.dataset, self.ids_trn_val), self.dataset.ys[self.ids_trn_val]
 
     def get_weighted_sampler(self):
@@ -203,22 +210,23 @@ class UNNDataModuleNoTest(LightningDataModule):
 
     def train_dataloader(self):
         ys_trn = self.dataset.ys[self.ids_trn]
-        class_counter = Counter(ys_trn)
-        class_weights = {c: 1.0 / class_counter[c] for c in class_counter}
-        weights = torch.FloatTensor([class_weights[y] for y in ys_trn])
-        if self.weighted_sampler:
-            weighted_sampler = WeightedRandomSampler(
-                weights=weights,
-                num_samples=len(weights),
-                replacement=True
-            )
-            return DataLoader(
-                dataset=self.dataset_trn,
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                pin_memory=self.pin_memory,
-                sampler=weighted_sampler
-            )
+        if self.task in ['binary', 'multiclass']:
+            class_counter = Counter(ys_trn)
+            class_weights = {c: 1.0 / class_counter[c] for c in class_counter}
+            weights = torch.FloatTensor([class_weights[y] for y in ys_trn])
+            if self.weighted_sampler:
+                weighted_sampler = WeightedRandomSampler(
+                    weights=weights,
+                    num_samples=len(weights),
+                    replacement=True
+                )
+                return DataLoader(
+                    dataset=self.dataset_trn,
+                    batch_size=self.batch_size,
+                    num_workers=self.num_workers,
+                    pin_memory=self.pin_memory,
+                    sampler=weighted_sampler
+                )
         else:
             return DataLoader(
                 dataset=self.dataset_trn,
@@ -243,20 +251,12 @@ class UNNDataModuleNoTest(LightningDataModule):
     def get_feature_names(self):
         return self.data.columns.to_list()
 
+    def get_outcome_name(self):
+        return self.outcome
+
     def get_class_names(self):
         return list(self.classes_dict.keys())
 
-    def get_raw_data(self):
-        data = pd.merge(self.output.loc[:, self.outcome], self.data, left_index=True, right_index=True)
-        train_data = data.iloc[self.ids_trn]
-        val_data = data.iloc[self.ids_val]
-        raw_data = {}
-        raw_data['X_train'] = train_data.loc[:, self.data.columns.values].values
-        raw_data['y_train'] = train_data.loc[:, self.outcome].values
-        raw_data['indexes_train'] = train_data.index.values
-        raw_data['X_val'] = val_data.loc[:, self.data.columns.values].values
-        raw_data['y_val'] = val_data.loc[:, self.outcome].values
-        raw_data['indexes_val'] = val_data.index.values
-        raw_data['train_data'] = train_data
-        raw_data['val_data'] = val_data
-        return raw_data
+    def get_df(self):
+        df = pd.merge(self.output.loc[:, self.outcome], self.data, left_index=True, right_index=True)
+        return df
