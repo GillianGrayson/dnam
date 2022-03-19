@@ -97,7 +97,7 @@ def process(config: DictConfig) -> Optional[float]:
     if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
         log.info("Starting testing!")
         test_dataloader = datamodule.test_dataloader()
-        if len(test_dataloader) > 0:
+        if test_dataloader is not None and len(test_dataloader) > 0:
             trainer.test(model, test_dataloader)
         else:
             log.info("Test data is empty!")
@@ -117,7 +117,6 @@ def process(config: DictConfig) -> Optional[float]:
     log.info(f"Best checkpoint path:\n{trainer.checkpoint_callback.best_model_path}")
 
     feature_names = datamodule.get_feature_names()
-    class_names = datamodule.get_class_names()
     raw_data = datamodule.get_raw_data()
     X_train = raw_data['X_train']
     y_train = raw_data['y_train']
@@ -145,12 +144,12 @@ def process(config: DictConfig) -> Optional[float]:
         tmp = model(X)
         return tmp.cpu().detach().numpy()
 
-    y_train_pred = model(torch.from_numpy(X_train)).cpu().detach().numpy()
+    y_train_pred = model(torch.from_numpy(X_train)).cpu().detach().numpy().flatten()
     train_data['Estimation'] = y_train_pred
-    y_val_pred = model(torch.from_numpy(X_val)).cpu().detach().numpy()
+    y_val_pred = model(torch.from_numpy(X_val)).cpu().detach().numpy().flatten()
     val_data['Estimation'] = y_val_pred
     if is_test:
-        y_test_pred = model(X_test).cpu().detach().numpy()
+        y_test_pred = model(X_test).cpu().detach().numpy().flatten()
         test_data['Estimation'] = y_test_pred
 
     raw_data['y_train_pred'] = y_train_pred

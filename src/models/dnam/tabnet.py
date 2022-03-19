@@ -1,6 +1,7 @@
 from typing import Any, List
 from torch import nn
 from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, CohenKappa, MatthewsCorrcoef, AUROC
+from torchmetrics import CosineSimilarity, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, PearsonCorrcoef, R2Score, SpearmanCorrcoef
 import wandb
 from typing import Dict
 import pytorch_lightning as pl
@@ -28,7 +29,6 @@ class TabNetModel(pl.LightningModule):
             optimizer_weight_decay=0.0005,
             scheduler_step_size=20,
             scheduler_gamma=0.9,
-            target_range=None,
             **kwargs
     ):
         super().__init__()
@@ -42,6 +42,36 @@ class TabNetModel(pl.LightningModule):
             self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
             if output_dim < 2:
                 raise ValueError(f"Classification with {output_dim} classes")
+            self.metrics_dict = {
+                'accuracy': Accuracy(num_classes=self.hparams.output_dim),
+                'f1_macro': F1(num_classes=self.hparams.output_dim, average='macro'),
+                'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
+                'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
+                'f1_weighted': F1(num_classes=self.hparams.output_dim, average='weighted'),
+                'precision_weighted': Precision(num_classes=self.hparams.output_dim, average='weighted'),
+                'recall_weighted': Recall(num_classes=self.hparams.output_dim, average='weighted'),
+                'cohens_kappa': CohenKappa(num_classes=self.hparams.output_dim),
+                'matthews_corr': MatthewsCorrcoef(num_classes=self.hparams.output_dim),
+            }
+            self.metrics_summary = {
+                'accuracy': 'max',
+                'f1_macro': 'max',
+                'precision_macro': 'max',
+                'recall_macro': 'max',
+                'f1_weighted': 'max',
+                'precision_weighted': 'max',
+                'recall_weighted': 'max',
+                'cohens_kappa': 'max',
+                'matthews_corr': 'max',
+            }
+            self.metrics_prob_dict = {
+                'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
+                'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
+            }
+            self.metrics_prob_summary = {
+                'auroc_macro': 'max',
+                'auroc_weighted': 'max',
+            }
         elif task == "regression":
             if self.hparams.loss_type == "MSE":
                 self.loss_fn = torch.nn.MSELoss(reduction='mean')
@@ -49,37 +79,26 @@ class TabNetModel(pl.LightningModule):
                 self.loss_fn = torch.nn.L1Loss(reduction='mean')
             else:
                 raise ValueError("Unsupported loss_type")
-
-        self.metrics_dict = {
-            'accuracy': Accuracy(num_classes=self.hparams.output_dim),
-            'f1_macro': F1(num_classes=self.hparams.output_dim, average='macro'),
-            'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
-            'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
-            'f1_weighted': F1(num_classes=self.hparams.output_dim, average='weighted'),
-            'precision_weighted': Precision(num_classes=self.hparams.output_dim, average='weighted'),
-            'recall_weighted': Recall(num_classes=self.hparams.output_dim, average='weighted'),
-            'cohens_kappa': CohenKappa(num_classes=self.hparams.output_dim),
-            'matthews_corr': MatthewsCorrcoef(num_classes=self.hparams.output_dim),
-        }
-        self.metrics_summary = {
-            'accuracy': 'max',
-            'f1_macro': 'max',
-            'precision_macro': 'max',
-            'recall_macro': 'max',
-            'f1_weighted': 'max',
-            'precision_weighted': 'max',
-            'recall_weighted': 'max',
-            'cohens_kappa': 'max',
-            'matthews_corr': 'max',
-        }
-        self.metrics_prob_dict = {
-            'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
-            'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
-        }
-        self.metrics_prob_summary = {
-            'auroc_macro': 'max',
-            'auroc_weighted': 'max',
-        }
+            self.metrics_dict = {
+                'CosineSimilarity': CosineSimilarity(),
+                'MeanAbsoluteError': MeanAbsoluteError(),
+                'MeanAbsolutePercentageError': MeanAbsolutePercentageError(),
+                'MeanSquaredError': MeanSquaredError(),
+                'PearsonCorrcoef': PearsonCorrcoef(),
+                'R2Score': R2Score(),
+                'SpearmanCorrcoef': SpearmanCorrcoef(),
+            }
+            self.metrics_summary = {
+                'CosineSimilarity': 'min',
+                'MeanAbsoluteError': 'min',
+                'MeanAbsolutePercentageError': 'min',
+                'MeanSquaredError': 'min',
+                'PearsonCorrcoef': 'max',
+                'R2Score': 'max',
+                'SpearmanCorrcoef': 'max'
+            }
+            self.metrics_prob_dict = {}
+            self.metrics_prob_summary = {}
 
         self.metrics_train = MetricCollection(self.metrics_dict)
         self.metrics_train_prob = MetricCollection(self.metrics_prob_dict)
@@ -110,16 +129,10 @@ class TabNetModel(pl.LightningModule):
     def forward(self, x: Dict):
         # Returns output and Masked Loss. We only need the output
         x, _ = self.tabnet(x)
-        if (self.hparams.task == "regression") and (
-            self.hparams.target_range is not None
-        ):
-            for i in range(self.hparams.output_dim):
-                y_min, y_max = self.hparams.target_range[i]
-                x[:, i] = y_min + nn.Sigmoid()(x[:, i]) * (y_max - y_min)
         if self.produce_probabilities:
             return torch.softmax(x, dim=1)
         else:
-            return x  # No Easy way to access the raw features in TabNet
+            return x
 
     def forward_masks(self, x):
         return self.tabnet.forward_masks(x)
@@ -165,6 +178,13 @@ class TabNetModel(pl.LightningModule):
                     logs.update(self.metrics_val_prob(probs, y))
                 except ValueError:
                     pass
+        elif self.task == "regression":
+            if stage == "train":
+                logs.update(self.metrics_train(out, y))
+            elif stage == "val":
+                logs.update(self.metrics_val(out, y))
+            elif stage == "test":
+                logs.update(self.metrics_test(out, y))
 
         return loss, logs, non_logs
 
