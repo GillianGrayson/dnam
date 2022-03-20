@@ -81,7 +81,6 @@ def process(config: DictConfig):
         best["optimized_metric"] = np.Inf
     elif config.direction == "max":
         best["optimized_metric"] = 0.0
-
     cv_progress = {'fold': [], 'optimized_metric':[]}
     for fold_idx, (dl_trn, ids_trn, dl_val, ids_val) in tqdm(enumerate(cv_datamodule.split())):
         datamodule.ids_trn = ids_trn
@@ -274,14 +273,11 @@ def process(config: DictConfig):
 
     datamodule.plot_split(f"_best_{best['fold']:04d}")
 
-    X_trn = df.loc[df.index[datamodule.ids_trn], feature_names].values
     y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
     y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Estimation"].values
-    X_val = df.loc[df.index[datamodule.ids_val], feature_names].values
     y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
     y_val_pred = df.loc[df.index[datamodule.ids_val], "Estimation"].values
     if is_test:
-        X_tst = df.loc[df.index[datamodule.ids_tst], feature_names].values
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 

@@ -118,6 +118,10 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         self.raw_data = {}
 
+    def refresh_datasets(self):
+        self.dataset_trn = Subset(self.dataset, self.ids_trn)
+        self.dataset_val = Subset(self.dataset, self.ids_val)
+
     def perform_split(self):
 
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
@@ -144,6 +148,8 @@ class UNNDataModuleNoTest(LightningDataModule):
             )
 
         self.ids_tst = None
+        self.dataset_trn = Subset(self.dataset, self.ids_trn)
+        self.dataset_val = Subset(self.dataset, self.ids_val)
 
     def plot_split(self, suffix=''):
         dict_to_plot = {
@@ -194,9 +200,6 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.output.loc[self.output.index[self.ids_val], 'Part'] = "val"
 
         self.output.to_excel(f"output{suffix}.xlsx", index=True)
-
-        self.dataset_trn = Subset(self.dataset, self.ids_trn)
-        self.dataset_val = Subset(self.dataset, self.ids_val)
 
         log.info(f"total_count: {len(self.dataset)}")
         log.info(f"trn_count: {len(self.dataset_trn)}")

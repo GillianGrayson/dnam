@@ -79,13 +79,17 @@ def perform_shap_explanation(config, shap_data):
     if config.shap_explainer == "Tree":
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(X_all)
+        expected_value = explainer.expected_value
     elif config.shap_explainer == "Kernel":
         explainer = shap.KernelExplainer(shap_data['shap_kernel'], X_train)
         shap_values = explainer.shap_values(X_all)
+        shap_values = shap_values[0]
+        expected_value = explainer.expected_value[0]
     elif config.shap_explainer == "Deep":
         model.produce_probabilities = True
         explainer = shap.DeepExplainer(model, torch.from_numpy(X_train))
         shap_values = explainer.shap_values(torch.from_numpy(X_all))
+        expected_value = explainer.expected_value
     else:
         raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
@@ -193,7 +197,7 @@ def perform_shap_explanation(config, shap_data):
         shap_data['df'].loc[:, "Estimation"].values,
         shap_data['df'].index.values,
         shap_values,
-        explainer.expected_value,
+        expected_value,
         shap_data['df'].loc[:, shap_data['feature_names']].values,
         shap_data['feature_names'],
         "shap/local"

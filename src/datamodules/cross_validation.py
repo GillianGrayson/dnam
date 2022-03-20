@@ -1,9 +1,8 @@
 from abc import abstractmethod, ABC
-from typing import Tuple
 import torch
 from collections import Counter
-from sklearn.model_selection import KFold, StratifiedKFold, RepeatedStratifiedKFold
-from torch.utils.data import DataLoader, ConcatDataset, Subset, WeightedRandomSampler
+from sklearn.model_selection import RepeatedStratifiedKFold
+from torch.utils.data import DataLoader, Subset, WeightedRandomSampler
 import numpy as np
 
 
@@ -71,6 +70,8 @@ class RepeatedStratifiedKFoldCVSplitter(CVSplitter):
             unique, counts = np.unique(binned, return_counts=True)
             occ = dict(zip(unique, counts))
             splits = self._k_fold.split(X=range(len(train_val_X)), y=binned, groups=binned)
+        else:
+            raise ValueError(f'Unsupported self._groups: {self._groups}')
 
         # 1. Iterate through splits
         for train_indexes, val_indexes in splits:

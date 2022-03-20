@@ -6,21 +6,21 @@ outcome: "Age"
 
 project_name: unn_${data_type}_regression_${outcome}_trn_val_tst_${model_sa}
 
+seed: 88
+
 cv_n_splits: 5
 cv_n_repeats: 5
 cv_groups: "continuous"
 
-is_shuffle: False
-
 optimized_metric: "mean_absolute_error"
 direction: "min"
+
+is_shuffle: False
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
-
-seed: 88
 
 max_epochs: 10000
 patience: 500
