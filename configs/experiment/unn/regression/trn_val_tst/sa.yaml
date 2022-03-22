@@ -1,15 +1,15 @@
 # @package _global_
 
 data_type: immuno
-model_sa: lightgbm
+model_sa: xgboost
 outcome: "Age"
 
 project_name: unn_${data_type}_regression_${outcome}_trn_val_tst_${model_sa}
 
-seed: 88
+seed: 101
 
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 10
 cv_groups: "continuous"
 
 optimized_metric: "mean_absolute_error"
@@ -23,7 +23,7 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 10000
-patience: 500
+patience: 1000
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
@@ -77,7 +77,7 @@ xgboost:
 
 # CatBoost model params
 catboost:
-  loss_function: 'RMSE'
+  loss_function: 'MAE'
   learning_rate: 0.01
   depth: 6
   min_data_in_leaf: 1
@@ -100,6 +100,6 @@ lightgbm:
   bagging_fraction: 0.8
   bagging_freq: 5
   verbose: 0
-  metric: 'rmse'
+  metric: 'l1'
   max_epochs: ${max_epochs}
   patience: ${patience}

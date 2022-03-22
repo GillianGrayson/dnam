@@ -16,7 +16,6 @@ dataset_statuses = {
 task_name = f"GPL13534_Blood_Schizo_Control"
 path_wd = f"{path}/meta/tasks/{task_name}"
 
-pheno_all = pd.read_pickle(f"{path_wd}/origin/pheno_all.pkl")
 
 for d_id, dataset in enumerate(dataset_statuses):
     print(dataset)

@@ -11,7 +11,7 @@ in_dim: 46
 out_dim: 1
 
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 10
 cv_groups: "continuous"
 
 optimized_metric: "mean_absolute_error"
@@ -63,7 +63,7 @@ datamodule:
 trainer:
   gpus: 1
   min_epochs: 1
-  max_epochs: 100
+  max_epochs: 2000
   weights_summary: null
   progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
@@ -100,5 +100,5 @@ callbacks:
   early_stopping:
     monitor: "val/MeanAbsoluteError" # name of the logged metric which determines when model is improving
     mode: "min" # can be "max" or "min"
-    patience: 10 # how many epochs of not improving until training stops
+    patience: 100 # how many epochs of not improving until training stops
     min_delta: 0 # minimum change in the monitored metric needed to qualify as an improvement
