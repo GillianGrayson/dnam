@@ -62,7 +62,6 @@ class DNAmDataModuleNoTest(LightningDataModule):
     ):
         super().__init__()
 
-        self.path = path
         self.task = task
         self.features_fn = features_fn
         self.classes_fn = classes_fn
@@ -85,7 +84,7 @@ class DNAmDataModuleNoTest(LightningDataModule):
         pass
 
     def setup(self, stage: Optional[str] = None):
-        self.trn_val = pd.read_excel(f"{self.path}/{self.trn_val_fn}", index_col="index")
+        self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
         features_df = pd.read_excel(self.features_fn)
         self.features_names = features_df.loc[:, 'features'].values
 
@@ -101,9 +100,11 @@ class DNAmDataModuleNoTest(LightningDataModule):
 
         self.data = self.trn_val.loc[:, self.features_names]
         self.data = self.data.astype('float32')
-        self.output = self.trn_val.loc[:, [self.outcome]]
         if self.task == 'regression':
+            self.output = self.trn_val.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
+        elif self.task in ['binary', 'multiclass']:
+            self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin']]
 
         if not list(self.data.index.values) == list(self.output.index.values):
             log.info(f"Error! Indexes have different order")
@@ -156,8 +157,6 @@ class DNAmDataModuleNoTest(LightningDataModule):
             "Val": self.ids_val
         }
 
-        if not os.path.exists(f"{self.path}/figs"):
-            os.makedirs(f"{self.path}/figs")
         if self.task in ['binary', 'multiclass']:
             for name, ids in dict_to_plot.items():
                 classes_counts = pd.DataFrame(Counter(self.output[f'{self.outcome}_origin'].values[ids]), index=[0])
@@ -166,7 +165,7 @@ class DNAmDataModuleNoTest(LightningDataModule):
                 for st, st_id in self.classes_dict.items():
                     add_bar_trace(fig, x=[st], y=[classes_counts.at[0, st]], text=[classes_counts.at[0, st]], name=st)
                 add_layout(fig, f"", f"Count", "")
-                fig.update_layout({'colorway': ["blue", "red", "green"]})
+                fig.update_layout({'colorway': px.colors.qualitative.Set1})
                 fig.update_xaxes(showticklabels=False)
                 save_figure(fig, f"bar_{name}{suffix}")
 
