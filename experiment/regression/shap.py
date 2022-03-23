@@ -86,7 +86,6 @@ def perform_shap_explanation(config, shap_data):
         shap_values = shap_values[0]
         expected_value = explainer.expected_value[0]
     elif config.shap_explainer == "Deep":
-        model.produce_probabilities = True
         explainer = shap.DeepExplainer(model, torch.from_numpy(X_train))
         shap_values = explainer.shap_values(torch.from_numpy(X_all))
         expected_value = explainer.expected_value

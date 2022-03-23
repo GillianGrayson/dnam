@@ -124,9 +124,12 @@ def process(config: DictConfig):
             y_val_pred_prob = model.predict(dmat_val)
             y_trn_pred = np.array([1 if pred > 0.5 else 0 for pred in y_trn_pred_prob])
             y_val_pred = np.array([1 if pred > 0.5 else 0 for pred in y_val_pred_prob])
+            y_trn_pred_raw = model.predict(dmat_trn, output_margin=True)
+            y_val_pred_raw = model.predict(dmat_val, output_margin=True)
             if is_test:
                 y_tst_pred_prob = model.predict(dmat_tst)
                 y_tst_pred = np.array([1 if pred > 0.5 else 0 for pred in y_tst_pred_prob])
+                y_tst_pred_raw = model.predict(dmat_tst, output_margin=True)
 
             loss_info = {
                 'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
@@ -163,16 +166,19 @@ def process(config: DictConfig):
             y_val_pred_prob = model.predict(X_val, prediction_type="Probability")
             y_trn_pred = np.argmax(y_trn_pred_prob, 1)
             y_val_pred = np.argmax(y_val_pred_prob, 1)
+            y_trn_pred_raw = model.predict(X_trn, prediction_type="RawFormulaVal")
+            y_val_pred_raw = model.predict(X_val, prediction_type="RawFormulaVal")
             if is_test:
                 y_tst_pred_prob = model.predict(X_tst, prediction_type="Probability")
                 y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+                y_tst_pred_raw = model.predict(X_tst, prediction_type="RawFormulaVal")
 
-            metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
-            metrics_test = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
+            metrics_trn = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
+            metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
             loss_info = {
-                'epoch': metrics_train.iloc[:, 0],
-                'train/loss': metrics_train.iloc[:, 1],
-                'val/loss': metrics_test.iloc[:, 1]
+                'epoch': metrics_trn.iloc[:, 0],
+                'train/loss': metrics_trn.iloc[:, 1],
+                'val/loss': metrics_val.iloc[:, 1]
             }
 
             def shap_kernel(X):
@@ -215,9 +221,12 @@ def process(config: DictConfig):
             y_val_pred_prob = model.predict(X_val, num_iteration=model.best_iteration)
             y_trn_pred = np.array([1 if pred > 0.5 else 0 for pred in y_trn_pred_prob])
             y_val_pred = np.array([1 if pred > 0.5 else 0 for pred in y_val_pred_prob])
+            y_trn_pred_raw = model.predict(X_trn, num_iteration=model.best_iteration, raw_score=True)
+            y_val_pred_raw = model.predict(X_val, num_iteration=model.best_iteration, raw_score=True)
             if is_test:
                 y_tst_pred_prob = model.predict(X_tst, num_iteration=model.best_iteration)
                 y_tst_pred = np.array([1 if pred > 0.5 else 0 for pred in y_tst_pred_prob])
+                y_tst_pred_raw = model.predict(X_tst, num_iteration=model.best_iteration, raw_score=True)
 
             loss_info = {
                 'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
@@ -261,11 +270,27 @@ def process(config: DictConfig):
             best['ids_val'] = ids_val
             df.loc[df.index[ids_trn], "pred"] = y_trn_pred
             df.loc[df.index[ids_val], "pred"] = y_val_pred
-            df.loc[df.index[ids_trn], "pred_prob"] = y_trn_pred_prob
-            df.loc[df.index[ids_val], "pred_prob"] = y_val_pred_prob
+            df.loc[df.index[ids_trn], "pred_raw"] = y_trn_pred_raw
+            df.loc[df.index[ids_val], "pred_raw"] = y_val_pred_raw
+            if len(y_trn_pred_prob.shape) > 1 and y_trn_pred_prob.shape[1] == 2:
+                for cl_id, cl in enumerate(class_names):
+                    df.loc[df.index[ids_trn], f"pred_prob_{cl_id}"] = y_trn_pred_prob[:, cl_id]
+                    df.loc[df.index[ids_val], f"pred_prob_{cl_id}"] = y_val_pred_prob[:, cl_id]
+            else:
+                df.loc[df.index[ids_trn], f"pred_prob_0"] = y_trn_pred_prob
+                df.loc[df.index[ids_trn], f"pred_prob_1"] = 1 - y_trn_pred_prob
+                df.loc[df.index[ids_val], f"pred_prob_0"] = y_val_pred_prob
+                df.loc[df.index[ids_val], f"pred_prob_1"] = 1 - y_val_pred_prob
             if is_test:
                 df.loc[df.index[ids_tst], "pred"] = y_tst_pred
-                df.loc[df.index[ids_tst], "pred_prob"] = y_tst_pred_prob
+                df.loc[df.index[ids_tst], "pred_raw"] = y_tst_pred_raw
+                if len(y_trn_pred_prob.shape) > 1 and y_trn_pred_prob.shape[1] == 2:
+                    for cl_id, cl in enumerate(class_names):
+                        df.loc[df.index[ids_tst], f"pred_prob_{cl_id}"] = y_tst_pred_prob[:, cl_id]
+                else:
+                    df.loc[df.index[ids_tst], f"pred_prob_0"] = y_tst_pred_prob
+                    df.loc[df.index[ids_tst], f"pred_prob_1"] = 1 - y_tst_pred_prob
+
         cv_progress['fold'].append(fold_idx)
         cv_progress['optimized_metric'].append(metrics_val.at[config.optimized_metric, 'val'])
 
@@ -282,14 +307,14 @@ def process(config: DictConfig):
 
     y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
     y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values.astype('int32')
-    y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], "pred_prob"].values
+    y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
     y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values.astype('int32')
-    y_val_pred_prob = df.loc[df.index[datamodule.ids_val], "pred_prob"].values
+    y_val_pred_prob = df.loc[df.index[datamodule.ids_val], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     if is_test:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values.astype('int32')
-        y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], "pred_prob"].values
+        y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
     eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, suffix=f"_best_{best['fold']:04d}")
     metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, suffix=f"_best_{best['fold']:04d}")
@@ -335,6 +360,7 @@ def process(config: DictConfig):
             'shap_kernel': best['shap_kernel'],
             'df': df,
             'feature_names': feature_names,
+            'class_names': class_names,
             'outcome_name': outcome_name,
             'ids_all': np.arange(df.shape[0]),
             'ids_trn': datamodule.ids_trn,
