@@ -11,7 +11,7 @@ library("regRCPqn")
 
 path_load <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/origin"
 path_ref <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/harmonized/ref/"
-path_save <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/harmonized"
+path_save <- "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/harmonized/r"
 setwd(path_save)
 
 pd <- import("pandas")

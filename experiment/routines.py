@@ -8,7 +8,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 
 
-def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_probs, loggers, probs=True):
+def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, suffix=''):
     metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
     metrics_summary = {
         'accuracy_macro': 'max',
@@ -20,34 +20,37 @@ def eval_classification_sa(config, part, class_names, y_real, y_pred, y_pred_pro
         'cohen_kappa': 'max',
         'matthews_corrcoef': 'max',
     }
-    if probs:
-        metrics_summary['auroc_weighted'] = 'max'
-        metrics_summary['auroc_macro'] = 'max'
+    metrics_summary['auroc_weighted'] = 'max'
+    metrics_summary['auroc_macro'] = 'max'
 
     metrics = [metrics_classes_dict[m]() for m in metrics_summary]
 
-    if 'wandb' in config.logger:
-        for m, sum in metrics_summary.items():
-            wandb.define_metric(f"{part}/{m}", summary=sum)
+    if is_log:
+        if 'wandb' in config.logger:
+            for m, sum in metrics_summary.items():
+                wandb.define_metric(f"{part}/{m}", summary=sum)
 
     metrics_dict = {'metric': [m._name for m in metrics]}
     metrics_dict[part] = []
     log_dict = {}
     for m in metrics:
         if m._name in ['auroc_weighted', 'auroc_macro']:
-            m_val = m(y_real, y_pred_probs)
+            m_val = m(y_real, y_pred_prob)
         else:
             m_val = m(y_real, y_pred)
         metrics_dict[part].append(m_val)
         log_dict[f"{part}/{m._name}"] = m_val
     for logger in loggers:
-        logger.log_metrics(log_dict)
+        if is_log:
+            logger.log_metrics(log_dict)
 
-    plot_confusion_matrix(y_real, y_pred, class_names, part)
+    if is_log:
+        plot_confusion_matrix(y_real, y_pred, class_names, part)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
-    metrics_df.to_excel(f"metrics_{part}.xlsx", index=True)
+    if is_log:
+        metrics_df.to_excel(f"metrics_{part}{suffix}.xlsx", index=True)
 
     return metrics_df
 
@@ -89,7 +92,7 @@ def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, suffi
     return metrics_df
 
 
-def plot_confusion_matrix(y_real, y_pred, class_names, part):
+def plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=''):
     conf_mtx = confusion_matrix(y_real, y_pred)
     fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, colorscale='Viridis')
     fig.add_annotation(dict(font=dict(color="black", size=14),
@@ -109,7 +112,7 @@ def plot_confusion_matrix(y_real, y_pred, class_names, part):
                             yref="paper"))
     fig.update_layout(margin=dict(t=50, l=200))
     fig['data'][0]['showscale'] = True
-    save_figure(fig, f"confusion_matrix_{part}")
+    save_figure(fig, f"confusion_matrix_{part}{suffix}")
 
 
 def eval_loss(loss_info, loggers):
@@ -119,7 +122,6 @@ def eval_loss(loss_info, loggers):
             'train/loss': loss_info['train/loss'][epoch_id],
             'val/loss': loss_info['val/loss'][epoch_id]
         }
-        #wandb.log(log_dict)
         for logger in loggers:
             logger.log_metrics(log_dict)
 

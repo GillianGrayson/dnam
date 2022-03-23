@@ -121,7 +121,7 @@ def process(config: DictConfig):
 
             y_trn_pred_prob = model.predict(dmat_trn)
             y_val_pred_prob = model.predict(dmat_val)
-            y_train_pred = np.array([1 if pred > 0.5 else 0 for pred in y_trn_pred_prob])
+            y_trn_pred = np.array([1 if pred > 0.5 else 0 for pred in y_trn_pred_prob])
             y_val_pred = np.array([1 if pred > 0.5 else 0 for pred in y_val_pred_prob])
             if is_test:
                 y_tst_pred_prob = model.predict(dmat_tst)
@@ -160,7 +160,7 @@ def process(config: DictConfig):
 
             y_trn_pred_prob = model.predict(X_trn, prediction_type="Probability")
             y_val_pred_prob = model.predict(X_val, prediction_type="Probability")
-            y_train_pred = np.argmax(y_trn_pred_prob, 1)
+            y_trn_pred = np.argmax(y_trn_pred_prob, 1)
             y_val_pred = np.argmax(y_val_pred_prob, 1)
             if is_test:
                 y_tst_pred_prob = model.predict(X_tst, prediction_type="Probability")
@@ -212,7 +212,7 @@ def process(config: DictConfig):
 
             y_trn_pred_prob = model.predict(X_trn, num_iteration=model.best_iteration)
             y_val_pred_prob = model.predict(X_val, num_iteration=model.best_iteration)
-            y_train_pred = np.array([1 if pred > 0.5 else 0 for pred in y_trn_pred_prob])
+            y_trn_pred = np.array([1 if pred > 0.5 else 0 for pred in y_trn_pred_prob])
             y_val_pred = np.array([1 if pred > 0.5 else 0 for pred in y_val_pred_prob])
             if is_test:
                 y_tst_pred_prob = model.predict(X_tst, num_iteration=model.best_iteration)
@@ -233,31 +233,114 @@ def process(config: DictConfig):
         else:
             raise ValueError(f"Model {config.model_sa} is not supported")
 
-    feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
+        eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False)
+        metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False)
+        if is_test:
+            eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False)
+
+        if config.direction == "min":
+            if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
+                is_renew = True
+            else:
+                is_renew = False
+        elif config.direction == "max":
+            if metrics_val.at[config.optimized_metric, 'val'] > best["optimized_metric"]:
+                is_renew = True
+            else:
+                is_renew = False
+
+        if is_renew:
+            best["optimized_metric"] = metrics_val.at[config.optimized_metric, 'val']
+            best["model"] = model
+            best['loss_info'] = loss_info
+            best['shap_kernel'] = shap_kernel
+            best['feature_importances'] = feature_importances
+            best['fold'] = fold_idx
+            best['ids_trn'] = ids_trn
+            best['ids_val'] = ids_val
+            df.loc[df.index[ids_trn], "pred"] = y_trn_pred
+            df.loc[df.index[ids_val], "pred"] = y_val_pred
+            df.loc[df.index[ids_trn], "pred_prob"] = y_trn_pred_prob
+            df.loc[df.index[ids_val], "pred_prob"] = y_val_pred_prob
+            if is_test:
+                df.loc[df.index[ids_tst], "pred"] = y_tst_pred
+                df.loc[df.index[ids_tst], "pred_prob"] = y_tst_pred_prob
+        cv_progress['fold'].append(fold_idx)
+        cv_progress['optimized_metric'].append(metrics_val.at[config.optimized_metric, 'val'])
+
+    cv_progress_df = pd.DataFrame(cv_progress)
+    cv_progress_df.set_index('fold', inplace=True)
+    cv_progress_df.to_excel(f"cv_progress.xlsx", index=True)
+    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress['fold']]]
+    cv_ids.to_excel(f"cv_ids.xlsx", index=True)
+
+    datamodule.ids_trn = best['ids_trn']
+    datamodule.ids_val = best['ids_val']
+
+    datamodule.plot_split(f"_best_{best['fold']:04d}")
+
+    y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values
+    y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], "pred_prob"].values
+    y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
+    y_val_pred_prob = df.loc[df.index[datamodule.ids_val], "pred_prob"].values
+    if is_test:
+        y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
+        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
+        y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], "pred_prob"].values
+
+    eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, suffix=f"_best_{best['fold']:04d}")
+    if is_test:
+        eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, suffix=f"_best_{best['fold']:04d}")
+
+    if config.model_sa == "xgboost":
+        best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
+    elif config.model_sa == "catboost":
+        best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
+    elif config.model_sa == "lightgbm":
+        best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
+    else:
+        raise ValueError(f"Model {config.model_sa} is not supported")
+
+    best['feature_importances'].sort_values(['importance'], ascending=[False], inplace=True)
     fig = go.Figure()
-    ys = feature_importances['feature'][0:config.num_top_features][::-1]
-    xs = feature_importances['importance'][0:config.num_top_features][::-1]
+    ys = best['feature_importances']['feature'][0:config.num_top_features][::-1]
+    xs = best['feature_importances']['importance'][0:config.num_top_features][::-1]
     add_bar_trace(fig, x=xs, y=ys, text=xs, orientation='h')
     add_layout(fig, f"Feature importance", f"", "")
     fig.update_yaxes(tickfont_size=10)
     fig.update_xaxes(showticklabels=True)
     fig.update_layout(margin=go.layout.Margin(l=110, r=20, b=75, t=25, pad=0))
     save_figure(fig, f"feature_importances")
-    feature_importances.set_index('feature', inplace=True)
-    feature_importances.to_excel("feature_importances.xlsx", index=True)
+    best['feature_importances'].set_index('feature', inplace=True)
+    best['feature_importances'].to_excel("feature_importances.xlsx", index=True)
 
-    eval_classification_sa(config, 'train', class_names, y_train, y_train_pred, y_trn_pred_prob, loggers)
-    metrics_val = eval_classification_sa(config, 'val', class_names, y_val, y_val_pred, y_val_pred_prob, loggers)
-    eval_classification_sa(config, 'test', class_names, y_test, y_tst_pred, y_tst_pred_prob, loggers)
-
-    wandb.define_metric(f"epoch")
-    wandb.define_metric(f"train/loss")
-    wandb.define_metric(f"val/loss")
-    eval_loss(loss_info, loggers)
+    if 'wandb' in config.logger:
+        wandb.define_metric(f"epoch")
+        wandb.define_metric(f"train/loss")
+        wandb.define_metric(f"val/loss")
+    eval_loss(best['loss_info'], loggers)
 
     for logger in loggers:
         logger.save()
-    wandb.finish()
+    if 'wandb' in config.logger:
+        wandb.finish()
+
+    if config.is_shap == True:
+        shap_data = {
+            'model': best["model"],
+            'shap_kernel': best['shap_kernel'],
+            'df': df,
+            'feature_names': feature_names,
+            'outcome_name': outcome_name,
+            'ids_all': np.arange(df.shape[0]),
+            'ids_trn': datamodule.ids_trn,
+            'ids_val': datamodule.ids_val,
+            'ids_tst': datamodule.ids_tst
+        }
+        ololo = 2
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:

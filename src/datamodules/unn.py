@@ -52,7 +52,7 @@ class UNNDataModuleNoTest(LightningDataModule):
             classes_fn: str = "",
             trn_val_fn: str = "",
             outcome: str = "",
-            trn_val_split: Tuple[float, float, float] = (0.8, 0.2),
+            trn_val_split: Tuple[float, float] = (0.8, 0.2),
             batch_size: int = 64,
             num_workers: int = 0,
             pin_memory: bool = False,

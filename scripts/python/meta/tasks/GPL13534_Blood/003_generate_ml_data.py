@@ -43,7 +43,7 @@ for d_id, dataset in enumerate(datasets_trn_val):
     print(dataset)
     pheno_i = pd.read_pickle(f"{path_wd}/origin/pheno_trn_val_{dataset}.pkl")
     pheno_cols = pheno_i.columns.values
-    mvals_i = pd.read_csv(f"{path_wd}/harmonized/mvalsT_trn_val_{dataset}_regRCPqn.txt", delimiter="\t", index_col='ID_REF')
+    mvals_i = pd.read_csv(f"{path_wd}/harmonized/r/mvalsT_trn_val_{dataset}_regRCPqn.txt", delimiter="\t", index_col='ID_REF')
     mvals_i = mvals_i.T
     mvals_cols = mvals_i.columns.values
     df_i = pd.merge(pheno_i, mvals_i, left_index=True, right_index=True)
@@ -75,9 +75,8 @@ cpgs = mvals_trn_val.columns.values
 df_trn_val = pd.merge(pheno_trn_val, mvals_trn_val, left_index=True, right_index=True)
 pheno_trn_val = df_trn_val.loc[:, feats]
 mvals_trn_val = df_trn_val.loc[:, cpgs]
-pheno_trn_val.to_pickle(f"{path_wd}/harmonized/pheno_trn_val.pkl")
+df_trn_val.to_pickle(f"{path_wd}/harmonized/data_trn_val.pkl")
 pheno_trn_val.to_excel(f"{path_wd}/harmonized/pheno_trn_val.xlsx", index=True)
-mvals_trn_val.to_pickle(f"{path_wd}/harmonized/mvals_trn_val.pkl")
 
 # Check harmonization ==================================================================================================
 if origin_df.shape != df_trn_val.shape:
@@ -190,7 +189,7 @@ for cpg_id, (cpg, row) in enumerate(cpgs_to_plot_df.iterrows()):
 # Test data ============================================================================================================
 for d_id, dataset in enumerate(datasets_tst):
     print(dataset)
-    mvals = pd.read_csv(f"{path_wd}/harmonized/mvalsT_tst_{dataset}_regRCPqn.txt", delimiter="\t", index_col='ID_REF')
+    mvals = pd.read_csv(f"{path_wd}/harmonized/r/mvalsT_tst_{dataset}_regRCPqn.txt", delimiter="\t", index_col='ID_REF')
     mvals = mvals.T
     mvals.index.name = "subject_id"
     mvals = mvals.astype('float32')
@@ -200,8 +199,7 @@ for d_id, dataset in enumerate(datasets_tst):
     cpgs = mvals.columns.values
     feats = pheno.columns.values
     df = pd.merge(pheno, mvals, left_index=True, right_index=True)
+    df.to_pickle(f"{path_wd}/harmonized/data_tst_{dataset}.pkl")
     pheno_test = df.loc[:, feats]
-    mvals_test = df.loc[:, cpgs]
-    pheno_test.to_pickle(f"{path_wd}/harmonized/pheno_tst_{dataset}.pkl")
     pheno_test.to_excel(f"{path_wd}/harmonized/pheno_tst_{dataset}.xlsx", index=True)
-    mvals_test.to_pickle(f"{path_wd}/harmonized/mvals_tst_{dataset}.pkl")
+
