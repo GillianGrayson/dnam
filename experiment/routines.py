@@ -45,7 +45,7 @@ def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, log
             logger.log_metrics(log_dict)
 
     if is_log:
-        plot_confusion_matrix(y_real, y_pred, class_names, part)
+        plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=suffix)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)

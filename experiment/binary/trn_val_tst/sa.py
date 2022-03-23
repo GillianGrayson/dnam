@@ -19,6 +19,7 @@ from experiment.routines import eval_loss
 from typing import List
 from catboost import CatBoost
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
+from experiment.binary.shap import perform_shap_explanation
 import lightgbm as lgb
 import wandb
 from tqdm import tqdm
@@ -280,14 +281,14 @@ def process(config: DictConfig):
     datamodule.plot_split(f"_best_{best['fold']:04d}")
 
     y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
-    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values.astype('int32')
     y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], "pred_prob"].values
     y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
-    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values.astype('int32')
     y_val_pred_prob = df.loc[df.index[datamodule.ids_val], "pred_prob"].values
     if is_test:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
-        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
+        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values.astype('int32')
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], "pred_prob"].values
 
     eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, suffix=f"_best_{best['fold']:04d}")
@@ -340,7 +341,7 @@ def process(config: DictConfig):
             'ids_val': datamodule.ids_val,
             'ids_tst': datamodule.ids_tst
         }
-        ololo = 2
+        perform_shap_explanation(config, shap_data)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
