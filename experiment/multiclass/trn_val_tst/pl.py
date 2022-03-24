@@ -9,6 +9,7 @@ from pytorch_lightning import (
     Trainer,
     seed_everything,
 )
+from tqdm import tqdm
 from pytorch_lightning.loggers import LightningLoggerBase
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
@@ -18,7 +19,11 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from experiment.routines import plot_confusion_matrix
+from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import perform_shap_explanation
+from datetime import datetime
+from experiment.routines import eval_classification_sa
+from experiment.routines import eval_loss
 
 
 log = utils.get_logger(__name__)
@@ -44,161 +49,257 @@ def process(config: DictConfig) -> Optional[float]:
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-
-    # Init lightning model
-    log.info(f"Instantiating model <{config.model._target_}>")
-    model: LightningModule = hydra.utils.instantiate(config.model)
-
-    # Init lightning callbacks
-    callbacks: List[Callback] = []
-    if "callbacks" in config:
-        for _, cb_conf in config.callbacks.items():
-            if "_target_" in cb_conf:
-                log.info(f"Instantiating callback <{cb_conf._target_}>")
-                callbacks.append(hydra.utils.instantiate(cb_conf))
-
-    # Init lightning loggers
-    logger: List[LightningLoggerBase] = []
-    if "logger" in config:
-        for _, lg_conf in config.logger.items():
-            if "_target_" in lg_conf:
-                log.info(f"Instantiating logger <{lg_conf._target_}>")
-                logger.append(hydra.utils.instantiate(lg_conf))
-
-    # Init lightning trainer
-    log.info(f"Instantiating trainer <{config.trainer._target_}>")
-    trainer: Trainer = hydra.utils.instantiate(
-        config.trainer, callbacks=callbacks, logger=logger, _convert_="partial"
-    )
-
-    # Send some parameters from config to all lightning loggers
-    log.info("Logging hyperparameters!")
-    utils.log_hyperparameters(
-        config=config,
-        model=model,
-        datamodule=datamodule,
-        trainer=trainer,
-        callbacks=callbacks,
-        logger=logger,
-    )
-
-    # Train the model
-    log.info("Starting training!")
-    trainer.fit(model=model, datamodule=datamodule)
-
-    # Evaluate model on test set, using the best model achieved during training
-    if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
-        log.info("Starting testing!")
-        test_dataloader = datamodule.test_dataloader()
-        if len(test_dataloader) > 0:
-            trainer.test(model, test_dataloader)
-        else:
-            log.info("Test data is empty!")
-
-    # Make sure everything closed properly
-    log.info("Finalizing!")
-    utils.finish(
-        config=config,
-        model=model,
-        datamodule=datamodule,
-        trainer=trainer,
-        callbacks=callbacks,
-        logger=logger,
-    )
-
-    # Print path to best checkpoint
-    log.info(f"Best checkpoint path:\n{trainer.checkpoint_callback.best_model_path}")
-
-
+    datamodule.setup()
+    datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
     class_names = datamodule.get_class_names()
-    raw_data = datamodule.get_raw_data()
-    X_train = raw_data['X_train']
-    y_train = raw_data['y_train']
-    X_val = raw_data['X_val']
-    y_val = raw_data['y_val']
-    X_test = raw_data['X_test']
-    y_test = raw_data['y_test']
+    outcome_name = datamodule.get_outcome_name()
+    df = datamodule.get_df()
+    df['pred'] = 0
+    ids_tst = datamodule.ids_tst
+    if ids_tst is not None:
+        is_test = True
+    else:
+        is_test = False
 
-    model.eval()
-    model.freeze()
+    cv_datamodule = RepeatedStratifiedKFoldCVSplitter(
+        data_module=datamodule,
+        n_splits=config.cv_n_splits,
+        n_repeats=config.cv_n_repeats,
+        groups=config.cv_groups,
+        random_state=config.seed,
+        shuffle=config.is_shuffle
+    )
 
-    def shap_proba(X):
-        model.produce_probabilities = True
-        X = torch.from_numpy(X)
-        tmp = model(X)
-        return tmp.cpu().detach().numpy()
+    best = {}
+    if config.direction == "min":
+        best["optimized_metric"] = np.Inf
+    elif config.direction == "max":
+        best["optimized_metric"] = 0.0
+    cv_progress = {'fold': [], 'optimized_metric':[]}
 
-    model.produce_probabilities = True
-    y_train_pred_probs = model(torch.from_numpy(X_train)).cpu().detach().numpy()
-    y_val_pred_probs = model(torch.from_numpy(X_val)).cpu().detach().numpy()
-    y_test_pred_probs = model(torch.from_numpy(X_test)).cpu().detach().numpy()
-    model.produce_probabilities = False
-    y_train_pred_raw = model(torch.from_numpy(X_train)).cpu().detach().numpy()
-    y_val_pred_raw = model(torch.from_numpy(X_val)).cpu().detach().numpy()
-    y_test_pred_raw = model(torch.from_numpy(X_test)).cpu().detach().numpy()
-    y_train_pred = np.argmax(y_train_pred_probs, 1)
-    y_val_pred = np.argmax(y_val_pred_probs, 1)
-    y_test_pred = np.argmax(y_test_pred_probs, 1)
+    start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    raw_data['y_train_pred_probs'] = y_train_pred_probs
-    raw_data['y_val_pred_probs'] = y_val_pred_probs
-    raw_data['y_test_pred_probs'] = y_test_pred_probs
-    raw_data['y_train_pred_raw'] = y_train_pred_raw
-    raw_data['y_val_pred_raw'] = y_val_pred_raw
-    raw_data['y_test_pred_raw'] = y_test_pred_raw
-    raw_data['y_train_pred'] = y_train_pred
-    raw_data['y_val_pred'] = y_val_pred
-    raw_data['y_test_pred'] = y_test_pred
+    for fold_idx, (dl_trn, ids_trn, dl_val, ids_val) in tqdm(enumerate(cv_datamodule.split())):
+        datamodule.ids_trn = ids_trn
+        datamodule.ids_val = ids_val
+        datamodule.refresh_datasets()
+        df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "train"
+        df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
+        if is_test:
+            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
 
-    if config.model._target_ == "src.models.dnam.tabnet.TabNetModel":
-        feature_importances = np.zeros((model.hparams.input_dim))
-        M_explain, masks = model.forward_masks(torch.from_numpy(X_train))
-        feature_importances += M_explain.sum(dim=0).cpu().detach().numpy()
-        feature_importances = feature_importances / np.sum(feature_importances)
-        feature_importances_df = pd.DataFrame.from_dict(
+        if 'csv' in config.logger:
+            config.logger.csv["version"] = f"fold_{fold_idx}"
+        if 'wandb' in config.logger:
+            config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
+
+        # Init lightning model
+        log.info(f"Instantiating model <{config.model._target_}>")
+        model: LightningModule = hydra.utils.instantiate(config.model)
+
+        # Init lightning callbacks
+        callbacks: List[Callback] = []
+        if "callbacks" in config:
+            for _, cb_conf in config.callbacks.items():
+                if "_target_" in cb_conf:
+                    log.info(f"Instantiating callback <{cb_conf._target_}>")
+                    callbacks.append(hydra.utils.instantiate(cb_conf))
+
+        # Init lightning loggers
+        loggers: List[LightningLoggerBase] = []
+        if "logger" in config:
+            for _, lg_conf in config.logger.items():
+                if "_target_" in lg_conf:
+                    log.info(f"Instantiating logger <{lg_conf._target_}>")
+                    loggers.append(hydra.utils.instantiate(lg_conf))
+
+        # Init lightning trainer
+        log.info(f"Instantiating trainer <{config.trainer._target_}>")
+        trainer: Trainer = hydra.utils.instantiate(
+            config.trainer, callbacks=callbacks, logger=loggers, _convert_="partial"
+        )
+
+        # Send some parameters from config to all lightning loggers
+        log.info("Logging hyperparameters!")
+        utils.log_hyperparameters(
+            config=config,
+            model=model,
+            datamodule=datamodule,
+            trainer=trainer,
+            callbacks=callbacks,
+            logger=loggers,
+        )
+
+        # Train the model
+        log.info("Starting training!")
+        trainer.fit(model=model, datamodule=datamodule)
+
+        # Evaluate model on test set, using the best model achieved during training
+        if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
+            log.info("Starting testing!")
+            test_dataloader = datamodule.test_dataloader()
+            if test_dataloader is not None and len(test_dataloader) > 0:
+                trainer.test(model, test_dataloader)
+            else:
+                log.info("Test data is empty!")
+
+        # Make sure everything closed properly
+        log.info("Finalizing!")
+        utils.finish(
+            config=config,
+            model=model,
+            datamodule=datamodule,
+            trainer=trainer,
+            callbacks=callbacks,
+            logger=loggers,
+        )
+
+        X_trn = df.loc[df.index[ids_trn], feature_names].values
+        y_trn = df.loc[df.index[ids_trn], outcome_name].values
+        X_val = df.loc[df.index[ids_val], feature_names].values
+        y_val = df.loc[df.index[ids_val], outcome_name].values
+        if is_test:
+            X_tst = df.loc[df.index[ids_tst], feature_names].values
+            y_tst = df.loc[df.index[ids_tst], outcome_name].values
+
+        model.eval()
+        model.freeze()
+
+        feature_importances_raw = np.zeros((len(feature_names)))
+        M_explain, masks = model.forward_masks(torch.from_numpy(X_trn))
+        feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
+        feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
+        feature_importances = pd.DataFrame.from_dict(
             {
                 'feature': feature_names,
-                'importance': feature_importances
+                'importance': feature_importances_raw
             }
         )
-        feature_importances_df.sort_values(['importance'], ascending=[False], inplace=True)
+
+        def shap_kernel(X):
+            model.produce_probabilities = True
+            X = torch.from_numpy(X)
+            tmp = model(X)
+            return tmp.cpu().detach().numpy()
+
+        model.produce_probabilities = True
+        y_trn_pred_prob = model(torch.from_numpy(X_trn)).cpu().detach().numpy()
+        y_val_pred_prob = model(torch.from_numpy(X_val)).cpu().detach().numpy()
+        if is_test:
+            y_tst_pred_prob = model(torch.from_numpy(X_tst)).cpu().detach().numpy()
+        model.produce_probabilities = False
+        y_trn_pred_raw = model(torch.from_numpy(X_trn)).cpu().detach().numpy()
+        y_val_pred_raw = model(torch.from_numpy(X_val)).cpu().detach().numpy()
+        y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+        y_val_pred = np.argmax(y_val_pred_prob, 1)
+        if is_test:
+            y_tst_pred_raw = model(torch.from_numpy(X_tst)).cpu().detach().numpy()
+            y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+
+        eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
+        if is_test:
+            eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+
+        if config.direction == "min":
+            if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
+                is_renew = True
+            else:
+                is_renew = False
+        elif config.direction == "max":
+            if metrics_val.at[config.optimized_metric, 'val'] > best["optimized_metric"]:
+                is_renew = True
+            else:
+                is_renew = False
+
+        if is_renew:
+            best["optimized_metric"] = metrics_val.at[config.optimized_metric, 'val']
+            best["model"] = model
+            best["trainer"] = trainer
+            best['shap_kernel'] = shap_kernel
+            best['feature_importances'] = feature_importances
+            best['fold'] = fold_idx
+            best['ids_trn'] = ids_trn
+            best['ids_val'] = ids_val
+            df.loc[df.index[ids_trn], "pred"] = y_trn_pred
+            df.loc[df.index[ids_val], "pred"] = y_val_pred
+            for cl_id, cl in enumerate(class_names):
+                df.loc[df.index[ids_trn], f"pred_prob_{cl_id}"] = y_trn_pred_prob[:, cl_id]
+                df.loc[df.index[ids_val], f"pred_prob_{cl_id}"] = y_val_pred_prob[:, cl_id]
+                df.loc[df.index[ids_trn], f"pred_raw_{cl_id}"] = y_trn_pred_raw[:, cl_id]
+                df.loc[df.index[ids_val], f"pred_raw_{cl_id}"] = y_val_pred_raw[:, cl_id]
+            if is_test:
+                df.loc[df.index[ids_tst], "pred"] = y_tst_pred
+                for cl_id, cl in enumerate(class_names):
+                    df.loc[df.index[ids_tst], f"pred_prob_{cl_id}"] = y_tst_pred_prob[:, cl_id]
+                    df.loc[df.index[ids_tst], f"pred_raw_{cl_id}"] = y_tst_pred_raw[:, cl_id]
+
+        cv_progress['fold'].append(fold_idx)
+        cv_progress['optimized_metric'].append(metrics_val.at[config.optimized_metric, 'val'])
+
+    cv_progress_df = pd.DataFrame(cv_progress)
+    cv_progress_df.set_index('fold', inplace=True)
+    cv_progress_df.to_excel(f"cv_progress.xlsx", index=True)
+    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress['fold']]]
+    cv_ids.to_excel(f"cv_ids.xlsx", index=True)
+    predictions = df.loc[:, [f"fold_{best['fold']:04d}", outcome_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]]
+    predictions.to_excel(f"predictions.xlsx", index=True)
+
+    datamodule.ids_trn = best['ids_trn']
+    datamodule.ids_val = best['ids_val']
+
+    datamodule.plot_split(f"_best_{best['fold']:04d}")
+
+    y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values
+    y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+    y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
+    y_val_pred_prob = df.loc[df.index[datamodule.ids_val], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+    if is_test:
+        y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
+        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
+        y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+
+    eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    if is_test:
+        eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+
+    best["trainer"].save_checkpoint(f"best_{best['fold']:04d}.ckpt")
+
+    if best['feature_importances'] is not None:
+        feature_importances = best['feature_importances']
+        feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
         fig = go.Figure()
-        ys = feature_importances_df['feature'][0:config.num_top_features][::-1]
-        xs = feature_importances_df['importance'][0:config.num_top_features][::-1]
+        ys = feature_importances['feature'][0:config.num_top_features][::-1]
+        xs = feature_importances['importance'][0:config.num_top_features][::-1]
         add_bar_trace(fig, x=xs, y=ys, text=xs, orientation='h')
         add_layout(fig, f"Feature importance", f"", "")
         fig.update_yaxes(tickfont_size=10)
         fig.update_xaxes(showticklabels=True)
         fig.update_layout(margin=go.layout.Margin(l=130, r=20, b=75, t=25, pad=0))
         save_figure(fig, f"feature_importances")
-        feature_importances_df.set_index('feature', inplace=True)
-        feature_importances_df.to_excel("feature_importances.xlsx", index=True)
-
-    plot_confusion_matrix(y_train, y_train_pred, class_names, "train")
-    plot_confusion_matrix(y_val, y_val_pred, class_names, "val")
-    plot_confusion_matrix(y_test, y_test_pred, class_names, "test")
+        feature_importances.set_index('feature', inplace=True)
+        feature_importances.to_excel("feature_importances.xlsx", index=True)
 
     if config.is_shap == True:
-        X_all = np.concatenate((X_train, X_val, X_test))
-        y_all = np.concatenate((y_train, y_val, y_test))
-        y_all_pred = np.concatenate((y_train_pred, y_val_pred, y_test_pred))
-        y_all_pred_raw = np.concatenate((y_train_pred_raw, y_val_pred_raw, y_test_pred_raw))
-        y_all_pred_probs = np.concatenate((y_train_pred_probs, y_val_pred_probs, y_test_pred_probs))
-        ids_train = np.linspace(0, X_train.shape[0], X_train.shape[0], dtype=int)
-        ids_val = np.linspace(X_train.shape[0], X_train.shape[0] + X_val.shape[0], X_val.shape[0], dtype=int)
-        ids_test = np.linspace(X_train.shape[0] + X_val.shape[0], X_train.shape[0] + X_val.shape[0] + X_test.shape[0], X_test.shape[0], dtype=int)
-        raw_data['X_all'] = X_all
-        raw_data['y_all'] = y_all
-        raw_data['y_all_pred'] = y_all_pred
-        raw_data['y_all_pred_probs'] = y_all_pred_probs
-        raw_data['y_all_pred_raw'] = y_all_pred_raw
-        raw_data['ids_train'] = ids_train
-        raw_data['ids_val'] = ids_val
-        raw_data['ids_test'] = ids_test
-        perform_shap_explanation(config, model, shap_proba, raw_data, feature_names, class_names)
+        shap_data = {
+            'model': best["model"],
+            'shap_kernel': best['shap_kernel'],
+            'df': df,
+            'feature_names': feature_names,
+            'class_names': class_names,
+            'outcome_name': outcome_name,
+            'ids_all': np.arange(df.shape[0]),
+            'ids_trn': datamodule.ids_trn,
+            'ids_val': datamodule.ids_val,
+            'ids_tst': datamodule.ids_tst
+        }
+        perform_shap_explanation(config, shap_data)
 
     # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
-        return trainer.callback_metrics[optimized_metric]
+        return metrics_val.at[optimized_metric, 'val']

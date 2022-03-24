@@ -8,7 +8,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 
 
-def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, suffix=''):
+def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, suffix=''):
     metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
     metrics_summary = {
         'accuracy_macro': 'max',
@@ -44,18 +44,18 @@ def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, log
         if is_log:
             logger.log_metrics(log_dict)
 
-    if is_log:
+    if is_save:
         plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=suffix)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
-    if is_log:
+    if is_save:
         metrics_df.to_excel(f"metrics_{part}{suffix}.xlsx", index=True)
 
     return metrics_df
 
 
-def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, suffix=''):
+def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, suffix=''):
     metrics_classes_dict = get_regression_metrics_dict(object)
     metrics_summary = {
         'mean_absolute_error': 'min',
@@ -86,7 +86,7 @@ def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, suffi
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
-    if is_log:
+    if is_save:
         metrics_df.to_excel(f"metrics_{part}{suffix}.xlsx", index=True)
 
     return metrics_df

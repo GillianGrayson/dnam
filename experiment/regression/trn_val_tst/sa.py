@@ -230,10 +230,10 @@ def process(config: DictConfig):
         else:
             raise ValueError(f"Model {config.model_sa} is not supported")
 
-        eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False)
-        metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False)
+        eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False)
+            eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
 
         if config.direction == "min":
             if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
@@ -267,6 +267,8 @@ def process(config: DictConfig):
     cv_progress_df.to_excel(f"cv_progress.xlsx", index=True)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress['fold']]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
+    predictions = df.loc[:, [f"fold_{best['fold']:04d}", outcome_name, "Estimation"]]
+    predictions.to_excel(f"predictions.xlsx", index=True)
 
     datamodule.ids_trn = best['ids_trn']
     datamodule.ids_val = best['ids_val']
@@ -281,10 +283,10 @@ def process(config: DictConfig):
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=True, suffix=f"_best_{best['fold']:04d}")
+    eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, suffix=f"_best_{best['fold']:04d}")
+        eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
     if config.model_sa == "xgboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")

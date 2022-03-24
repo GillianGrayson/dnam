@@ -84,14 +84,14 @@ def process(config: DictConfig):
         datamodule.ids_val = ids_val
         X_trn = df.loc[df.index[ids_trn], feature_names].values
         y_trn = df.loc[df.index[ids_trn], outcome_name].values
-        df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "Train"
+        df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "train"
         X_val = df.loc[df.index[ids_val], feature_names].values
         y_val = df.loc[df.index[ids_val], outcome_name].values
-        df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "Val"
+        df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         if is_test:
             X_tst = df.loc[df.index[ids_tst], feature_names].values
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
-            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "Test"
+            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
 
         if config.model_sa == "xgboost":
             model_params = {

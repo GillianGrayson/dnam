@@ -88,6 +88,10 @@ def process(config: DictConfig) -> Optional[float]:
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
+        df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "train"
+        df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
+        if is_test:
+            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
 
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
@@ -155,19 +159,13 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
-        # Print path to best checkpoint
-        log.info(f"Best checkpoint path:\n{trainer.checkpoint_callback.best_model_path}")
-
         X_trn = df.loc[df.index[ids_trn], feature_names].values
         y_trn = df.loc[df.index[ids_trn], outcome_name].values
-        df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "Train"
         X_val = df.loc[df.index[ids_val], feature_names].values
         y_val = df.loc[df.index[ids_val], outcome_name].values
-        df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "Val"
         if is_test:
             X_tst = df.loc[df.index[ids_tst], feature_names].values
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
-            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "Test"
 
         model.eval()
         model.freeze()
@@ -193,10 +191,10 @@ def process(config: DictConfig) -> Optional[float]:
         if is_test:
             y_tst_pred = model(X_tst).cpu().detach().numpy().flatten()
 
-        eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False)
-        metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False)
+        eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False)
+            eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
 
         if config.direction == "min":
             if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
@@ -212,6 +210,7 @@ def process(config: DictConfig) -> Optional[float]:
         if is_renew:
             best["optimized_metric"] = metrics_val.at[config.optimized_metric, 'val']
             best["model"] = model
+            best["trainer"] = trainer
             best['shap_kernel'] = shap_kernel
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx
@@ -221,6 +220,7 @@ def process(config: DictConfig) -> Optional[float]:
             df.loc[df.index[ids_val], "Estimation"] = y_val_pred
             if is_test:
                 df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
+
         cv_progress['fold'].append(fold_idx)
         cv_progress['optimized_metric'].append(metrics_val.at[config.optimized_metric, 'val'])
 
@@ -229,11 +229,28 @@ def process(config: DictConfig) -> Optional[float]:
     cv_progress_df.to_excel(f"cv_progress.xlsx", index=True)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress['fold']]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
+    predictions = df.loc[:, [f"fold_{best['fold']:04d}", outcome_name, "Estimation"]]
+    predictions.to_excel(f"predictions.xlsx", index=True)
 
     datamodule.ids_trn = best['ids_trn']
     datamodule.ids_val = best['ids_val']
 
     datamodule.plot_split(f"_best_{best['fold']:04d}")
+
+    y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Estimation"].values
+    y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "Estimation"].values
+    if is_test:
+        y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
+        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
+
+    eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=True)
+    metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=True)
+    if is_test:
+        eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=True)
+
+    best["trainer"].save_checkpoint(f"best_{best['fold']:04d}.ckpt")
 
     if best['feature_importances'] is not None:
         feature_importances = best['feature_importances']

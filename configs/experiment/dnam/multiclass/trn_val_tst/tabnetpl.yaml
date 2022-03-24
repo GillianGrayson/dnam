@@ -1,29 +1,42 @@
 # @package _global_
 
-data_type: dnam
+data_type: harmonized
+outcome: "Status"
 
-project_name: ${data_type}_multiclass_trn_val_tst_tabnet
+project_name: dnam_${data_type}_multiclass_${outcome}_trn_val_tst_tabnet
 
-is_cv: False
-n_splits: 5
-is_stratified: True
+seed: 101
+
+cv_n_splits: 5
+cv_n_repeats: 1
+cv_groups: "categorical"
+
+optimized_metric: "accuracy_weighted"
+direction: "max"
+
+is_shuffle: True
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-seed: 322
-in_dim: 30866
+max_epochs: 100
+patience: 10
+
+in_dim: 200
 out_dim: 2
 
-dnam_data_type: "one_by_one"
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
-data_dir: "${base_dir}/${dnam_data_type}"
+data_dir: "${base_dir}"
 
 is_shap: True
-shap_explainer: Tree
+shap_explainer: Deep
+
+# Plot params
+num_top_features: 3
+num_examples: 3
 
 # specify here default training configuration
 defaults:
@@ -36,17 +49,14 @@ defaults:
   - override /hydra/job_logging: colorlog
 
 datamodule:
-  _target_: src.datamodules.dnam.DNAmDataModuleSeparate
-  path: ${data_dir}
-  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
-  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
-  dnam_trn_val_fn: "mvals_train_val.pkl"
-  pheno_trn_val_fn: "pheno_train_val.pkl"
-  dnam_tst_fn: "mvals_test.pkl"
-  pheno_tst_fn: "pheno_test.pkl"
-  outcome: "Status"
-  batch_size: 64
-  trn_val_tst_split: [0.8, 0.2]
+  _target_: src.datamodules.dnam.DNAmDataModuleNoTest
+  task: "binary"
+  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
+  trn_val_fn: "${data_dir}/data_trn_val.pkl"
+  outcome: ${outcome}
+  trn_val_split: [0.8, 0.2]
+  batch_size: 128
   num_workers: 0
   pin_memory: False
   seed: ${seed}
@@ -55,7 +65,7 @@ datamodule:
 trainer:
   gpus: 1
   min_epochs: 1
-  max_epochs: 1000
+  max_epochs: ${max_epochs}
   weights_summary: null
   progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
@@ -80,17 +90,17 @@ model:
 
 callbacks:
   model_checkpoint:
-    monitor: "val/f1_weighted" # name of the logged metric which determines when model is improving
-    mode: "max" # can be "max" or "min"
-    save_top_k: 1 # save k best models (determined by above metric)
+    monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
+    mode: ${direction} # can be "max" or "min"
+    save_top_k: 0 # save k best models (determined by above metric)
     save_last: False # additionaly always save model from last epoch
     verbose: False
     dirpath: "checkpoints/"
-    filename: "{epoch:03d}"
+    filename: "best"
     auto_insert_metric_name: False
 
   early_stopping:
-    monitor: "val/f1_weighted" # name of the logged metric which determines when model is improving
-    mode: "max" # can be "max" or "min"
-    patience: 50 # how many epochs of not improving until training stops
+    monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
+    mode: ${direction} # can be "max" or "min"
+    patience: ${patience} # how many epochs of not improving until training stops
     min_delta: 0 # minimum change in the monitored metric needed to qualify as an improvement

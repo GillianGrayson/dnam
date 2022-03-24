@@ -35,14 +35,7 @@ def main(config: DictConfig):
         print('CUDA Device Name:', torch.cuda.get_device_name(0))
         print('CUDA Device Total Memory [GB]:', torch.cuda.get_device_properties(0).total_memory / 1024**3)
 
-    # Train model
-    is_cv = config.is_cv
-
-    if is_cv:
-        return train_cv(config)
-    else:
-        return process(config)
-
+    return process(config)
 
 
 if __name__ == "__main__":

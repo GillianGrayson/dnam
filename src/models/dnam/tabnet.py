@@ -43,33 +43,45 @@ class TabNetModel(pl.LightningModule):
             if output_dim < 2:
                 raise ValueError(f"Classification with {output_dim} classes")
             self.metrics_dict = {
-                'accuracy': Accuracy(num_classes=self.hparams.output_dim),
+                'accuracy_macro': Accuracy(num_classes=self.hparams.output_dim, average='macro'),
+                'accuracy_micro': Accuracy(num_classes=self.hparams.output_dim, average='micro'),
+                'accuracy_weighted': Accuracy(num_classes=self.hparams.output_dim, average='weighted'),
                 'f1_macro': F1(num_classes=self.hparams.output_dim, average='macro'),
-                'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
-                'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
+                'f1_micro': F1(num_classes=self.hparams.output_dim, average='micro'),
                 'f1_weighted': F1(num_classes=self.hparams.output_dim, average='weighted'),
+                'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
+                'precision_micro': Precision(num_classes=self.hparams.output_dim, average='micro'),
                 'precision_weighted': Precision(num_classes=self.hparams.output_dim, average='weighted'),
+                'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
+                'recall_micro': Recall(num_classes=self.hparams.output_dim, average='micro'),
                 'recall_weighted': Recall(num_classes=self.hparams.output_dim, average='weighted'),
                 'cohens_kappa': CohenKappa(num_classes=self.hparams.output_dim),
                 'matthews_corr': MatthewsCorrcoef(num_classes=self.hparams.output_dim),
             }
             self.metrics_summary = {
-                'accuracy': 'max',
+                'accuracy_macro': 'max',
+                'accuracy_micro': 'max',
+                'accuracy_weighted': 'max',
                 'f1_macro': 'max',
-                'precision_macro': 'max',
-                'recall_macro': 'max',
+                'f1_micro': 'max',
                 'f1_weighted': 'max',
+                'precision_macro': 'max',
+                'precision_micro': 'max',
                 'precision_weighted': 'max',
+                'recall_macro': 'max',
+                'recall_micro': 'max',
                 'recall_weighted': 'max',
                 'cohens_kappa': 'max',
                 'matthews_corr': 'max',
             }
             self.metrics_prob_dict = {
                 'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
+                'auroc_micro': AUROC(num_classes=self.hparams.output_dim, average='micro'),
                 'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
             }
             self.metrics_prob_summary = {
                 'auroc_macro': 'max',
+                'auroc_micro': 'max',
                 'auroc_weighted': 'max',
             }
         elif task == "regression":
