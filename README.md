@@ -417,7 +417,7 @@ The whole pipeline managing the instantiation logic is placed in [src/train.py](
 
 
 ### Main Project Configuration
-Location: [configs/config.yaml](configs/main_fcmlp.yaml)<br>
+Location: [configs/config.yaml](configs/to_delete/main_fcmlp.yaml)<br>
 Main project config contains default training configuration.<br>
 It determines how config is composed when simply executing command `python run.py`.<br>
 It also specifies everything that shouldn't be managed by experiment configurations.
