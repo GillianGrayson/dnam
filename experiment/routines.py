@@ -125,6 +125,10 @@ def eval_loss(loss_info, loggers):
         for logger in loggers:
             logger.log_metrics(log_dict)
 
+    loss_df = pd.DataFrame(loss_info)
+    loss_df.set_index('epoch', inplace=True)
+    loss_df.to_excel(f"loss.xlsx", index=True)
+
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(

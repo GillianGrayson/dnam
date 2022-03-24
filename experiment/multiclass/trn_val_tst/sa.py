@@ -292,6 +292,8 @@ def process(config: DictConfig):
     cv_progress_df.to_excel(f"cv_progress.xlsx", index=True)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress['fold']]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
+    predictions = df.loc[:, [f"fold_{best['fold']:04d}", outcome_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]]
+    predictions.to_excel(f"predictions.xlsx", index=True)
 
     datamodule.ids_trn = best['ids_trn']
     datamodule.ids_val = best['ids_val']
