@@ -8,6 +8,8 @@ from src.utils import utils
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
+from scripts.python.routines.plot.scatter import add_scatter_trace
+from scripts.python.routines.plot.violin import add_violin_trace
 import plotly.express as px
 
 
@@ -156,21 +158,12 @@ def perform_shap_explanation(config, shap_data):
                     log.warning(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
 
                 # Сonvert raw SHAP values to probability SHAP values
-                if len(shap_data['class_names']) > 2:
-                    shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
-                    coeff = delta_prob / shap_contrib_logodd
-                    for feature_id in range(0, X_all.shape[1]):
-                        shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
-                elif len(shap_data['class_names']) == 2:
-                    for feature_id in range(0, X_all.shape[1]):
-                        shap_prob_num = np.exp(explainer.expected_value[class_id] + shap_values[class_id][subject_id, feature_id])
-                        shap_prob_den = 0
-                        for c_id in range(0, len(explainer.expected_value)):
-                            shap_prob_den += np.exp(explainer.expected_value[c_id] + shap_values[c_id][subject_id, feature_id])
-                        shap_values_prob[class_id][subject_id, feature_id] = (shap_prob_num / shap_prob_den) - base_prob[class_id]
-                else:
-                    raise ValueError(f"Wrong number of classes: {len(shap_data['class_names'])}")
-                diff_check = delta_prob - sum(shap_values_prob[class_id][subject_id])
+                shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
+                shap_contrib_prob = delta_prob
+                coeff = shap_contrib_prob / shap_contrib_logodd
+                for feature_id in range(0, X_all.shape[1]):
+                    shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
+                diff_check = shap_contrib_prob - sum(shap_values_prob[class_id][subject_id])
                 if abs(diff_check) > 1e-6:
                     log.warning(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
 
@@ -180,8 +173,7 @@ def perform_shap_explanation(config, shap_data):
     elif config.shap_explainer == "Kernel":
         explainer = shap.KernelExplainer(shap_data['shap_kernel'], X_trn)
         shap_values = explainer.shap_values(X_all)
-        shap_values = shap_values[0]
-        expected_value = explainer.expected_value[0]
+        expected_value = explainer.expected_value
     elif config.shap_explainer == "Deep":
         model.produce_probabilities = True
         explainer = shap.DeepExplainer(model, torch.from_numpy(X_trn))
@@ -272,6 +264,74 @@ def perform_shap_explanation(config, shap_data):
                     plt.savefig(f"shap/features/{cl}/{feat}_{part}.png", bbox_inches='tight')
                     plt.savefig(f"shap/features/{cl}/{feat}_{part}.pdf", bbox_inches='tight')
                     plt.close()
+
+            mean_abs_shap_vals = np.sum([np.mean(np.absolute(shap_values_global[cl_id]), axis=0) for cl_id, cl in enumerate(shap_data['class_names'])], axis=0)
+            order = np.argsort(mean_abs_shap_vals)[::-1]
+            features = np.asarray(shap_data['feature_names'])[order]
+            features_best = features[0:config.num_top_features]
+            for feat_id, feat in enumerate(features_best):
+                fig = go.Figure()
+                for cl_id, cl in enumerate(shap_data['class_names']):
+                    class_shap_values = shap_values_global[cl_id][:, order[feat_id]]
+                    real_values = shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], feat].values
+                    add_scatter_trace(fig, real_values, class_shap_values, cl)
+                add_layout(fig, f"{feat}", f"SHAP values for<br>{feat}", f"")
+                fig.update_layout(legend_font_size=20)
+                fig.update_layout(legend={'itemsizing': 'constant'})
+                fig.update_layout(
+                    margin=go.layout.Margin(
+                        l=150,
+                        r=20,
+                        b=80,
+                        t=35,
+                        pad=0
+                    )
+                )
+                fig.update_layout({'colorway': px.colors.qualitative.Set1})
+                save_figure(fig, f"shap/features/{feat_id}_{feat}_scatter_{part}")
+
+                fig = go.Figure()
+                for cl_id, cl in enumerate(shap_data['class_names']):
+                    vals = shap_data['df'].loc[(shap_data['df'].index.isin(shap_data['df'].index[shap_data[f'ids_{part}']])) & (shap_data['df'][shap_data['outcome_name']] == cl_id), feat].values
+                    fig.add_trace(
+                        go.Violin(
+                            y=vals,
+                            name=f"{cl}",
+                            box_visible=True,
+                            meanline_visible=True,
+                            showlegend=False,
+                            line_color='black',
+                            fillcolor=px.colors.qualitative.Set1[cl_id],
+                            marker=dict(color=px.colors.qualitative.Set1[cl_id], line=dict(color='black', width=0.3), opacity=0.8),
+                            points='all',
+                            bandwidth=np.ptp(vals) / 25,
+                            opacity=0.8
+                        )
+                    )
+                add_layout(fig, "", f"{feat}", f"")
+                fig.update_layout({'colorway': px.colors.qualitative.Set1})
+                fig.update_layout(legend={'itemsizing': 'constant'})
+                fig.update_layout(title_xref='paper')
+                fig.update_layout(legend_font_size=20)
+                fig.update_layout(
+                    margin=go.layout.Margin(
+                        l=130,
+                        r=20,
+                        b=50,
+                        t=20,
+                        pad=0
+                    )
+                )
+                fig.update_layout(
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.25,
+                        xanchor="center",
+                        x=0.5
+                    )
+                )
+                save_figure(fig, f"shap/features/{feat_id}_{feat}_violin_{part}")
 
     local_explain(
         config,
