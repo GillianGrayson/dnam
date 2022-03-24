@@ -20,9 +20,9 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
     num_mistakes = min(len(mistakes_ids), config.num_examples)
 
     for m_id in mistakes_ids[0:num_mistakes]:
-        log.info(f"Plotting sample with error #{m_id}")
+        log.info(f"Plotting sample with error {indexes[m_id]}")
         for cl_id, cl in enumerate(class_names):
-            Path(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}").mkdir(parents=True, exist_ok=True)
+            Path(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}").mkdir(parents=True, exist_ok=True)
             shap.plots.waterfall(
                 shap.Explanation(
                     values=shap_values[cl_id][m_id],
@@ -33,8 +33,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                 show=False
             )
             fig = plt.gcf()
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}/waterfall_{cl}.pdf", bbox_inches='tight')
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}/waterfall_{cl}.png", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/waterfall_{cl}.pdf", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/waterfall_{cl}.png", bbox_inches='tight')
             plt.close()
 
             shap.plots.decision(
@@ -45,8 +45,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                 show=False,
             )
             fig = plt.gcf()
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}/decision_{cl}.pdf", bbox_inches='tight')
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}/decision_{cl}.png", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/decision_{cl}.pdf", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/decision_{cl}.png", bbox_inches='tight')
             plt.close()
 
             shap.plots.force(
@@ -58,16 +58,16 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                 matplotlib=True
             )
             fig = plt.gcf()
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}/force_{cl}.pdf", bbox_inches='tight')
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{m_id}_{indexes[m_id]}/force_{cl}.png", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/force_{cl}.pdf", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/force_{cl}.png", bbox_inches='tight')
             plt.close()
 
     passed_examples = {x: 0 for x in range(len(class_names))}
     for p_id in range(features.shape[0]):
         if passed_examples[y_real[p_id]] < config.num_examples:
-            log.info(f"Plotting correct sample #{passed_examples[y_real[p_id]]} for {y_real[p_id]}")
+            log.info(f"Plotting correct sample {indexes[p_id]} for {y_real[p_id]}")
             for cl_id, cl in enumerate(class_names):
-                Path(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}").mkdir(parents=True, exist_ok=True)
+                Path(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}").mkdir(parents=True, exist_ok=True)
 
                 shap.waterfall_plot(
                     shap.Explanation(
@@ -79,8 +79,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                     show=False
                 )
                 fig = plt.gcf()
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}/waterfall_{cl}.pdf", bbox_inches='tight')
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}/waterfall_{cl}.png", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/waterfall_{cl}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/waterfall_{cl}.png", bbox_inches='tight')
                 plt.close()
 
                 shap.plots.decision(
@@ -91,8 +91,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                     show=False,
                 )
                 fig = plt.gcf()
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}/decision_{cl}.pdf", bbox_inches='tight')
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}/decision_{cl}.png", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/decision_{cl}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/decision_{cl}.png", bbox_inches='tight')
                 plt.close()
 
                 shap.plots.force(
@@ -104,8 +104,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                     matplotlib=True
                 )
                 fig = plt.gcf()
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}/force_{cl}.pdf", bbox_inches='tight')
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{passed_examples[y_real[p_id]]}_{p_id}_{indexes[p_id]}/force_{cl}.png", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/force_{cl}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/force_{cl}.png", bbox_inches='tight')
                 plt.close()
 
             passed_examples[y_real[p_id]] += 1
@@ -153,20 +153,26 @@ def perform_shap_explanation(config, shap_data):
                 delta_prob = expl_prob - base_prob[class_id]
                 diff_prob = real_prob - expl_prob
                 if abs(diff_prob) > 1e-6:
-                    log.warning(
-                        f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+                    log.warning(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
 
                 # Сonvert raw SHAP values to probability SHAP values
-                shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
-                shap_contrib_prob = delta_prob
-                coeff = shap_contrib_prob / shap_contrib_logodd
-                for feature_id in range(0, X_all.shape[1]):
-                    shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][
-                                                                             subject_id, feature_id] * coeff
-                diff_check = shap_contrib_prob - sum(shap_values_prob[class_id][subject_id])
+                if len(shap_data['class_names']) > 2:
+                    shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
+                    coeff = delta_prob / shap_contrib_logodd
+                    for feature_id in range(0, X_all.shape[1]):
+                        shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
+                elif len(shap_data['class_names']) == 2:
+                    for feature_id in range(0, X_all.shape[1]):
+                        shap_prob_num = np.exp(explainer.expected_value[class_id] + shap_values[class_id][subject_id, feature_id])
+                        shap_prob_den = 0
+                        for c_id in range(0, len(explainer.expected_value)):
+                            shap_prob_den += np.exp(explainer.expected_value[c_id] + shap_values[c_id][subject_id, feature_id])
+                        shap_values_prob[class_id][subject_id, feature_id] = (shap_prob_num / shap_prob_den) - base_prob[class_id]
+                else:
+                    raise ValueError(f"Wrong number of classes: {len(shap_data['class_names'])}")
+                diff_check = delta_prob - sum(shap_values_prob[class_id][subject_id])
                 if abs(diff_check) > 1e-6:
-                    log.warning(
-                        f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
+                    log.warning(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
 
         shap_values = shap_values_prob
         expected_value = base_prob
@@ -189,6 +195,23 @@ def perform_shap_explanation(config, shap_data):
 
     for part in ['trn', 'val', 'tst', 'all']:
         if shap_data[f"ids_{part}"] is not None:
+
+            shap_values_global = []
+            for cl_id, cl in enumerate(shap_data['class_names']):
+                shap_values_global.append(shap_values[cl_id][shap_data[f'ids_{part}'], :])
+            shap.summary_plot(
+                shap_values=shap_values_global,
+                features=shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], shap_data['feature_names']].values,
+                feature_names=shap_data['feature_names'],
+                max_display=30,
+                class_names=shap_data['class_names'],
+                class_inds=list(range(len(shap_data['class_names']))),
+                show=False,
+                color=plt.get_cmap("Set1")
+            )
+            plt.savefig(f'shap/global/bar_{part}.png', bbox_inches='tight')
+            plt.savefig(f'shap/global/bar_{part}.pdf', bbox_inches='tight')
+            plt.close()
 
             for cl_id, cl in enumerate(shap_data['class_names']):
                 Path(f"shap/global/{cl}").mkdir(parents=True, exist_ok=True)

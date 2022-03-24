@@ -56,6 +56,7 @@ def process(config: DictConfig):
     class_names = datamodule.get_class_names()
     outcome_name = datamodule.get_outcome_name()
     df = datamodule.get_df()
+    df['pred'] = 0
     ids_tst = datamodule.ids_tst
     if ids_tst is not None:
         is_test = True
@@ -298,14 +299,14 @@ def process(config: DictConfig):
     datamodule.plot_split(f"_best_{best['fold']:04d}")
 
     y_trn = df.loc[df.index[datamodule.ids_trn], outcome_name].values
-    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values.astype('int32')
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values
     y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     y_val = df.loc[df.index[datamodule.ids_val], outcome_name].values
-    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values.astype('int32')
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
     y_val_pred_prob = df.loc[df.index[datamodule.ids_val], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     if is_test:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
-        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values.astype('int32')
+        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
     eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, suffix=f"_best_{best['fold']:04d}")
