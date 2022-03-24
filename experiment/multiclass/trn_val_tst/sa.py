@@ -21,7 +21,7 @@ from catboost import CatBoost
 import lightgbm as lgb
 import wandb
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
-from experiment.binary.shap import perform_shap_explanation
+from experiment.multiclass.shap import perform_shap_explanation
 from tqdm import tqdm
 
 
