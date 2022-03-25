@@ -11,7 +11,6 @@ if model_sa == 'catboost':
     args = f"--multirun " \
            f"logger=csv " \
            f"model_sa={model_sa} " \
-           f"logger.wandb.offline=True " \
            f"experiment=unn/dnam/multiclass/trn_val_tst/sa " \
            f"catboost.learning_rate={','.join(str(x) for x in catboost_learning_rate)} " \
            f"catboost.depth={','.join(str(x) for x in catboost_depth)} " \
