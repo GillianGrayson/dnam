@@ -8,7 +8,7 @@ project_name: dnam_${data_type}_multiclass_${outcome}_trn_val_tst_tabnet
 seed: 101
 
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 5
 cv_groups: "categorical"
 
 optimized_metric: "accuracy_weighted"
@@ -21,22 +21,22 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 100
-patience: 10
+max_epochs: 4000
+patience: 100
 
-in_dim: 200
+in_dim: 110137
 out_dim: 2
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/${data_type}"
-work_dir: "${base_dir}/models/${project_name}"
-data_dir: "${base_dir}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
+work_dir: "${base_dir}/${data_type}/models/${project_name}"
+data_dir: "${base_dir}/${data_type}"
 
-is_shap: True
+is_shap: False
 shap_explainer: Deep
 
 # Plot params
-num_top_features: 3
-num_examples: 3
+num_top_features: 10
+num_examples: 10
 
 # specify here default training configuration
 defaults:
