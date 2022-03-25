@@ -6,7 +6,7 @@ outcome: "Status"
 
 project_name: dnam_${data_type}_multiclass_${outcome}_trn_val_tst_${model_sa}
 
-seed: 101
+seed: 69
 
 cv_n_splits: 5
 cv_n_repeats: 5
@@ -22,10 +22,10 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 10000
-patience: 1000
+max_epochs: 4000
+patience: 100
 
-in_dim: 200
+in_dim: 110137
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia/${data_type}"
