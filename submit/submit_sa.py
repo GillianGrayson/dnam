@@ -9,6 +9,7 @@ catboost_max_leaves = [31, 63]
 
 if model_sa == 'catboost':
     args = f"--multirun " \
+           f"logger=csv " \
            f"model_sa={model_sa} " \
            f"logger.wandb.offline=True " \
            f"experiment=unn/dnam/multiclass/trn_val_tst/sa " \
