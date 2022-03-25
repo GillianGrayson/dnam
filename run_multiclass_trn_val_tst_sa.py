@@ -16,6 +16,8 @@ def main(config: DictConfig):
     from experiment.multiclass.trn_val_tst.sa import process
     import torch
 
+    print("Started run_multiclass_trn_val_tst_sa")
+
     # A couple of optional utilities:
     # - disabling python warnings
     # - easier access to debug mode
