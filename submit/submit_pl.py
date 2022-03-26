@@ -20,9 +20,9 @@ if model_pl == 'tabnet':
            f"logger=many_loggers " \
            f"logger.wandb.offline=True " \
            f"base_dir={base_dir} " \
+           f"in_dim={in_dim} " \
            f"experiment=dnam/multiclass/trn_val_tst/tabnetpl " \
            f"model._target_=src.models.dnam.tabnet.TabNetModel " \
-           f"model.input_dim={in_dim} " \
            f"model.n_d_n_a={','.join(str(x) for x in tabnet_n_d_n_a)} " \
            f"model.n_steps={','.join(str(x) for x in tabnet_n_steps)} " \
            f"model.gamma={','.join(str(x) for x in tabnet_gamma)} " \
