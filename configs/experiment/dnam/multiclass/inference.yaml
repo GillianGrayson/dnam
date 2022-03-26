@@ -16,7 +16,7 @@ ckpt_path: "${base_dir}/${data_type}/models/dnam_harmonized_multiclass_Status_tr
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_00-52-21/epoch_587.model"
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-16_23-43-45/epoch_472.model"
 
-dataset: "GSE152027"
+dataset: "GSE87571"
 
 debug: False
 print_config: True

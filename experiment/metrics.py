@@ -46,11 +46,15 @@ def calc_metric(self, y_true, y_score):
 def calc_metric_prob(self, y_true, y_prob):
     y_true_torch = torch.from_numpy(y_true)
     y_prob_torch = torch.from_numpy(y_prob)
+    value = 0
     if self.metric_type == "auroc":
-        value = torchmetrics.functional.auroc(y_prob_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
+        try:
+            value = torchmetrics.functional.auroc(y_prob_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
+            value = float(value.numpy())
+        except ValueError:
+            pass
     else:
         raise ValueError("Unsupported metrics")
-    value = float(value.numpy())
     return value
 
 

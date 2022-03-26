@@ -323,15 +323,10 @@ class DNAmDataModuleInference(LightningDataModule):
 
         missed_features = list(set(self.features_names) - set(self.inference.columns.values))
         if len(missed_features) > 0:
-            log.info(f"Perform imputation for {len(missed_features)} CpGs with {self.imputation}")
-            if self.imputation in ["mean", "median"]:
-                imp_df = pd.DataFrame(index=missed_features, columns=[self.imputation])
+            log.info(f"Perform imputation for {len(missed_features)} features with {self.imputation}")
+            if self.imputation == "median":
                 for f_id, f in enumerate(tqdm(missed_features, desc=f"{self.imputation} calculation")):
-                    if self.imputation == "mean":
-                        imp_df.loc[f, self.imputation] = self.trn_val[f].mean()
-                    else:
-                        imp_df.loc[f, self.imputation] = self.trn_val[f].median()
-                    self.inference.loc[:, f] = imp_df.loc[f, self.imputation]
+                    self.inference.loc[:, f] = self.trn_val[f].median()
             else:
                 raise ValueError(f"Unsupported imputation: {self.imputation}")
 
