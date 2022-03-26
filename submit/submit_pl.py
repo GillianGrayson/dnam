@@ -17,7 +17,7 @@ in_dim = 200
 
 if model_pl == 'tabnet':
     args = f"--multirun " \
-           f"logger=csv " \
+           f"logger=many_loggers " \
            f"base_dir={base_dir} " \
            f"experiment=dnam/multiclass/trn_val_tst/tabnetpl " \
            f"model._target_=src.models.dnam.tabnet.TabNetModel " \
