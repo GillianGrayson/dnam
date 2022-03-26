@@ -50,7 +50,7 @@ geoparse>=2.0.3
 kaleido>=0.2.1
 pytorch-tabnet>=3.1.1
 openpyxl>=3.0.7
-shap>=0.39.0
+shap>=0.38.1
 lightgbm>=3.3.0
 catboost>=1.0.3
 xgboost
