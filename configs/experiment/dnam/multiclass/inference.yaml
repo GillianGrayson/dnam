@@ -7,16 +7,16 @@ project_name: dnam_${data_type}_multiclass_${outcome}_inference_${model_type}
 
 seed: 101
 
-model_type: lightgbm
-# model_sa: tabnetpl
-# model_sa: catboost
-# model_sa: xgboost
-ckpt_path: "${base_dir}/${data_type}/models/dnam_harmonized_multiclass_Status_trn_val_tst_${model_type}/runs/2022-03-25_23-05-28/epoch_588_best_0013.txt"
+# model_type: lightgbm
+# model_type: tabnetpl
+# model_type: catboost
+model_type: xgboost
+# ckpt_path: "${base_dir}/${data_type}/models/dnam_harmonized_multiclass_Status_trn_val_tst_${model_type}/runs/2022-03-25_23-05-28/epoch_588_best_0013.txt"
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_01-37-15/checkpoints/100.ckpt"
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_00-52-21/epoch_587.model"
-# ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-16_23-43-45/epoch_472.model"
+ckpt_path: "${base_dir}/${data_type}/models/dnam_harmonized_multiclass_Status_trn_val_tst_${model_type}/runs/2022-03-25_23-14-14/epoch_368_best_0013.model"
 
-dataset: "GSE87571"
+dataset: "GSE152027"
 
 debug: False
 print_config: True
