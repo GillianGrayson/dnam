@@ -16,7 +16,7 @@ if model_sa == 'catboost':
            f"base_dir={base_dir} " \
            f"model_sa={model_sa} " \
            f"in_dim={in_dim} " \
-           f"experiment=unn/dnam/multiclass/trn_val_tst/sa " \
+           f"experiment=dnam/multiclass/trn_val_tst/sa " \
            f"catboost.learning_rate={','.join(str(x) for x in catboost_learning_rate)} " \
            f"catboost.depth={','.join(str(x) for x in catboost_depth)} " \
            f"catboost.min_data_in_leaf={','.join(str(x) for x in catboost_min_data_in_leaf)} " \
