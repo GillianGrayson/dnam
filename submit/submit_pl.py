@@ -30,6 +30,7 @@ if model_pl == 'tabnet':
            f"model.optimizer_lr={','.join(str(x) for x in tabnet_optimizer_lr)} " \
            f"model.optimizer_weight_decay={','.join(str(x) for x in tabnet_optimizer_weight_decay)} " \
            f"model.scheduler_step_size={','.join(str(x) for x in tabnet_scheduler_step_size)} " \
-           f"model.scheduler_gamma={','.join(str(x) for x in tabnet_scheduler_gamma)} "
+           f"model.scheduler_gamma={','.join(str(x) for x in tabnet_scheduler_gamma)} " \
+           f"trainer.gpus=0 "
 
 os.system(f"sbatch run_multiclass_trn_val_tst_pl.sh \"{args}\"")
