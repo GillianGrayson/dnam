@@ -1,39 +1,41 @@
 # @package _global_
 
-data_type: dnam
+data_type: harmonized
+outcome: "Status"
+
+project_name: dnam_${data_type}_multiclass_${outcome}_inference_${model_type}
+
+seed: 101
 
 model_type: lightgbm
 # model_sa: tabnetpl
 # model_sa: catboost
 # model_sa: xgboost
-ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-16_23-22-25/epoch_508.txt"
+ckpt_path: "${base_dir}/${data_type}/models/dnam_harmonized_multiclass_Status_trn_val_tst_${model_type}/runs/2022-03-25_23-05-28/epoch_588_best_0013.txt"
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_01-37-15/checkpoints/100.ckpt"
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-17_00-52-21/epoch_587.model"
 # ckpt_path: "${base_dir}/models/${model_type}/runs/2022-02-16_23-43-45/epoch_472.model"
 
-project_name: ${data_type}_multiclass_inference_${model_type}
-
-dataset: "GSE87571"
-
-is_cv: False
-n_splits: 5
-is_stratified: True
+dataset: "GSE152027"
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-seed: 322
-in_dim: 30866
+in_dim: 110137
 out_dim: 2
 
-dnam_data_type: "one_by_one"
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood_Schizo_Control"
-work_dir: "${base_dir}/models/${project_name}"
-data_dir: "${base_dir}/${dnam_data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
+work_dir: "${base_dir}/${data_type}/models/${project_name}"
+data_dir: "${base_dir}/${data_type}"
 
+is_shap: False
+shap_explainer: Tree
 
+# Plot params
+num_top_features: 10
+num_examples: 10
 
 # specify here default training configuration
 defaults:
@@ -46,14 +48,14 @@ defaults:
   - override /hydra/job_logging: colorlog
 
 datamodule:
-  _target_: src.datamodules.dnam.DNAmPhenoInferenceDataModule
-  path: ${data_dir}
-  cpgs_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
-  statuses_fn: "${base_dir}/statuses/${out_dim}.xlsx"
-  dnam_fn: "mvals_${dataset}.pkl"
-  pheno_fn: "pheno_${dataset}.pkl"
+  _target_: src.datamodules.dnam.DNAmDataModuleInference
+  task: "binary"
+  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
+  trn_val_fn: "${data_dir}/data_trn_val.pkl"
+  inference_fn: "${data_dir}/data_tst_${dataset}.pkl"
   outcome: "Status"
-  batch_size: 64
+  batch_size: 128
   num_workers: 0
   pin_memory: False
   imputation: "median"
