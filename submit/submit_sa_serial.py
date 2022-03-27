@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-model_sa = 'xgboost'
+model_sa = 'catboost'
 
 catboost_learning_rate = [0.05, 0.01]
 catboost_depth = [4, 6]
@@ -24,11 +24,13 @@ xgboost_gamma = [0]
 xgboost_subsample = [1.0, 0.5]
 
 base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
-feat_imp_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-25_23-14-14/feature_importances.xlsx"
+# feat_imp_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-25_23-14-14/feature_importances.xlsx"
+feat_imp_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-27_01-51-36/feature_importances.xlsx"
+
 feat_imp_df = pd.read_excel(feat_imp_fn, index_col="feature")
 feat_imp_df.index.name = "features"
 feat_imp_df.sort_values(['importance'], ascending=[False], inplace=True)
-cpgs_path = f"{base_dir}/harmonized/cpgs/serial"
+cpgs_path = f"{base_dir}/harmonized/cpgs/serial/{model_sa}"
 Path(cpgs_path).mkdir(parents=True, exist_ok=True)
 n_feats = np.linspace(510, 1000, 50, dtype=int)
 # n_feats = [10]
