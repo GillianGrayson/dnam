@@ -34,7 +34,7 @@ Path(cpgs_path).mkdir(parents=True, exist_ok=True)
 n_feats = [10]
 
 for n_feat in n_feats:
-    project_name = f'dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}_n_feat'
+    project_name = f'dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}_{n_feat}'
     feats_df = feat_imp_df.head(n_feat)
     feats_df.to_excel(f"{cpgs_path}/{n_feat}.xlsx", index=True)
     features_fn = f"{cpgs_path}/{n_feat}.xlsx"
