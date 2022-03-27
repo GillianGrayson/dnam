@@ -2,29 +2,30 @@ import os
 
 model_sa = 'lightgbm'
 
-catboost_learning_rate = [0.01]
-catboost_depth = [6]
-catboost_min_data_in_leaf = [2]
+catboost_learning_rate = [0.05]
+catboost_depth = [4]
+catboost_min_data_in_leaf = [1]
 catboost_max_leaves = [31]
 
 lightgbm_learning_rate = [0.01]
 lightgbm_num_leaves = [31]
-lightgbm_min_data_in_leaf = [10]
+lightgbm_min_data_in_leaf = [20]
 lightgbm_feature_fraction = [0.9]
 lightgbm_bagging_fraction = [0.8]
 
-xgboost_learning_rate = [0.1]
+xgboost_learning_rate = [0.01]
 xgboost_booster = ['gbtree']
-xgboost_max_depth = [8]
+xgboost_max_depth = [6]
 xgboost_gamma = [0]
-xgboost_subsample = [0.5]
+xgboost_subsample = [1.0]
 
 base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
 in_dim = 200
 
 if model_sa == 'catboost':
     args = f"--multirun " \
-           f"logger=csv " \
+           f"logger=many_loggers " \
+           f"logger.wandb.offline=True " \
            f"base_dir={base_dir} " \
            f"model_sa={model_sa} " \
            f"in_dim={in_dim} " \

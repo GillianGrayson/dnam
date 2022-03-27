@@ -7,8 +7,6 @@ import numpy as np
 import pandas as pd
 from collections import Counter
 from src.utils import utils
-import matplotlib.pyplot as plt
-import os
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 import plotly.express as px
@@ -322,11 +320,15 @@ class DNAmDataModuleInference(LightningDataModule):
             self.inference[self.outcome].replace(self.classes_dict, inplace=True)
 
         missed_features = list(set(self.features_names) - set(self.inference.columns.values))
+        exist_features = list(set(self.features_names) - set(missed_features))
         if len(missed_features) > 0:
             log.info(f"Perform imputation for {len(missed_features)} features with {self.imputation}")
             if self.imputation == "median":
                 for f_id, f in enumerate(tqdm(missed_features, desc=f"{self.imputation} calculation")):
                     self.inference.loc[:, f] = self.trn_val[f].median()
+            elif self.imputation == "mean":
+                for f_id, f in enumerate(tqdm(missed_features, desc=f"{self.imputation} calculation")):
+                    self.inference.loc[:, f] = self.trn_val[f].mean()
             else:
                 raise ValueError(f"Unsupported imputation: {self.imputation}")
 
