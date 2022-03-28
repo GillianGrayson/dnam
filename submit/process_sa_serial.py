@@ -13,7 +13,7 @@ import plotly.express as px
 model_sa = 'catboost'
 
 num_realizations = 8
-n_feats = np.linspace(10, 500, 50, dtype=int)
+n_feats = np.linspace(10, 600, 60, dtype=int)
 
 base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
 models_dir = f"{base_dir}/harmonized/models"
@@ -78,9 +78,9 @@ for m in metrics:
             l=130,
             r=20,
             b=80,
-            t=35,
+            t=0,
             pad=0
         )
     )
-    add_layout(fig, f"Number of features in model", f"{m}", "")
+    add_layout(fig, f"Number of features in model", f"{metrics[m]}", "")
     save_figure(fig, f"{models_dir}/{model_sa}_iterative/{m}")
