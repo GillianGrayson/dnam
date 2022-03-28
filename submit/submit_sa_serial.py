@@ -30,7 +30,7 @@ feat_imp_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass
 feat_imp_df = pd.read_excel(feat_imp_fn, index_col="feature")
 feat_imp_df.index.name = "features"
 feat_imp_df.sort_values(['importance'], ascending=[False], inplace=True)
-cpgs_path = f"{base_dir}/harmonized/cpgs/serial/{model_sa}"
+cpgs_path = f"{base_dir}/harmonized/cpgs/serial/{model_sa}/test"
 Path(cpgs_path).mkdir(parents=True, exist_ok=True)
 n_feats = np.linspace(10, 1000, 100, dtype=int)
 # n_feats = [10]
