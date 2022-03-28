@@ -68,7 +68,7 @@ for n_feat in n_feats:
     print(split_id)
 
     for part in parts:
-        df = pd.read_excel(f"{head}/metrics_{part}_best_{split_id}.xlsgitx", index_col="metric")
+        df = pd.read_excel(f"{head}/metrics_{part}_best_{split_id}.xlsx", index_col="metric")
         for metric in metrics:
             metrics_global_df.at[n_feat, f"{metric}_{part}"] = df.at[metric, part]
 
