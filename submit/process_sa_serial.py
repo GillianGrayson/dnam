@@ -18,13 +18,13 @@ n_feats = np.linspace(10, 500, 50, dtype=int)
 base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
 models_dir = f"{base_dir}/harmonized/models"
 
-metrics = [
-    "accuracy_weighted",
-    "f1_weighted",
-    "cohen_kappa",
-    "matthews_corrcoef",
-    "auroc_weighted",
-]
+metrics = {
+    "accuracy_weighted": "Accuracy",
+    "f1_weighted": "F1",
+    "cohen_kappa": "Cohen's kappa",
+    "matthews_corrcoef": "Matthews correlation coefficient",
+    "auroc_weighted": "AUROC",
+}
 optimized_metric = "accuracy_weighted"
 direction = "max"
 
@@ -64,12 +64,23 @@ for m in metrics:
     fig.add_trace(
         go.Scatter(
             x=[n_feats[0], n_feats[-1]],
-            y=[-baseline_metrics_df.at[m, "val"], baseline_metrics_df.at[m, "val"]],
+            y=[baseline_metrics_df.at[m, "val"], baseline_metrics_df.at[m, "val"]],
             showlegend=False,
             mode='lines',
             line=dict(color='black', width=3, dash='dash')
         )
     )
     fig.update_layout({'colorway': ['red', 'black']})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(legend={'itemsizing': 'constant'})
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=130,
+            r=20,
+            b=80,
+            t=35,
+            pad=0
+        )
+    )
     add_layout(fig, f"Number of features in model", f"{m}", "")
     save_figure(fig, f"{models_dir}/{model_sa}_iterative/{m}")
