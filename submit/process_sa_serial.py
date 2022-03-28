@@ -14,7 +14,7 @@ import re
 model_sa = 'catboost'
 
 num_realizations = 8
-n_feats = np.linspace(10, 600, 60, dtype=int)
+n_feats = np.linspace(10, 70, 7, dtype=int)
 
 base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
 models_dir = f"{base_dir}/harmonized/models"
@@ -68,7 +68,7 @@ for n_feat in n_feats:
     print(split_id)
 
     for part in parts:
-        df = pd.read_excel(f"{head}/metrics_{part}_best_{split_id}.xslx", index_col="metric")
+        df = pd.read_excel(f"{head}/metrics_{part}_best_{split_id}.xlsgitx", index_col="metric")
         for metric in metrics:
             metrics_global_df.at[n_feat, f"{metric}_{part}"] = df.at[metric, part]
 
