@@ -18,12 +18,10 @@ from scripts.python.routines.plot.layout import add_layout
 import numpy as np
 from src.utils import utils
 import pandas as pd
-from experiment.routines import plot_confusion_matrix
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import perform_shap_explanation
 from datetime import datetime
 from experiment.routines import eval_classification_sa
-from experiment.routines import eval_loss
 
 
 log = utils.get_logger(__name__)
@@ -197,24 +195,33 @@ def process(config: DictConfig) -> Optional[float]:
             y_tst_pred_raw = model(torch.from_numpy(X_tst)).cpu().detach().numpy()
             y_tst_pred = np.argmax(y_tst_pred_prob, 1)
 
-        eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
+        metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+
+        if config.optimized_part == "train":
+            metrics_main = metrics_trn
+        elif config.optimized_part == "val":
+            metrics_main = metrics_val
+        elif config.optimized_part == "test":
+            metrics_main = metrics_tst
+        else:
+            raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
         if config.direction == "min":
-            if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
+            if metrics_main.at[config.optimized_metric, config.optimized_part] < best["optimized_metric"]:
                 is_renew = True
             else:
                 is_renew = False
         elif config.direction == "max":
-            if metrics_val.at[config.optimized_metric, 'val'] > best["optimized_metric"]:
+            if metrics_main.at[config.optimized_metric, config.optimized_part] > best["optimized_metric"]:
                 is_renew = True
             else:
                 is_renew = False
 
         if is_renew:
-            best["optimized_metric"] = metrics_val.at[config.optimized_metric, 'val']
+            best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             best["model"] = model
             best["trainer"] = trainer
             best['shap_kernel'] = shap_kernel
@@ -236,7 +243,7 @@ def process(config: DictConfig) -> Optional[float]:
                     df.loc[df.index[ids_tst], f"pred_raw_{cl_id}"] = y_tst_pred_raw[:, cl_id]
 
         cv_progress['fold'].append(fold_idx)
-        cv_progress['optimized_metric'].append(metrics_val.at[config.optimized_metric, 'val'])
+        cv_progress['optimized_metric'].append(metrics_main.at[config.optimized_metric, config.optimized_part])
 
     cv_progress_df = pd.DataFrame(cv_progress)
     cv_progress_df.set_index('fold', inplace=True)
@@ -262,12 +269,21 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
     metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
     best["trainer"].save_checkpoint(f"best_{best['fold']:04d}.ckpt")
+
+    if config.optimized_part == "train":
+        metrics_main = metrics_trn
+    elif config.optimized_part == "val":
+        metrics_main = metrics_val
+    elif config.optimized_part == "test":
+        metrics_main = metrics_tst
+    else:
+        raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
     if best['feature_importances'] is not None:
         feature_importances = best['feature_importances']
@@ -302,4 +318,4 @@ def process(config: DictConfig) -> Optional[float]:
     # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
-        return metrics_val.at[optimized_metric, 'val']
+        return metrics_main.at[optimized_metric, config.optimized_part]

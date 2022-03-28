@@ -3,18 +3,15 @@
 data_type: harmonized
 outcome: "Status"
 
-tst_dataset: "GSE152027"
+project_name: dnam_${data_type}_multiclass_${outcome}_trn_val_tst_tabnet
 
-project_name: multiclass_${outcome}_trn_val_tst_tabnet
-
-seed: 69
+seed: 101
 
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 5
 cv_groups: "categorical"
 
 optimized_metric: "accuracy_weighted"
-optimized_part: "test"
 direction: "max"
 
 is_shuffle: True
@@ -27,7 +24,7 @@ test_after_training: True
 max_epochs: 4000
 patience: 100
 
-in_dim: 590
+in_dim: 110137
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
@@ -38,8 +35,8 @@ is_shap: False
 shap_explainer: Deep
 
 # Plot params
-num_top_features: 5
-num_examples: 5
+num_top_features: 10
+num_examples: 10
 
 # specify here default training configuration
 defaults:
@@ -52,12 +49,11 @@ defaults:
   - override /hydra/job_logging: colorlog
 
 datamodule:
-  _target_: src.datamodules.dnam.DNAmDataModuleSeparate
+  _target_: src.datamodules.dnam.DNAmDataModuleNoTest
   task: "binary"
   features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
-  tst_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
   outcome: ${outcome}
   trn_val_split: [0.8, 0.2]
   batch_size: 128
@@ -65,7 +61,6 @@ datamodule:
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
-  imputation: "median"
 
 trainer:
   gpus: 1
