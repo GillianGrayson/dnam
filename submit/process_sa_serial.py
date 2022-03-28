@@ -31,7 +31,7 @@ direction = "max"
 baseline_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-27_01-51-36/metrics_val_best_0013.xlsx"
 baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
 
-metrics_global_df = pd.DataFrame(index=n_feats, columns=metrics)
+metrics_global_df = pd.DataFrame(index=n_feats, columns=list(metrics.keys()) + ['file'])
 metrics_global_df.index.name = "n_feat"
 for n_feat in n_feats:
     print(n_feat)
@@ -51,6 +51,7 @@ for n_feat in n_feats:
         metrics_local_df.at[file, optimized_metric] = df.at[optimized_metric, "val"]
     metrics_local_df.sort_values([optimized_metric], ascending=[False if direction == "max" else True], inplace=True)
     best_file = metrics_local_df.index.values[0]
+    metrics_global_df.at[n_feat, 'file'] = best_file
     print(best_file)
     df = pd.read_excel(best_file, index_col="metric")
     for m in metrics:
@@ -70,6 +71,7 @@ for m in metrics:
             line=dict(color='black', width=3, dash='dash')
         )
     )
+    add_layout(fig, f"Number of features in model", f"{metrics[m]}", "")
     fig.update_layout({'colorway': ['red', 'black']})
     fig.update_layout(legend_font_size=20)
     fig.update_layout(legend={'itemsizing': 'constant'})
@@ -78,9 +80,8 @@ for m in metrics:
             l=130,
             r=20,
             b=80,
-            t=0,
+            t=20,
             pad=0
         )
     )
-    add_layout(fig, f"Number of features in model", f"{metrics[m]}", "")
     save_figure(fig, f"{models_dir}/{model_sa}_iterative/{m}")
