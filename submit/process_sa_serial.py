@@ -28,7 +28,10 @@ metrics = [
 optimized_metric = "accuracy_weighted"
 direction = "max"
 
-metrics_global_df = pd.DataFrame(index=metrics, columns=n_feats)
+baseline_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-27_01-51-36/metrics_val_best_0013.xlsx"
+baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
+
+metrics_global_df = pd.DataFrame(index=n_feats, columns=metrics)
 metrics_global_df.index.name = "n_feat"
 for n_feat in n_feats:
     print(n_feat)
@@ -51,13 +54,22 @@ for n_feat in n_feats:
     print(best_file)
     df = pd.read_excel(best_file, index_col="metric")
     for m in metrics:
-        metrics_global_df.at[m, n_feat] = df.at[m, "val"]
+        metrics_global_df.at[n_feat, m] = df.at[m, "val"]
 
 Path(f"{models_dir}/{model_sa}_iterative").mkdir(parents=True, exist_ok=True)
 metrics_global_df.to_excel(f"{models_dir}/{model_sa}_iterative/metrics.xlsx", index=True)
 for m in metrics:
     fig = go.Figure()
     add_scatter_trace(fig, metrics_global_df.index.values, metrics_global_df.loc[:, m], f"", mode='lines+markers')
+    fig.add_trace(
+        go.Scatter(
+            x=[n_feats[0], n_feats[-1]],
+            y=[-baseline_metrics_df.at[m, "val"], baseline_metrics_df.at[m, "val"]],
+            showlegend=False,
+            mode='lines',
+            line=dict(color='black', width=3, dash='dash')
+        )
+    )
+    fig.update_layout({'colorway': ['red', 'black']})
     add_layout(fig, f"Number of features in model", f"{m}", "")
-    fig.update_layout({'colorway': px.colors.qualitative.Set1})
     save_figure(fig, f"{models_dir}/{model_sa}_iterative/{m}")
