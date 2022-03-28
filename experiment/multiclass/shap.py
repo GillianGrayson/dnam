@@ -252,7 +252,7 @@ def perform_shap_explanation(config, shap_data):
                 mean_abs_impact = np.mean(np.abs(shap_values_part), axis=0)
                 features_order = np.argsort(mean_abs_impact)[::-1]
                 inds_to_plot = features_order[0:config.num_top_features]
-                for ind in inds_to_plot:
+                for feat_id, ind in enumerate(inds_to_plot):
                     feat = shap_data['feature_names'][ind]
                     shap.dependence_plot(
                         ind=ind,
@@ -261,8 +261,8 @@ def perform_shap_explanation(config, shap_data):
                         feature_names=shap_data['feature_names'],
                         show=False,
                     )
-                    plt.savefig(f"shap/features/{cl}/{feat}_{part}.png", bbox_inches='tight')
-                    plt.savefig(f"shap/features/{cl}/{feat}_{part}.pdf", bbox_inches='tight')
+                    plt.savefig(f"shap/features/{cl}/{feat_id}_{feat}_{part}.png", bbox_inches='tight')
+                    plt.savefig(f"shap/features/{cl}/{feat_id}_{feat}_{part}.pdf", bbox_inches='tight')
                     plt.close()
 
             mean_abs_shap_vals = np.sum([np.mean(np.absolute(shap_values_global[cl_id]), axis=0) for cl_id, cl in enumerate(shap_data['class_names'])], axis=0)
