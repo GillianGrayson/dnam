@@ -3,15 +3,14 @@
 data_type: harmonized
 outcome: "Status"
 
-project_name: dnam_${data_type}_multiclass_${outcome}_inference_${model_type}
+project_name: multiclass_${outcome}_inference_${dataset}
 
-seed: 101
+seed: 69
 
+model_type: xgboost
+ckpt_path: "${base_dir}/${data_type}/models/baseline/multiclass_Status_trn_val_tst_${model_type}/runs/2022-03-25_23-14-14/epoch_368_best_0013.model"
 
-model_type: catboost
-ckpt_path: "${base_dir}/${data_type}/models/best/${model_type}/${in_dim}/1/epoch_2239_best_0014.model"
-
-dataset: "GSE116378" # 'GSE152027', 'GSE116379', 'GSE41169', 'GSE116378', 'GSE87571'
+dataset: "GSE152027" # 'GSE152027', 'GSE116379', 'GSE41169', 'GSE116378', 'GSE87571'
 
 
 debug: False
@@ -19,7 +18,7 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-in_dim: 590
+in_dim: 110137
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
@@ -46,7 +45,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleInference
   task: "binary"
-  features_fn: "${base_dir}/${data_type}/models/best/${model_type}/${in_dim}/${in_dim}.xlsx"
+  features_fn: "${base_dir}/${data_type}/cpgs/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
   inference_fn: "${data_dir}/data_tst_${dataset}.pkl"

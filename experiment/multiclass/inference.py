@@ -64,7 +64,7 @@ def inference(config: DictConfig):
         model.load_model(config.ckpt_path)
         dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
         y_test_pred_prob = model.predict(dmat_test)
-    elif config.model_type == "tabnetpl":
+    elif config.model_type == "tabnet":
         model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}")
         model.produce_probabilities = True
         model.eval()
