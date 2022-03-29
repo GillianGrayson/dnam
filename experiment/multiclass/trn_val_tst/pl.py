@@ -60,13 +60,12 @@ def process(config: DictConfig) -> Optional[float]:
     else:
         is_test = False
 
-    cv_datamodule = RepeatedStratifiedKFoldCVSplitter(
-        data_module=datamodule,
+    cv_splitter = RepeatedStratifiedKFoldCVSplitter(
+        datamodule=datamodule,
+        is_split=config.cv_is_split,
         n_splits=config.cv_n_splits,
         n_repeats=config.cv_n_repeats,
-        groups=config.cv_groups,
-        random_state=config.seed,
-        shuffle=config.is_shuffle
+        random_state=config.seed
     )
 
     best = {}
@@ -78,7 +77,7 @@ def process(config: DictConfig) -> Optional[float]:
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    for fold_idx, (dl_trn, ids_trn, dl_val, ids_val) in tqdm(enumerate(cv_datamodule.split())):
+    for fold_idx, (ids_trn, ids_val) in tqdm(enumerate(cv_splitter.split())):
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
