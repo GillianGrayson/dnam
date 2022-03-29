@@ -1,18 +1,19 @@
 # @package _global_
 
+disease: Parkinson
 data_type: harmonized
 model_sa: catboost
 outcome: "Status"
 
-tst_dataset: "GSE152027"
+tst_dataset: "GSE72774"
 
-project_name: multiclass_${outcome}_trn_val_tst_${model_sa}
+project_name: ${disease}_${data_type}_trn_val_tst_${model_sa}
 
 seed: 69
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 50
+cv_n_repeats: 2
 
 optimized_metric: "accuracy_weighted"
 optimized_part: "test"
@@ -28,10 +29,10 @@ test_after_training: True
 max_epochs: 4000
 patience: 100
 
-in_dim: 590
+in_dim: 50911
 out_dim: 2
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
 work_dir: "${base_dir}/${data_type}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 

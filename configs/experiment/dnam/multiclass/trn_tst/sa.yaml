@@ -1,12 +1,13 @@
 # @package _global_
 
-data_type: harmonized
+disease: Parkinson
+data_type: non_harmonized
 model_sa: catboost
 outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-project_name: multiclass_${outcome}_trn_tst_${model_sa}
+project_name: ${disease}_${data_type}_trn_tst_${model_sa}
 
 seed: 69
 
@@ -31,7 +32,7 @@ patience: 100
 in_dim: 50911
 out_dim: 2
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Parkinson"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
 work_dir: "${base_dir}/${data_type}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
