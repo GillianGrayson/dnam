@@ -17,19 +17,31 @@ thld_below = 0.05
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
 manifest = get_manifest('GPL13534')
+
+# disease = "Schizophrenia"
+# dataset_statuses = {
+#     'GSE84727': ['Control', 'Schizophrenia'],
+#     'GSE80417': ['Control', 'Schizophrenia'],
+#     'GSE152027': ['Control', 'Schizophrenia'],
+#     'GSE116379': ['Control', 'Schizophrenia'],
+#     'GSE41169': ['Control', 'Schizophrenia'],
+#     'GSE116378': ['Control', 'Schizophrenia'],
+#     'GSE87571': ['Control'],
+# }
+# datasets_trn_val = ['GSE84727', 'GSE80417']
+# datasets_tst = ['GSE152027', 'GSE116379', 'GSE41169', 'GSE116378', 'GSE87571']
+
+disease = "Parkinson"
 dataset_statuses = {
-    'GSE84727': ['Control', 'Schizophrenia'],
-    'GSE80417': ['Control', 'Schizophrenia'],
-    'GSE152027': ['Control', 'Schizophrenia'],
-    'GSE116379': ['Control', 'Schizophrenia'],
-    'GSE41169': ['Control', 'Schizophrenia'],
-    'GSE116378': ['Control', 'Schizophrenia'],
+    'GSE145361': ['Control', 'Parkinson'],
+    'GSE111629': ['Control', 'Parkinson'],
+    'GSE72774': ['Control', 'Parkinson'],
     'GSE87571': ['Control'],
 }
-datasets_trn_val = ['GSE84727', 'GSE80417']
-datasets_tst = ['GSE152027', 'GSE116379', 'GSE41169', 'GSE116378', 'GSE87571']
+datasets_trn_val = ['GSE145361', 'GSE111629']
+datasets_tst = ['GSE72774', 'GSE87571']
 
-task_name = f"GPL13534_Blood/Schizophrenia"
+task_name = f"GPL13534_Blood/{disease}"
 path_wd = f"{path}/meta/tasks/{task_name}"
 pathlib.Path(f"{path_wd}/harmonized/cpgs/figs").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_wd}/harmonized/cpgs/diffs").mkdir(parents=True, exist_ok=True)

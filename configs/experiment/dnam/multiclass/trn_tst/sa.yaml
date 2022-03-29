@@ -1,6 +1,6 @@
 # @package _global_
 
-data_type: harmonized
+data_type: non_harmonized
 model_sa: catboost
 outcome: "Status"
 

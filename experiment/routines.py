@@ -94,25 +94,26 @@ def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, is_sa
 
 def plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=''):
     conf_mtx = confusion_matrix(y_real, y_pred)
-    fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, colorscale='Viridis')
-    fig.add_annotation(dict(font=dict(color="black", size=14),
-                            x=0.5,
-                            y=-0.1,
-                            showarrow=False,
-                            text="Predicted value",
-                            xref="paper",
-                            yref="paper"))
-    fig.add_annotation(dict(font=dict(color="black", size=14),
-                            x=-0.33,
-                            y=0.5,
-                            showarrow=False,
-                            text="Real value",
-                            textangle=-90,
-                            xref="paper",
-                            yref="paper"))
-    fig.update_layout(margin=dict(t=50, l=200))
-    fig['data'][0]['showscale'] = True
-    save_figure(fig, f"confusion_matrix_{part}{suffix}")
+    if len(conf_mtx) > 1:
+        fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, colorscale='Viridis')
+        fig.add_annotation(dict(font=dict(color="black", size=14),
+                                x=0.5,
+                                y=-0.1,
+                                showarrow=False,
+                                text="Predicted value",
+                                xref="paper",
+                                yref="paper"))
+        fig.add_annotation(dict(font=dict(color="black", size=14),
+                                x=-0.33,
+                                y=0.5,
+                                showarrow=False,
+                                text="Real value",
+                                textangle=-90,
+                                xref="paper",
+                                yref="paper"))
+        fig.update_layout(margin=dict(t=50, l=200))
+        fig['data'][0]['showscale'] = True
+        save_figure(fig, f"confusion_matrix_{part}{suffix}")
 
 
 def eval_loss(loss_info, loggers):
