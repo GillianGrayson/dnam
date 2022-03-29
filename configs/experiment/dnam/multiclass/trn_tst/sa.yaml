@@ -1,10 +1,10 @@
 # @package _global_
 
-data_type: non_harmonized
+data_type: harmonized
 model_sa: catboost
 outcome: "Status"
 
-tst_dataset: "GSE152027"
+tst_dataset: "GSE72774"
 
 project_name: multiclass_${outcome}_trn_tst_${model_sa}
 
@@ -28,10 +28,10 @@ test_after_training: True
 max_epochs: 4000
 patience: 100
 
-in_dim: 590
+in_dim: 50911
 out_dim: 2
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Parkinson"
 work_dir: "${base_dir}/${data_type}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
