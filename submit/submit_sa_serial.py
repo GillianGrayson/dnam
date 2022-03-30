@@ -3,8 +3,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
-model_sa = 'catboost'
+disease = "Parkinson"
+data_type = "harmonized"
+model_sa = 'lightgbm'
+run_type = "trn_tst"
 
 catboost_learning_rate = [0.05, 0.01]
 catboost_depth = [4, 6]
@@ -23,33 +25,34 @@ xgboost_max_depth = [6, 8]
 xgboost_gamma = [0]
 xgboost_subsample = [1.0, 0.5]
 
-base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
-# feat_imp_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-25_23-14-14/feature_importances.xlsx"
-feat_imp_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-27_01-51-36/feature_importances.xlsx"
+base_dir = f"/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/{disease}"
+feat_imp_fn = f"{base_dir}/{data_type}/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-30_12-10-03/feature_importances.xlsx"
 
 feat_imp_df = pd.read_excel(feat_imp_fn, index_col="feature")
 feat_imp_df.index.name = "features"
 feat_imp_df.sort_values(['importance'], ascending=[False], inplace=True)
-cpgs_path = f"{base_dir}/harmonized/cpgs/serial/{model_sa}/test"
+cpgs_path = f"{base_dir}/{data_type}/cpgs/serial/{run_type}/{model_sa}"
 Path(cpgs_path).mkdir(parents=True, exist_ok=True)
 n_feats = np.linspace(10, 1000, 100, dtype=int)
 # n_feats = [10]
 
 for n_feat in n_feats:
-    project_name = f'multiclass_Status_trn_val_tst_{model_sa}_{n_feat}'
+    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{n_feat}'
     feats_df = feat_imp_df.head(n_feat)
     feats_df.to_excel(f"{cpgs_path}/{n_feat}.xlsx", index=True)
     features_fn = f"{cpgs_path}/{n_feat}.xlsx"
 
     args = f"--multirun " \
+           f"disease={disease} " \
+           f"data_type={data_type} " \
+           f"model_sa={model_sa} " \
            f"project_name={project_name} " \
            f"logger=many_loggers " \
            f"logger.wandb.offline=True " \
            f"base_dir={base_dir} " \
-           f"model_sa={model_sa} " \
            f"in_dim={n_feat} " \
            f"datamodule.features_fn={features_fn} " \
-           f"experiment=dnam/multiclass/trn_val_tst/sa "
+           f"experiment=dnam/multiclass/{run_type}/sa "
 
     if model_sa == 'catboost':
         args += f"catboost.learning_rate={','.join(str(x) for x in catboost_learning_rate)} " \
