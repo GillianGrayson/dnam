@@ -13,9 +13,9 @@ catboost_depth = [4, 6]
 catboost_min_data_in_leaf = [1, 4]
 catboost_max_leaves = [31]
 
-lightgbm_learning_rate = [0.01]
-lightgbm_num_leaves = [31]
-lightgbm_min_data_in_leaf = [20]
+lightgbm_learning_rate = [0.01, 0.05]
+lightgbm_num_leaves = [31, 63]
+lightgbm_min_data_in_leaf = [5, 10]
 lightgbm_feature_fraction = [0.9]
 lightgbm_bagging_fraction = [0.8]
 
