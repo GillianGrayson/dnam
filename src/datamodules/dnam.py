@@ -190,7 +190,7 @@ class DNAmDataModuleNoTest(LightningDataModule):
             add_layout(fig, f"{self.outcome}", "Count", "")
             fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=75, t=50, pad=0))
             fig.update_layout(legend_font_size=20)
-            fig.update_layout({'colorway': ["blue", "red", "green"]}, barmode='overlay')
+            fig.update_layout({'colorway': px.colors.qualitative.Set1}, barmode='overlay')
             save_figure(fig, f"hist{suffix}")
 
         self.output.loc[self.output.index[self.ids_trn], 'Part'] = "trn"
@@ -435,7 +435,7 @@ class DNAmDataModuleSeparate(LightningDataModule):
             add_layout(fig, f"{self.outcome}", "Count", "")
             fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=75, t=50, pad=0))
             fig.update_layout(legend_font_size=20)
-            fig.update_layout({'colorway': ["blue", "red", "green"]}, barmode='overlay')
+            fig.update_layout({'colorway': px.colors.qualitative.Set1}, barmode='overlay')
             save_figure(fig, f"hist{suffix}")
 
         self.output.loc[self.output.index[self.ids_trn], 'Part'] = "trn"
@@ -583,7 +583,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
 
         self.ids_trn = np.arange(self.trn.shape[0])
         self.ids_val =  np.arange(self.val.shape[0]) + self.trn.shape[0]
-        self.ids_tst = None
+
         self.ids_trn_val = np.concatenate([self.ids_trn, self.ids_val])
 
         self.all = pd.concat((self.trn, self.val))
@@ -657,7 +657,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
             add_layout(fig, f"{self.outcome}", "Count", "")
             fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=75, t=50, pad=0))
             fig.update_layout(legend_font_size=20)
-            fig.update_layout({'colorway': ["blue", "red", "green"]}, barmode='overlay')
+            fig.update_layout({'colorway': px.colors.qualitative.Set1}, barmode='overlay')
             save_figure(fig, f"hist{suffix}")
 
         self.output.loc[self.output.index[self.ids_trn], 'Part'] = "trn"

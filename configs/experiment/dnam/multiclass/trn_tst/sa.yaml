@@ -1,8 +1,8 @@
 # @package _global_
 
 disease: Parkinson
-data_type: non_harmonized
-model_sa: catboost
+data_type: harmonized
+model_sa: lightgbm
 outcome: "Status"
 
 tst_dataset: "GSE72774"
