@@ -583,7 +583,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
 
         self.ids_trn = np.arange(self.trn.shape[0])
         self.ids_val =  np.arange(self.val.shape[0]) + self.trn.shape[0]
-
+        self.ids_tst = None
         self.ids_trn_val = np.concatenate([self.ids_trn, self.ids_val])
 
         self.all = pd.concat((self.trn, self.val))
