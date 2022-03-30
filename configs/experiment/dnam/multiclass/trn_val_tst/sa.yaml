@@ -26,7 +26,7 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 4000
+max_epochs: 2000
 patience: 100
 
 in_dim: 50911
