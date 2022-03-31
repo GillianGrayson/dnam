@@ -95,24 +95,69 @@ def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, is_sa
 def plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=''):
     conf_mtx = confusion_matrix(y_real, y_pred)
     if len(conf_mtx) > 1:
-        fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, colorscale='Viridis')
-        fig.add_annotation(dict(font=dict(color="black", size=14),
-                                x=0.5,
-                                y=-0.1,
-                                showarrow=False,
-                                text="Predicted value",
-                                xref="paper",
-                                yref="paper"))
-        fig.add_annotation(dict(font=dict(color="black", size=14),
-                                x=-0.33,
-                                y=0.5,
-                                showarrow=False,
-                                text="Real value",
-                                textangle=-90,
-                                xref="paper",
-                                yref="paper"))
-        fig.update_layout(margin=dict(t=50, l=200))
-        fig['data'][0]['showscale'] = True
+        fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, showscale=False)
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].font.size = 60
+        fig.update_layout(
+            template="none",
+            autosize=True,
+            margin=go.layout.Margin(
+                l=120,
+                r=20,
+                b=20,
+                t=100,
+                pad=0
+            ),
+            showlegend=False,
+            xaxis=dict(
+                title="Prediction",
+                autorange=True,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=45
+                ),
+                showticklabels=True,
+                tickangle=0,
+                tickfont=dict(
+                    color='black',
+                    size=35
+                ),
+                exponentformat='e',
+                showexponent='all'
+            ),
+            yaxis=dict(
+                title="Real",
+                autorange=True,
+                showgrid=True,
+                zeroline=False,
+                linecolor='black',
+                showline=True,
+                gridcolor='gainsboro',
+                gridwidth=0.05,
+                mirror=True,
+                ticks='outside',
+                titlefont=dict(
+                    color='black',
+                    size=45
+                ),
+                showticklabels=True,
+                tickangle=270,
+                tickfont=dict(
+                    color='black',
+                    size=35
+                ),
+                exponentformat='e',
+                showexponent='all'
+            ),
+        )
         save_figure(fig, f"confusion_matrix_{part}{suffix}")
 
 
