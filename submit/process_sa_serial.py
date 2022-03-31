@@ -12,7 +12,7 @@ import re
 
 disease = "Parkinson"
 data_type = "harmonized"
-model_sa = 'catboost'
+model_sa = 'lightgbm'
 run_type = "trn_tst"
 
 num_realizations = 8
