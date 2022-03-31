@@ -2,7 +2,7 @@
 
 disease: Parkinson
 data_type: non_harmonized
-model_sa: lightgbm
+model_sa: catboost
 outcome: "Status"
 
 tst_dataset: "GSE72774"
@@ -87,7 +87,7 @@ xgboost:
 catboost:
   output_dim: ${out_dim}
   loss_function: 'MultiClass'
-  learning_rate: 0.05
+  learning_rate: 0.01
   depth: 4
   min_data_in_leaf: 4
   max_leaves: 31

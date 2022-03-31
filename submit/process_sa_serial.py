@@ -10,14 +10,16 @@ from scripts.python.routines.plot.layout import add_layout
 import plotly.express as px
 import re
 
-
+disease = "Parkinson"
+data_type = "harmonized"
 model_sa = 'catboost'
+run_type = "trn_tst"
 
 num_realizations = 8
 n_feats = np.linspace(10, 70, 7, dtype=int)
 
-base_dir = "/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/Schizophrenia"
-models_dir = f"{base_dir}/harmonized/models"
+base_dir = f"/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/{disease}"
+models_dir = f"{base_dir}/{data_type}/models"
 
 metrics = {
     "accuracy_weighted": "Accuracy",
@@ -27,12 +29,12 @@ metrics = {
     "auroc_weighted": "AUROC",
 }
 optimized_metric = "accuracy_weighted"
-optimized_part = "test"
+optimized_part = "val"
 direction = "max"
 
-parts = ['train', 'val', 'test']
+parts = ['train', 'val']
 
-baseline_fn = f"{base_dir}/harmonized/models/baseline/dnam_harmonized_multiclass_Status_trn_val_tst_{model_sa}/runs/2022-03-27_01-51-36/metrics_val_best_0013.xlsx"
+baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-30_12-10-03/metrics_val_best_0013.xlsx"
 baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
 
 metrics_global_df = pd.DataFrame(
@@ -42,7 +44,7 @@ metrics_global_df = pd.DataFrame(
 metrics_global_df.index.name = "n_feat"
 for n_feat in n_feats:
     print(n_feat)
-    project_name = f'multiclass_Status_trn_val_tst_{model_sa}_{n_feat}'
+    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{n_feat}'
     files = glob(f"{models_dir}/{project_name}/multiruns/*/*/metrics_{optimized_part}_best_*.xlsx")
 
     if len(files) != num_realizations:
@@ -72,8 +74,8 @@ for n_feat in n_feats:
         for metric in metrics:
             metrics_global_df.at[n_feat, f"{metric}_{part}"] = df.at[metric, part]
 
-Path(f"{models_dir}/iterative/{model_sa}").mkdir(parents=True, exist_ok=True)
-metrics_global_df.to_excel(f"{models_dir}/iterative/{model_sa}/metrics.xlsx", index=True)
+Path(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}").mkdir(parents=True, exist_ok=True)
+metrics_global_df.to_excel(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}/metrics.xlsx", index=True)
 for p in parts:
     for m in metrics:
         fig = go.Figure()
@@ -100,4 +102,4 @@ for p in parts:
                 pad=0
             )
         )
-        save_figure(fig, f"{models_dir}/iterative/{model_sa}/{m}_{p}")
+        save_figure(fig, f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}/{m}_{p}")
