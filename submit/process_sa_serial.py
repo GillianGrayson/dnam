@@ -34,7 +34,7 @@ direction = "max"
 
 parts = ['train', 'val']
 
-baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-30_12-10-03/metrics_val_best_0013.xlsx"
+baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-30_12-10-03/metrics_val_best_0000.xlsx"
 baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
 
 metrics_global_df = pd.DataFrame(
