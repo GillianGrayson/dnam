@@ -4,9 +4,10 @@ import numpy as np
 import pandas as pd
 
 disease = "Schizophrenia"
+tst_dataset = "GSE152027"
 data_type = "harmonized"
 model_sa = 'catboost'
-run_type = "trn_val_tst"
+run_type = "trn_tst"
 
 catboost_learning_rate = [0.05, 0.01]
 catboost_depth = [4, 6]
@@ -26,7 +27,7 @@ xgboost_gamma = [0]
 xgboost_subsample = [1.0, 0.5]
 
 base_dir = f"/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/{disease}"
-feat_imp_fn = f"{base_dir}/{data_type}/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-31_00-58-59/feature_importances.xlsx"
+feat_imp_fn = f"{base_dir}/{data_type}/models/baseline/{disease}_{data_type}_trn_val_tst_{model_sa}/runs/2022-03-31_00-58-59/feature_importances.xlsx"
 
 feat_imp_df = pd.read_excel(feat_imp_fn, index_col="feature")
 feat_imp_df.index.name = "features"
@@ -47,6 +48,7 @@ for n_feat in n_feats:
            f"data_type={data_type} " \
            f"model_sa={model_sa} " \
            f"project_name={project_name} " \
+           f"tst_dataset={tst_dataset} " \
            f"logger=many_loggers " \
            f"logger.wandb.offline=True " \
            f"base_dir={base_dir} " \
