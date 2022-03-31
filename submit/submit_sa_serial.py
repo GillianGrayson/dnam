@@ -5,7 +5,7 @@ import pandas as pd
 
 disease = "Schizophrenia"
 data_type = "harmonized"
-model_sa = 'xgboost'
+model_sa = 'catboost'
 run_type = "trn_tst"
 
 catboost_learning_rate = [0.05, 0.01]
@@ -26,7 +26,7 @@ xgboost_gamma = [0]
 xgboost_subsample = [1.0, 0.5]
 
 base_dir = f"/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/{disease}"
-feat_imp_fn = f"{base_dir}/{data_type}/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-30_12-10-03/feature_importances.xlsx"
+feat_imp_fn = f"{base_dir}/{data_type}/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-31_00-58-59/feature_importances.xlsx"
 
 feat_imp_df = pd.read_excel(feat_imp_fn, index_col="feature")
 feat_imp_df.index.name = "features"
