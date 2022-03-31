@@ -6,7 +6,7 @@ import pandas as pd
 disease = "Schizophrenia"
 data_type = "harmonized"
 model_sa = 'catboost'
-run_type = "trn_tst"
+run_type = "trn_val_tst"
 
 catboost_learning_rate = [0.05, 0.01]
 catboost_depth = [4, 6]
