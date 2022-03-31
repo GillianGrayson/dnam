@@ -6,6 +6,8 @@ import wandb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None
 
 
 def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, suffix=''):

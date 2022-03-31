@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-disease = "Parkinson"
+disease = "Schizophrenia"
 data_type = "harmonized"
-model_sa = 'lightgbm'
+model_sa = 'xgboost'
 run_type = "trn_tst"
 
 catboost_learning_rate = [0.05, 0.01]

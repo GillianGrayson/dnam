@@ -16,7 +16,7 @@ model_sa = 'lightgbm'
 run_type = "trn_tst"
 
 num_realizations = 8
-n_feats = np.linspace(10, 70, 7, dtype=int)
+n_feats = np.linspace(10, 1000, 100, dtype=int)
 
 base_dir = f"/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/{disease}"
 models_dir = f"{base_dir}/{data_type}/models"

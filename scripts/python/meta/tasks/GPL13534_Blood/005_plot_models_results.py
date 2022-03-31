@@ -14,13 +14,17 @@ from scripts.python.meta.tasks.GPL13534_Blood.routines import perform_test_for_c
 from tqdm import tqdm
 import pathlib
 import plotly.express as px
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None
 
-path = "E:/YandexDisk/Work/pydnameth/draft/03_somewhere/baseline/Parkinson"
-dataset = "GSE72774"
-data_type = "harmonized"
+
+disease = "Schizophrenia"
+dataset = "GSE152027"
+data_type = "non_harmonized"
 metric = "accuracy_weighted"
+path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/baseline"
 
-df = pd.read_excel(f"{path}/{dataset}/{data_type}.xlsx")
+df = pd.read_excel(f"{path}/{disease}/{dataset}/{data_type}/bar.xlsx")
 
 models = df.loc[:, "model"].values
 metrics = df.loc[:, metric].values
@@ -50,4 +54,4 @@ fig.update_yaxes(tickfont_size=20)
 fig.update_xaxes(showticklabels=True)
 fig.update_layout(legend={'itemsizing': 'constant'})
 fig.update_layout(margin=go.layout.Margin(l=180, r=20, b=80, t=25, pad=0))
-save_figure(fig, f"{path}/{dataset}/{data_type}")
+save_figure(fig, f"{path}/{disease}/{dataset}/{data_type}/bar")

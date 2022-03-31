@@ -11,6 +11,8 @@ from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.violin import add_violin_trace
 import plotly.express as px
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None
 
 
 log = utils.get_logger(__name__)

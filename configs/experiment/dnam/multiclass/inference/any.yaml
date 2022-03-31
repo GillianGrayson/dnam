@@ -1,24 +1,24 @@
 # @package _global_
 
-disease: Parkinson
+disease: Schizophrenia
 data_type: harmonized
 outcome: "Status"
-model_type: lightgbm
+model_type: catboost
 
-dataset: "GSE87571" # 'GSE152027' 'GSE116379' 'GSE41169' 'GSE116378' 'GSE87571' "GSE72774"
+dataset: "GSE116379" # 'GSE152027' 'GSE116379' 'GSE41169' 'GSE116378' 'GSE87571' "GSE72774"
 
 project_name: ${disease}_${data_type}_${model_type}_inference_${dataset}
 
 seed: 69
 
-ckpt_path: "${base_dir}/${data_type}/models/${disease}_${data_type}_trn_tst_${model_type}/runs/2022-03-30_12-10-03/epoch_2000_best_0000.txt"
+ckpt_path: "${base_dir}/${data_type}/models/${disease}_${data_type}_trn_val_tst_${model_type}/runs/2022-03-31_00-58-59/epoch_962_best_0002.model"
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-in_dim: 50911
+in_dim: 110137
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
