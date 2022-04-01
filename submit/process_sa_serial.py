@@ -10,9 +10,9 @@ from scripts.python.routines.plot.layout import add_layout
 import plotly.express as px
 import re
 
-disease = "Parkinson"
+disease = "Schizophrenia"
 data_type = "harmonized"
-model_sa = 'lightgbm'
+model_sa = 'catboost'
 run_type = "trn_tst"
 
 num_realizations = 8
@@ -34,7 +34,7 @@ direction = "max"
 
 parts = ['train', 'val']
 
-baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_{run_type}_{model_sa}/runs/2022-03-30_12-10-03/metrics_val_best_0000.xlsx"
+baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_trn_val_tst_{model_sa}/runs/2022-03-31_00-58-59/metrics_val_best_0002.xlsx"
 baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
 
 metrics_global_df = pd.DataFrame(

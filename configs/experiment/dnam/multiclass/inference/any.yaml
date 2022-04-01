@@ -11,14 +11,14 @@ project_name: ${disease}_${data_type}_${model_type}_inference_${dataset}
 
 seed: 69
 
-ckpt_path: "${base_dir}/${data_type}/models/${disease}_${data_type}_trn_val_tst_${model_type}/runs/2022-03-31_00-58-59/epoch_962_best_0002.model"
+ckpt_path: "${base_dir}/${data_type}/models/small/${disease}_${data_type}_trn_tst_${model_type}_580/multiruns/2022-03-31_21-57-50/1/epoch_303_best_0000.model"
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-in_dim: 110137
+in_dim: 580
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
