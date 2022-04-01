@@ -13,7 +13,6 @@ import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
 from tqdm import tqdm
-import pandas as pd
 
 
 log = utils.get_logger(__name__)
