@@ -13,6 +13,7 @@ import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
 from tqdm import tqdm
+import pandas as pd
 
 
 log = utils.get_logger(__name__)
@@ -780,6 +781,10 @@ class DNAmDataModuleInference(LightningDataModule):
             self.inference[self.outcome].replace(self.classes_dict, inplace=True)
 
         missed_features = list(set(self.features_names) - set(self.inference.columns.values))
+        missed_features_df = pd.DataFrame(index=missed_features, columns=["index"])
+        for mf in missed_features:
+            missed_features_df.at[mf, "index"] = np.where(self.features_names == mf)
+        missed_features_df.to_excel("missed_features.xlsx")
         exist_features = list(set(self.features_names) - set(missed_features))
         if len(missed_features) > 0:
             log.info(f"Perform imputation for {len(missed_features)} features with {self.imputation}")
