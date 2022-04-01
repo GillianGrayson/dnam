@@ -1,27 +1,27 @@
 # @package _global_
 
-disease: Schizophrenia
+disease: Parkinson
 data_type: harmonized
 outcome: "Status"
-model_type: catboost
+model_type: lightgbm
 
-dataset: "GSE116379" # 'GSE152027' 'GSE116379' 'GSE41169' 'GSE116378' 'GSE87571' "GSE72774"
+dataset: "GSE72774" # 'GSE152027' 'GSE116379' 'GSE41169' 'GSE116378' 'GSE87571' "GSE72774"
 
 project_name: ${disease}_${data_type}_${model_type}_inference_${dataset}
 
 seed: 69
 
-ckpt_path: "${base_dir}/${data_type}/models/small/${disease}_${data_type}_trn_tst_${model_type}_610/multiruns/2022-03-31_22-54-04/7/epoch_316_best_0000.model"
+ckpt_path: "${base_dir}/${data_type}/models/small/${disease}_${data_type}_trn_tst_${model_type}_${in_dim}/multiruns/2022-03-31_00-43-28/4/epoch_1053_best_0000.txt"
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-in_dim: 610
+in_dim: 890
 out_dim: 2
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
+base_dir: "C:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
 work_dir: "${base_dir}/${data_type}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
@@ -45,7 +45,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleInference
   task: "binary"
-  features_fn: "${base_dir}/${data_type}/cpgs/serial/trn_tst/catboost/${in_dim}.xlsx"
+  features_fn: "${base_dir}/${data_type}/cpgs/serial/trn_tst/${model_type}/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
   inference_fn: "${data_dir}/data_tst_${dataset}.pkl"

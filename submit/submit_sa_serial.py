@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 
 disease = "Schizophrenia"
-tst_dataset = "GSE152027"
+tst_dataset = "GSE116379"
 data_type = "harmonized"
 model_sa = 'catboost'
-run_type = "trn_tst"
+run_type = "trn_val_tst"
 
 catboost_learning_rate = [0.05, 0.01]
 catboost_depth = [4, 6]
@@ -32,13 +32,13 @@ feat_imp_fn = f"{base_dir}/{data_type}/models/baseline/{disease}_{data_type}_trn
 feat_imp_df = pd.read_excel(feat_imp_fn, index_col="feature")
 feat_imp_df.index.name = "features"
 feat_imp_df.sort_values(['importance'], ascending=[False], inplace=True)
-cpgs_path = f"{base_dir}/{data_type}/cpgs/serial/{run_type}/{model_sa}"
+cpgs_path = f"{base_dir}/{data_type}/cpgs/serial/{run_type}/{model_sa}/{tst_dataset}"
 Path(cpgs_path).mkdir(parents=True, exist_ok=True)
 n_feats = np.linspace(10, 1000, 100, dtype=int)
 # n_feats = [10]
 
 for n_feat in n_feats:
-    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{n_feat}'
+    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}_{n_feat}'
     feats_df = feat_imp_df.head(n_feat)
     feats_df.to_excel(f"{cpgs_path}/{n_feat}.xlsx", index=True)
     features_fn = f"{cpgs_path}/{n_feat}.xlsx"

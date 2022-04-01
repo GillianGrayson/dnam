@@ -13,7 +13,7 @@ import re
 disease = "Schizophrenia"
 data_type = "harmonized"
 model_sa = 'catboost'
-run_type = "trn_tst"
+run_type = "trn_val_tst"
 
 num_realizations = 8
 n_feats = np.linspace(10, 1000, 100, dtype=int)
@@ -32,7 +32,7 @@ optimized_metric = "accuracy_weighted"
 optimized_part = "val"
 direction = "max"
 
-parts = ['train', 'val']
+parts = ['train', 'val', 'test']
 
 baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_trn_val_tst_{model_sa}/runs/2022-03-31_00-58-59/metrics_val_best_0002.xlsx"
 baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
