@@ -14,9 +14,10 @@ disease = "Schizophrenia"
 data_type = "harmonized"
 model_sa = 'catboost'
 run_type = "trn_val_tst"
+tst_dataset = "GSE116379"
 
 num_realizations = 8
-n_feats = np.linspace(10, 1000, 100, dtype=int)
+n_feats = np.linspace(10, 500, 50, dtype=int)
 
 base_dir = f"/common/home/yusipov_i/data/dnam/datasets/meta/GPL13534_Blood/{disease}"
 models_dir = f"{base_dir}/{data_type}/models"
@@ -44,7 +45,7 @@ metrics_global_df = pd.DataFrame(
 metrics_global_df.index.name = "n_feat"
 for n_feat in n_feats:
     print(n_feat)
-    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{n_feat}'
+    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}_{n_feat}'
     files = glob(f"{models_dir}/{project_name}/multiruns/*/*/metrics_{optimized_part}_best_*.xlsx")
 
     if len(files) != num_realizations:
@@ -74,8 +75,8 @@ for n_feat in n_feats:
         for metric in metrics:
             metrics_global_df.at[n_feat, f"{metric}_{part}"] = df.at[metric, part]
 
-Path(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}").mkdir(parents=True, exist_ok=True)
-metrics_global_df.to_excel(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}/metrics.xlsx", index=True)
+Path(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}").mkdir(parents=True, exist_ok=True)
+metrics_global_df.to_excel(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}/metrics.xlsx", index=True)
 for p in parts:
     for m in metrics:
         fig = go.Figure()
@@ -102,4 +103,4 @@ for p in parts:
                 pad=0
             )
         )
-        save_figure(fig, f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}/{m}_{p}")
+        save_figure(fig, f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}/{m}_{p}")
