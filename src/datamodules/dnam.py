@@ -13,6 +13,7 @@ import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
 from tqdm import tqdm
+from impyute.imputation.cs import fast_knn, mean, median, random, mice, mode, em
 
 
 log = utils.get_logger(__name__)
@@ -796,6 +797,140 @@ class DNAmDataModuleInference(LightningDataModule):
             else:
                 raise ValueError(f"Unsupported imputation: {self.imputation}")
 
+        self.data = self.inference.loc[:, self.features_names]
+        self.data = self.data.astype('float32')
+        if self.task == 'regression':
+            self.output = self.inference.loc[:, [self.outcome]]
+            self.output = self.output.astype('float32')
+        elif self.task in ['binary', 'multiclass']:
+            self.output = self.inference.loc[:, [self.outcome, f'{self.outcome}_origin']]
+
+        if not list(self.data.index.values) == list(self.output.index.values):
+            log.info(f"Error! Indexes have different order")
+            raise ValueError(f"Error! Indexes have different order")
+
+        # self.dims is returned when you call datamodule.size()
+        self.dims = (1, self.data.shape[1])
+
+        self.dataset = DNAmDataset(self.data, self.output, self.outcome)
+
+    def test_dataloader(self):
+        return DataLoader(
+            dataset=self.dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
+
+    def get_feature_names(self):
+        return self.data.columns.to_list()
+
+    def get_outcome_name(self):
+        return self.outcome
+
+    def get_class_names(self):
+        return list(self.classes_dict.keys())
+
+    def get_df(self):
+        df = pd.merge(self.output.loc[:, self.outcome], self.data, left_index=True, right_index=True)
+        return df
+
+
+class DNAmDataModuleImpute(LightningDataModule):
+
+    def __init__(
+            self,
+            task: str = "",
+            features_fn: str = "",
+            features_impute_fn = "",
+            classes_fn: str = "",
+            trn_val_fn: str = "",
+            inference_fn: str = "",
+            outcome: str = "",
+            batch_size: int = 64,
+            num_workers: int = 0,
+            pin_memory: bool = False,
+            imputation: str = "median",
+            k: int = 1,
+            **kwargs,
+    ):
+        super().__init__()
+
+        self.task = task
+        self.features_fn = features_fn
+        self.features_impute_fn = features_impute_fn
+        self.classes_fn = classes_fn
+        self.trn_val_fn = trn_val_fn
+        self.inference_fn = inference_fn
+        self.outcome = outcome
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.imputation = imputation
+        self.k = k
+
+        self.dataset: Optional[Dataset] = None
+
+    def prepare_data(self):
+        """Download data if needed. This method is called only from a single GPU.
+        Do not use it to assign state (self.x = y)."""
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+
+        self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
+        self.inference = pd.read_pickle(f"{self.inference_fn}")
+
+        features_df = pd.read_excel(self.features_fn)
+        self.features_names = features_df.loc[:, 'features'].values
+
+        features_impute_df = pd.read_excel(self.features_impute_fn)
+        missed_features = features_impute_df.loc[:, 'features'].values
+
+        if self.task in ['binary', 'multiclass']:
+            self.classes_df = pd.read_excel(self.classes_fn)
+            self.classes_dict = {}
+            for cl_id, cl in enumerate(self.classes_df.loc[:, self.outcome].values):
+                self.classes_dict[cl] = cl_id
+
+            self.trn_val = self.trn_val.loc[self.trn_val[self.outcome].isin(self.classes_dict)]
+            self.trn_val[f'{self.outcome}_origin'] = self.trn_val[self.outcome]
+            self.trn_val[self.outcome].replace(self.classes_dict, inplace=True)
+
+            self.inference = self.inference.loc[self.inference[self.outcome].isin(self.classes_dict)]
+            self.inference[f'{self.outcome}_origin'] = self.inference[self.outcome]
+            self.inference[self.outcome].replace(self.classes_dict, inplace=True)
+
+        missed_features = list(set(missed_features).union(set(self.features_names) - set(self.inference.columns.values)))
+        missed_features_df = pd.DataFrame(index=missed_features, columns=["index"])
+        for mf in missed_features:
+            missed_features_df.at[mf, "index"] = np.where(self.features_names == mf)
+        missed_features_df.to_excel("missed_features.xlsx")
+        exist_features = list(set(self.features_names) - set(missed_features))
+        if len(missed_features) > 0:
+            log.info(f"Perform imputation for {len(missed_features)} features with {self.imputation}")
+            inference_index = self.inference.index.values
+            df = pd.concat([self.trn_val.loc[:, self.features_names], self.inference.loc[:, exist_features]])
+            df = df.astype(np.float)
+            if self.imputation == "median":
+                imputed_training = median(df.loc[:, self.features_names].values)
+            elif self.imputation == "mean":
+                imputed_training = mean(df.loc[:, self.features_names].values)
+            elif self.imputation == "fast_knn":
+                imputed_training = fast_knn(df.loc[:, self.features_names].values, k=self.k)
+            elif self.imputation == "random":
+                imputed_training = random(df.loc[:, self.features_names].values)
+            elif self.imputation == "mice":
+                imputed_training = mice(df.loc[:, self.features_names].values)
+            elif self.imputation == "em":
+                imputed_training = em(df.loc[:, self.features_names].values)
+            elif self.imputation == "mode":
+                imputed_training = mode(df.loc[:, self.features_names].values)
+            else:
+                raise ValueError(f"Unsupported imputation: {self.imputation}")
+            df.loc[:, :] = imputed_training
+            self.inference.loc[inference_index, self.features_names] = df.loc[inference_index, self.features_names]
         self.data = self.inference.loc[:, self.features_names]
         self.data = self.data.astype('float32')
         if self.task == 'regression':
