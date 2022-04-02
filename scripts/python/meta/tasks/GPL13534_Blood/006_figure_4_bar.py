@@ -21,26 +21,26 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.layout import add_layout
 
 
-disease = "Parkinson"
+disease = "Schizophrenia"
 colors = ["red", "blue"]
-datasets = {"GSE72774": "accuracy_weighted_val"}
+datasets = {"GSE152027": "accuracy_weighted_test", "GSE116379": "accuracy_weighted_test"}
 path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/Figure4/dim_red/{disease}"
 
 fig = go.Figure()
 for ds in datasets:
     df = pd.read_excel(f"{path}/{ds}/metrics.xlsx", index_col='n_feat')
     add_scatter_trace(fig, df.index.values, df.loc[:, datasets[ds]], ds, mode='lines+markers')
-    add_layout(fig, f"Number of features in model", f"Accuracy", "")
-    fig.update_layout({'colorway': colors})
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(legend={'itemsizing': 'constant'})
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=130,
-            r=20,
-            b=80,
-            t=80,
-            pad=0
-        )
+add_layout(fig, f"Number of features in model", f"Accuracy", "")
+fig.update_layout({'colorway': colors})
+fig.update_layout(legend_font_size=20)
+fig.update_layout(legend={'itemsizing': 'constant'})
+fig.update_layout(
+    margin=go.layout.Margin(
+        l=130,
+        r=20,
+        b=80,
+        t=80,
+        pad=0
     )
-    save_figure(fig, f"{path}/accuracy")
+)
+save_figure(fig, f"{path}/accuracy")
