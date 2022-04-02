@@ -41,7 +41,7 @@ def get_axis(title, title_size, tick_size):
         showline=True,
         gridcolor='gainsboro',
         gridwidth=0.05,
-        mirror=True,
+        mirror="allticks",
         ticks='outside',
         titlefont=dict(
             color='black',

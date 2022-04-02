@@ -22,7 +22,7 @@ disease = "Schizophrenia"
 dataset = "GSE152027"
 data_type = "non_harmonized"
 metric = "accuracy_weighted"
-path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/baseline"
+path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/Figure3/baseline"
 
 df = pd.read_excel(f"{path}/{disease}/{dataset}/{data_type}/bar.xlsx")
 

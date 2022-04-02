@@ -17,6 +17,7 @@ from typing import List
 import wandb
 from catboost import CatBoost
 import xgboost as xgb
+from experiment.multiclass.shap import perform_shap_explanation
 
 
 log = utils.get_logger(__name__)
@@ -54,16 +55,29 @@ def inference(config: DictConfig):
 
     if config.model_type == "lightgbm":
         model = lgb.Booster(model_file=config.ckpt_path)
-        y_test_pred_prob = model.predict(X_test)
+        y_test_pred_prob = model.predict(X_test, num_iteration=model.best_iteration)
+        y_test_pred_raw = model.predict(X_test, num_iteration=model.best_iteration, raw_score=True)
+        def shap_kernel(X):
+            y = model.predict(X, num_iteration=model.best_iteration)
+            return y
     elif config.model_type == "catboost":
         model = CatBoost()
         model.load_model(config.ckpt_path)
-        y_test_pred_prob = model.predict(X_test)
+        y_test_pred_prob = model.predict(X_test, prediction_type="Probability")
+        y_test_pred_raw = model.predict(X_test, prediction_type="RawFormulaVal")
+        def shap_kernel(X):
+            y = model.predict(X, prediction_type="Probability")
+            return y
     elif config.model_type == "xgboost":
         model = xgb.Booster()
         model.load_model(config.ckpt_path)
         dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
         y_test_pred_prob = model.predict(dmat_test)
+        y_test_pred_raw = model.predict(dmat_test, output_margin=True)
+        def shap_kernel(X):
+            X = xgb.DMatrix(X, feature_names=feature_names)
+            y = model.predict(X)
+            return y
     elif config.model_type == "tabnet":
         model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}")
         model.produce_probabilities = True
@@ -71,6 +85,13 @@ def inference(config: DictConfig):
         model.freeze()
         X_test_pt = torch.from_numpy(X_test)
         y_test_pred_prob = model(X_test_pt).cpu().detach().numpy()
+        model.produce_probabilities = False
+        y_test_pred_raw = model(torch.from_numpy(X_test)).cpu().detach().numpy()
+        def shap_kernel(X):
+            model.produce_probabilities = True
+            X = torch.from_numpy(X)
+            tmp = model(X)
+            return tmp.cpu().detach().numpy()
     else:
         raise ValueError(f"Unsupported sa_model")
 
@@ -80,9 +101,25 @@ def inference(config: DictConfig):
     df.loc[:, "pred"] = y_test_pred
     for cl_id, cl in enumerate(class_names):
         df.loc[:, f"pred_prob_{cl_id}"] = y_test_pred_prob[:, cl_id]
+        df.loc[:, f"pred_raw_{cl_id}"] = y_test_pred_raw[:, cl_id]
 
     predictions = df.loc[:, [outcome_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]]
     predictions.to_excel(f"predictions.xlsx", index=True)
+
+    if config.is_shap == True:
+        shap_data = {
+            'model': model,
+            'shap_kernel': shap_kernel,
+            'df': df,
+            'feature_names': feature_names,
+            'class_names': class_names,
+            'outcome_name': outcome_name,
+            'ids_all': np.arange(df.shape[0]),
+            'ids_trn': None,
+            'ids_val': None,
+            'ids_tst': None
+        }
+        perform_shap_explanation(config, shap_data)
 
     for logger in loggers:
         logger.save()

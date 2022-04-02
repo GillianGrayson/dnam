@@ -19,6 +19,7 @@ log = utils.get_logger(__name__)
 
 
 def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, features, feature_names, class_names, path):
+    Path(f"{path}").mkdir(parents=True, exist_ok=True)
     is_correct_pred = (np.array(y_real) == np.array(y_pred))
     mistakes_ids = np.where(is_correct_pred == False)[0]
     num_mistakes = min(len(mistakes_ids), config.num_examples)
@@ -120,7 +121,6 @@ def perform_shap_explanation(config, shap_data):
     X_all = shap_data['df'].loc[:, shap_data['feature_names']].values
     y_all_pred_prob = shap_data['df'].loc[:, [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(shap_data['class_names'])]].values
     y_all_pred_raw = shap_data['df'].loc[:, [f"pred_raw_{cl_id}" for cl_id, cl in enumerate(shap_data['class_names'])]].values
-    X_trn = shap_data['df'].loc[shap_data['df'].index[shap_data['ids_trn']], shap_data['feature_names']].values
     if config.shap_explainer == "Tree":
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(X_all)
@@ -173,20 +173,18 @@ def perform_shap_explanation(config, shap_data):
         expected_value = base_prob
 
     elif config.shap_explainer == "Kernel":
-        explainer = shap.KernelExplainer(shap_data['shap_kernel'], X_trn)
+        explainer = shap.KernelExplainer(shap_data['shap_kernel'], X_all)
         shap_values = explainer.shap_values(X_all)
         expected_value = explainer.expected_value
     elif config.shap_explainer == "Deep":
         model.produce_probabilities = True
-        explainer = shap.DeepExplainer(model, torch.from_numpy(X_trn))
+        explainer = shap.DeepExplainer(model, torch.from_numpy(X_all))
         shap_values = explainer.shap_values(torch.from_numpy(X_all))
         expected_value = explainer.expected_value
     else:
         raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
     Path(f"shap/global").mkdir(parents=True, exist_ok=True)
-    Path(f"shap/local").mkdir(parents=True, exist_ok=True)
-
     for part in ['trn', 'val', 'tst', 'all']:
         if shap_data[f"ids_{part}"] is not None:
 
@@ -292,6 +290,27 @@ def perform_shap_explanation(config, shap_data):
                 fig.update_layout({'colorway': px.colors.qualitative.Set1})
                 save_figure(fig, f"shap/features/{feat_id}_{feat}_scatter_{part}")
 
+                for cl_id, cl in enumerate(shap_data['class_names']):
+                    fig = go.Figure()
+                    class_shap_values = shap_values_global[cl_id][:, order[feat_id]]
+                    real_values = shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], feat].values
+                    add_scatter_trace(fig, real_values, class_shap_values, "")
+                    add_layout(fig, f"{feat}", f"SHAP values for<br>{feat}", f"")
+                    fig.update_layout(legend_font_size=20)
+                    fig.update_layout(legend={'itemsizing': 'constant'})
+                    fig.update_layout(
+                        margin=go.layout.Margin(
+                            l=150,
+                            r=20,
+                            b=80,
+                            t=20,
+                            pad=0
+                        )
+                    )
+                    fig.update_layout({'colorway': ['red']})
+                    fig.update_yaxes(zeroline=True, zerolinewidth=2, zerolinecolor='black')
+                    save_figure(fig, f"shap/features/{feat_id}_{feat}_scatter_{cl}_{part}")
+
                 fig = go.Figure()
                 for cl_id, cl in enumerate(shap_data['class_names']):
                     vals = shap_data['df'].loc[(shap_data['df'].index.isin(shap_data['df'].index[shap_data[f'ids_{part}']])) & (shap_data['df'][shap_data['outcome_name']] == cl_id), feat].values
@@ -335,15 +354,15 @@ def perform_shap_explanation(config, shap_data):
                 )
                 save_figure(fig, f"shap/features/{feat_id}_{feat}_violin_{part}")
 
-    local_explain(
-        config,
-        shap_data['df'].loc[:, shap_data['outcome_name']].values,
-        shap_data['df'].loc[:, "pred"].values,
-        shap_data['df'].index.values,
-        shap_values,
-        expected_value,
-        shap_data['df'].loc[:, shap_data['feature_names']].values,
-        shap_data['feature_names'],
-        shap_data['class_names'],
-        "shap/local"
-    )
+            local_explain(
+                config,
+                shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], shap_data['outcome_name']].values,
+                shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], "pred"].values,
+                shap_data['df'].index[shap_data[f'ids_{part}']],
+                shap_values_global,
+                expected_value,
+                shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], shap_data['feature_names']].values,
+                shap_data['feature_names'],
+                shap_data['class_names'],
+                f"shap/local/{part}"
+            )
