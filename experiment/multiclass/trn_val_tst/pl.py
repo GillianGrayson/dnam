@@ -92,8 +92,11 @@ def process(config: DictConfig) -> Optional[float]:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
 
         # Init lightning model
-        log.info(f"Instantiating model <{config.model._target_}>")
-        model: LightningModule = hydra.utils.instantiate(config.model)
+        if config.model_type == "tabnet":
+            log.info(f"Instantiating model <{config.model_tabnet._target_}>")
+            model: LightningModule = hydra.utils.instantiate(config.model_tabnet)
+        else:
+            raise ValueError(f"Unsupported model: {config.model_type}")
 
         # Init lightning callbacks
         callbacks: List[Callback] = []
@@ -163,16 +166,19 @@ def process(config: DictConfig) -> Optional[float]:
         model.eval()
         model.freeze()
 
-        feature_importances_raw = np.zeros((len(feature_names)))
-        M_explain, masks = model.forward_masks(torch.from_numpy(X_trn))
-        feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
-        feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
-        feature_importances = pd.DataFrame.from_dict(
-            {
-                'feature': feature_names,
-                'importance': feature_importances_raw
-            }
-        )
+        if config.model_type == "tabnet":
+            feature_importances_raw = np.zeros((len(feature_names)))
+            M_explain, masks = model.forward_masks(torch.from_numpy(X_trn))
+            feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
+            feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
+            feature_importances = pd.DataFrame.from_dict(
+                {
+                    'feature': feature_names,
+                    'importance': feature_importances_raw
+                }
+            )
+        else:
+            raise ValueError(f"Unsupported model: {config.model_type}")
 
         def shap_kernel(X):
             model.produce_probabilities = True

@@ -1,20 +1,20 @@
 # @package _global_
 
+disease: Parkinson
 data_type: harmonized
+model_type: tabnet
 outcome: "Status"
 
-tst_dataset: "GSE152027"
-
-project_name: multiclass_${outcome}_trn_val_tst_tabnet
+project_name: ${disease}_${data_type}_trn_val_${model_type}
 
 seed: 69
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 5
 
 optimized_metric: "accuracy_weighted"
-optimized_part: "test"
+optimized_part: "val"
 direction: "max"
 
 is_shuffle: True
@@ -24,10 +24,10 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 4000
+max_epochs: 2000
 patience: 100
 
-in_dim: 590
+in_dim: 50911
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/Schizophrenia"
@@ -45,19 +45,18 @@ num_examples: 5
 defaults:
   - override /datamodule: null
   - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
-  - override /model: tabnetpl.yaml
+  - override /model: null
   - override /callbacks: regular.yaml
   - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
 
 datamodule:
-  _target_: src.datamodules.dnam.DNAmDataModuleSeparate
+  _target_: src.datamodules.dnam.DNAmDataModuleNoTest
   task: "binary"
   features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
-  tst_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
   outcome: ${outcome}
   trn_val_split: [0.8, 0.2]
   batch_size: 128
@@ -65,7 +64,6 @@ datamodule:
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
-  imputation: "median"
 
 trainer:
   gpus: 1
@@ -75,7 +73,7 @@ trainer:
   progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
 
-model:
+model_tabnet:
   _target_: src.models.dnam.tabnet.TabNetModel
   task: "classification"
   input_dim: ${in_dim}

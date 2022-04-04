@@ -29,7 +29,7 @@ test_after_training: True
 max_epochs: 2000
 patience: 100
 
-in_dim: 890
+in_dim: 50911
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
@@ -40,8 +40,8 @@ is_shap: True
 shap_explainer: Tree
 
 # Plot params
-num_top_features: 10
-num_examples: 10
+num_top_features: 5
+num_examples: 5
 
 # specify here default training configuration
 defaults:
