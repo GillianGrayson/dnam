@@ -1,7 +1,7 @@
 # @package _global_
 
 disease: Parkinson
-data_type: harmonized
+data_type: non_harmonized
 model_type: tabnet
 outcome: "Status"
 
@@ -29,7 +29,7 @@ test_after_training: True
 max_epochs: 2000
 patience: 100
 
-in_dim: 50911
+in_dim: 43019
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
@@ -89,7 +89,7 @@ model_tabnet:
   virtual_batch_size: 128
   mask_type: "sparsemax"
   loss_type: "CrossEntropyLoss"
-  optimizer_lr: 0.02
+  optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
   scheduler_gamma: 0.9

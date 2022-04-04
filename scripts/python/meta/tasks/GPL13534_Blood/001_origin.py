@@ -99,7 +99,7 @@ for dataset in datasets_trn_val:
     mvals_i.index.name = "ID_REF"
     mvals_i.to_pickle(f"{path_wd}/origin/mvalsT_trn_val_{dataset}.pkl")
 
-cpgs_metrics_df = perform_test_for_controls(datasets_trn_val, manifest, df_trn_val, cpgs, f"{path_wd}/origin/cpgs/figs", "M value")
+cpgs_metrics_df = perform_test_for_controls(datasets_trn_val, manifest, df_trn_val, cpgs, f"{path_wd}/origin/cpgs/figs", "Beta value")
 for cpg_id, cpg in enumerate(tqdm(cpgs)):
     cpgs_metrics_df.loc[cpg, "mean"] = df_trn_val[cpg].mean()
     cpgs_metrics_df.loc[cpg, "median"] = df_trn_val[cpg].median()
