@@ -18,7 +18,7 @@ import plotly.io as pio
 pio.kaleido.scope.mathjax = None
 
 
-disease = "Parkinson"
+disease = "Schizophrenia"
 
 
 platform = 'GPL13534'
@@ -28,26 +28,30 @@ path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/SupplementaryTable2"
 base = pd.read_excel(f"{path}/{disease}/base.xlsx", index_col="CpG")
 base['importance'] = base['importance'] / base['importance'].sum()
 
-sources = {
-    'Chuang2017': "Chuang et. al., 2017",
-    'Henderson2019': "Henderson-Smith et. al., 2019",
-    'Kaut2017': "Kaut et. al., 2017"
-}
-
 # sources = {
-#     'Hannon2021': "Hannon et. al., 2021",
-#     'Walton2015': "Walton et. al., 2015",
+#     'Chuang2017': "Chuang et. al., 2017",
+#     'Henderson2019': "Henderson-Smith et. al., 2019",
+#     'Kaut2017': "Kaut et. al., 2017"
 # }
 
+sources = {
+    'Hannon2021': "Hannon et. al., 2021",
+    'Walton2015': "Walton et. al., 2015",
+}
+
+genes_all = set()
 for cpg_id, (cpg, row) in enumerate(base.iterrows()):
-    gene = manifest.at[cpg, 'Gene']
-    chr = manifest.at[cpg, 'CHR']
-    geo = manifest.at[cpg, 'Relation_to_Island']
-    pos = manifest.at[cpg, 'UCSC_RefGene_Group']
     base.at[cpg, 'Gene'] = manifest.at[cpg, 'Gene']
     base.at[cpg, 'CHR'] = manifest.at[cpg, 'CHR']
     base.at[cpg, 'Relation_to_Island'] = manifest.at[cpg, 'Relation_to_Island']
     base.at[cpg, 'UCSC_RefGene_Group'] = manifest.at[cpg, 'UCSC_RefGene_Group']
+    genes_raw = manifest.at[cpg, 'Gene']
+    genes = genes_raw.split(';')
+    genes_all.update(set(genes))
+genes_all.remove('non-genic')
+genes_all = list(genes_all)
+genes_df = pd.DataFrame({'gene':genes_all})
+genes_df.to_excel(f"{path}/{disease}/genes.xlsx", index=False)
 
 for s in sources:
     tmp = pd.read_excel(f"{path}/{disease}/{s}.xlsx", index_col="CpG")
