@@ -7,7 +7,7 @@ outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-project_name: ${disease}_${data_type}_trn_val_tst_${model_type}
+project_name: ${disease}_${data_type}_trn_tst_${model_type}
 
 seed: 69
 
@@ -93,6 +93,9 @@ model_tabnet:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
   scheduler_gamma: 0.9
+
+model:
+  type: ${model_type}
 
 callbacks:
   model_checkpoint:

@@ -93,10 +93,12 @@ def process(config: DictConfig) -> Optional[float]:
 
         # Init lightning model
         if config.model_type == "tabnet":
-            log.info(f"Instantiating model <{config.model_tabnet._target_}>")
-            model: LightningModule = hydra.utils.instantiate(config.model_tabnet)
+            config.model = config["model_tabnet"]
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
+
+        log.info(f"Instantiating model <{config.model._target_}>")
+        model: LightningModule = hydra.utils.instantiate(config.model)
 
         # Init lightning callbacks
         callbacks: List[Callback] = []
