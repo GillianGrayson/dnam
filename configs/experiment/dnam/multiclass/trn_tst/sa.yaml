@@ -29,7 +29,7 @@ test_after_training: True
 max_epochs: 2000
 patience: 100
 
-in_dim: 50911
+in_dim: 890
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"

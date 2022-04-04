@@ -223,8 +223,8 @@ def process(config: DictConfig):
 
             y_trn_pred_prob = model.predict(X_trn, num_iteration=model.best_iteration)
             y_val_pred_prob = model.predict(X_val, num_iteration=model.best_iteration)
-            y_trn_pred_raw = model.predict(X_trn, num_iteration=model.best_iteration, raw_score =True)
-            y_val_pred_raw = model.predict(X_val, num_iteration=model.best_iteration, raw_score =True)
+            y_trn_pred_raw = model.predict(X_trn, num_iteration=model.best_iteration, raw_score=True)
+            y_val_pred_raw = model.predict(X_val, num_iteration=model.best_iteration, raw_score=True)
             y_trn_pred = np.argmax(y_trn_pred_prob, 1)
             y_val_pred = np.argmax(y_val_pred_prob, 1)
             if is_test:
