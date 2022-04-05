@@ -77,12 +77,6 @@ class DNAmDataModuleNoTest(LightningDataModule):
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
 
-    def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        pass
-
-    def setup(self, stage: Optional[str] = None):
         self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
         features_df = pd.read_excel(self.features_fn)
         self.features_names = features_df.loc[:, 'features'].values
@@ -116,9 +110,16 @@ class DNAmDataModuleNoTest(LightningDataModule):
 
         self.ids_trn_val = np.arange(self.trn_val.shape[0])
 
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
+
     def refresh_datasets(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
+        self.dataset_tst = Subset(self.dataset, [])
 
     def perform_split(self):
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
@@ -147,6 +148,7 @@ class DNAmDataModuleNoTest(LightningDataModule):
         self.ids_tst = None
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
+        self.dataset_tst = Subset(self.dataset, [])
 
         log.info(f"total_count: {len(self.dataset)}")
         log.info(f"trn_count: {len(self.dataset_trn)}")
@@ -239,7 +241,13 @@ class DNAmDataModuleNoTest(LightningDataModule):
         )
 
     def test_dataloader(self):
-        return None
+        return DataLoader(
+            dataset=self.dataset_tst,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
 
     def get_feature_names(self):
         return self.data.columns.to_list()
@@ -294,12 +302,6 @@ class DNAmDataModuleSeparate(LightningDataModule):
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
 
-    def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        pass
-
-    def setup(self, stage: Optional[str] = None):
         self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
         self.tst = pd.read_pickle(f"{self.tst_fn}")
         features_df = pd.read_excel(self.features_fn)
@@ -333,7 +335,7 @@ class DNAmDataModuleSeparate(LightningDataModule):
                 raise ValueError(f"Unsupported imputation: {self.imputation}")
 
         self.ids_trn_val = np.arange(self.trn_val.shape[0])
-        self.ids_tst =  np.arange(self.tst.shape[0]) + self.trn_val.shape[0]
+        self.ids_tst = np.arange(self.tst.shape[0]) + self.trn_val.shape[0]
         self.ids_all = np.concatenate([self.ids_trn_val, self.ids_tst])
 
         self.all = pd.concat((self.trn_val, self.tst))
@@ -355,15 +357,19 @@ class DNAmDataModuleSeparate(LightningDataModule):
 
         self.dataset = DNAmDataset(self.data, self.output, self.outcome)
 
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
+
     def refresh_datasets(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
         self.dataset_tst = Subset(self.dataset, self.ids_tst)
 
     def perform_split(self):
-
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
-
         if self.task in ['binary', 'multiclass']:
             self.ids_trn, self.ids_val = train_test_split(
                 self.ids_trn_val,
@@ -544,12 +550,6 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
 
-    def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        pass
-
-    def setup(self, stage: Optional[str] = None):
         self.trn = pd.read_pickle(f"{self.trn_fn}")
         self.val = pd.read_pickle(f"{self.val_fn}")
         features_df = pd.read_excel(self.features_fn)
@@ -583,7 +583,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
                 raise ValueError(f"Unsupported imputation: {self.imputation}")
 
         self.ids_trn = np.arange(self.trn.shape[0])
-        self.ids_val =  np.arange(self.val.shape[0]) + self.trn.shape[0]
+        self.ids_val = np.arange(self.val.shape[0]) + self.trn.shape[0]
         self.ids_tst = None
         self.ids_trn_val = np.concatenate([self.ids_trn, self.ids_val])
 
@@ -606,6 +606,12 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
 
         self.dataset = DNAmDataset(self.data, self.output, self.outcome)
 
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
+
     def refresh_datasets(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
@@ -614,6 +620,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
     def perform_split(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
+        self.dataset_tst = Subset(self.dataset, [])
 
         log.info(f"total_count: {len(self.dataset)}")
         log.info(f"trn_count: {len(self.dataset_trn)}")
@@ -715,15 +722,6 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
             shuffle=False,
         )
 
-    def predict_dataloader(self):
-        return DataLoader(
-            dataset=self.dataset_val,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            shuffle=False,
-        )
-
     def get_feature_names(self):
         return self.data.columns.to_list()
 
@@ -768,13 +766,6 @@ class DNAmDataModuleInference(LightningDataModule):
         self.imputation = imputation
 
         self.dataset: Optional[Dataset] = None
-
-    def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        pass
-
-    def setup(self, stage: Optional[str] = None):
 
         self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
         self.inference = pd.read_pickle(f"{self.inference_fn}")
@@ -829,6 +820,12 @@ class DNAmDataModuleInference(LightningDataModule):
         self.dims = (1, self.data.shape[1])
 
         self.dataset = DNAmDataset(self.data, self.output, self.outcome)
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
 
     def test_dataloader(self):
         return DataLoader(
@@ -888,13 +885,6 @@ class DNAmDataModuleImpute(LightningDataModule):
 
         self.dataset: Optional[Dataset] = None
 
-    def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-
         self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
         self.inference = pd.read_pickle(f"{self.inference_fn}")
 
@@ -918,7 +908,8 @@ class DNAmDataModuleImpute(LightningDataModule):
             self.inference[f'{self.outcome}_origin'] = self.inference[self.outcome]
             self.inference[self.outcome].replace(self.classes_dict, inplace=True)
 
-        missed_features = list(set(missed_features).union(set(self.features_names) - set(self.inference.columns.values)))
+        missed_features = list(
+            set(missed_features).union(set(self.features_names) - set(self.inference.columns.values)))
         missed_features_df = pd.DataFrame(index=missed_features, columns=["index"])
         for mf in missed_features:
             missed_features_df.at[mf, "index"] = np.where(self.features_names == mf)
@@ -963,6 +954,12 @@ class DNAmDataModuleImpute(LightningDataModule):
         self.dims = (1, self.data.shape[1])
 
         self.dataset = DNAmDataset(self.data, self.output, self.outcome)
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
 
     def test_dataloader(self):
         return DataLoader(

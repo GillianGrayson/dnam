@@ -27,7 +27,7 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 2000
-patience: 10
+patience: 100
 
 in_dim: 670
 out_dim: 2
@@ -105,7 +105,7 @@ callbacks:
     save_last: False # additionaly always save model from last epoch
     verbose: False
     dirpath: ""
-    filename: "{epoch:03d}"
+    filename: "best"
     auto_insert_metric_name: False
 
   early_stopping:

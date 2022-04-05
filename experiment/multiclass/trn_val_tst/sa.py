@@ -50,7 +50,6 @@ def process(config: DictConfig):
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-    datamodule.setup()
     datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
     class_names = datamodule.get_class_names()

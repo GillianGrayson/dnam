@@ -2,6 +2,7 @@ from typing import List, Optional
 import torch
 import hydra
 from omegaconf import DictConfig
+from src.models.dnam.tabnet import TabNetModel
 from pytorch_lightning import (
     Callback,
     LightningDataModule,
@@ -47,7 +48,6 @@ def process(config: DictConfig) -> Optional[float]:
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-    datamodule.setup()
     datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
     class_names = datamodule.get_class_names()
@@ -85,6 +85,8 @@ def process(config: DictConfig) -> Optional[float]:
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         if is_test:
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
+
+        config.callbacks.model_checkpoint.filename += f"_fold_{fold_idx:04d}"
 
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
@@ -142,9 +144,48 @@ def process(config: DictConfig) -> Optional[float]:
             log.info("Starting testing!")
             test_dataloader = datamodule.test_dataloader()
             if test_dataloader is not None and len(test_dataloader) > 0:
-                trainer.test(model, test_dataloader)
+                trainer.test(model, test_dataloader, ckpt_path="best")
             else:
                 log.info("Test data is empty!")
+
+        trn_dataloader = datamodule.train_dataloader()
+        val_dataloader = datamodule.val_dataloader()
+        tst_dataloader = datamodule.test_dataloader()
+
+        model.produce_probabilities = True
+        y_trn = df.loc[df.index[ids_trn], outcome_name].values
+        y_val = df.loc[df.index[ids_val], outcome_name].values
+        y_trn_pred_prob = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        y_val_pred_prob = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        if is_test:
+            y_tst = df.loc[df.index[ids_tst], outcome_name].values
+            y_tst_pred_prob = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        model.produce_probabilities = False
+        y_trn_pred_raw = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        y_val_pred_raw = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+        y_val_pred = np.argmax(y_val_pred_prob, 1)
+        if is_test:
+            y_tst_pred_raw = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+        model.produce_probabilities = True
+
+        if config.model_type == "tabnet":
+            feature_importances_raw = np.zeros((len(feature_names)))
+            model.produce_importance = True
+            raw_res = trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")
+            M_explain =  torch.cat([x[0] for x in raw_res])
+            model.produce_importance = False
+            feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
+            feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
+            feature_importances = pd.DataFrame.from_dict(
+                {
+                    'feature': feature_names,
+                    'importance': feature_importances_raw
+                }
+            )
+        else:
+            raise ValueError(f"Unsupported model: {config.model_type}")
 
         # Make sure everything closed properly
         log.info("Finalizing!")
@@ -157,59 +198,11 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
-        trn_dataloader = datamodule.train_dataloader()
-        val_dataloader = datamodule.val_dataloader()
-        tst_dataloader = datamodule.test_dataloader()
-
-        res_trn = trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True)
-        res_val = trainer.predict(model, dataloaders=val_dataloader, return_predictions=True)
-        if is_test:
-            res_tst = trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True)
-
-        X_trn = df.loc[df.index[ids_trn], feature_names].values
-        y_trn = df.loc[df.index[ids_trn], outcome_name].values
-        X_val = df.loc[df.index[ids_val], feature_names].values
-        y_val = df.loc[df.index[ids_val], outcome_name].values
-        if is_test:
-            X_tst = df.loc[df.index[ids_tst], feature_names].values
-            y_tst = df.loc[df.index[ids_tst], outcome_name].values
-
-        model.eval()
-        model.freeze()
-
-        if config.model_type == "tabnet":
-            feature_importances_raw = np.zeros((len(feature_names)))
-            M_explain, masks = model.forward_masks(torch.from_numpy(X_trn))
-            feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
-            feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
-            feature_importances = pd.DataFrame.from_dict(
-                {
-                    'feature': feature_names,
-                    'importance': feature_importances_raw
-                }
-            )
-        else:
-            raise ValueError(f"Unsupported model: {config.model_type}")
-
         def shap_kernel(X):
             model.produce_probabilities = True
             X = torch.from_numpy(X)
             tmp = model(X)
             return tmp.cpu().detach().numpy()
-
-        model.produce_probabilities = True
-        y_trn_pred_prob = model(torch.from_numpy(X_trn)).cpu().detach().numpy()
-        y_val_pred_prob = model(torch.from_numpy(X_val)).cpu().detach().numpy()
-        if is_test:
-            y_tst_pred_prob = model(torch.from_numpy(X_tst)).cpu().detach().numpy()
-        model.produce_probabilities = False
-        y_trn_pred_raw = model(torch.from_numpy(X_trn)).cpu().detach().numpy()
-        y_val_pred_raw = model(torch.from_numpy(X_val)).cpu().detach().numpy()
-        y_trn_pred = np.argmax(y_trn_pred_prob, 1)
-        y_val_pred = np.argmax(y_val_pred_prob, 1)
-        if is_test:
-            y_tst_pred_raw = model(torch.from_numpy(X_tst)).cpu().detach().numpy()
-            y_tst_pred = np.argmax(y_tst_pred_prob, 1)
 
         metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
@@ -238,6 +231,13 @@ def process(config: DictConfig) -> Optional[float]:
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
+            if config.model_type == "tabnet":
+                model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.filename}.ckpt")
+                model.produce_probabilities = True
+                model.eval()
+                model.freeze()
+            else:
+                raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
             best["trainer"] = trainer
             best['shap_kernel'] = shap_kernel
@@ -289,8 +289,6 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
         metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
-
-    best["trainer"].save_checkpoint(f"best_{best['fold']:04d}.ckpt")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn

@@ -37,6 +37,7 @@ class TabNetModel(pl.LightningModule):
 
         self.task = task
         self.produce_probabilities = False
+        self.produce_importance = False
 
         if task == "classification":
             self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
@@ -138,16 +139,17 @@ class TabNetModel(pl.LightningModule):
             mask_type=self.hparams.mask_type,
         )
 
-    def forward(self, x: Dict):
+    def forward(self, batch):
         # Returns output and Masked Loss. We only need the output
-        x, _ = self.tabnet(x)
-        if self.produce_probabilities:
-            return torch.softmax(x, dim=1)
+        x, y, ind = batch
+        if self.produce_importance:
+            return self.tabnet.forward_masks(x)
         else:
-            return x
-
-    def forward_masks(self, x):
-        return self.tabnet.forward_masks(x)
+            x, _ = self.tabnet(x)
+            if self.produce_probabilities:
+                return torch.softmax(x, dim=1)
+            else:
+                return x
 
     def on_fit_start(self) -> None:
         for stage_type in ['train', 'val', 'test']:
@@ -159,7 +161,7 @@ class TabNetModel(pl.LightningModule):
 
     def step(self, batch: Any, stage:str):
         x, y, ind = batch
-        out = self.forward(x)
+        out = self.forward(batch)
         batch_size = x.size(0)
         if self.task == "regression":
             y = y.view(batch_size, -1)
