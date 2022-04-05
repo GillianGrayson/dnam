@@ -162,7 +162,7 @@ def process(config: DictConfig):
             }
 
             model = CatBoost(params=model_params)
-            model.fit(X_trn, y_trn, eval_set=(X_val, y_val))
+            model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
             model.set_feature_names(feature_names)
 
             y_trn_pred_prob = model.predict(X_trn, prediction_type="Probability")

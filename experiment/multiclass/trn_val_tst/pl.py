@@ -157,6 +157,15 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
+        trn_dataloader = datamodule.train_dataloader()
+        val_dataloader = datamodule.val_dataloader()
+        tst_dataloader = datamodule.test_dataloader()
+
+        res_trn = trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True)
+        res_val = trainer.predict(model, dataloaders=val_dataloader, return_predictions=True)
+        if is_test:
+            res_tst = trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True)
+
         X_trn = df.loc[df.index[ids_trn], feature_names].values
         y_trn = df.loc[df.index[ids_trn], outcome_name].values
         X_val = df.loc[df.index[ids_val], feature_names].values

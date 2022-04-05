@@ -609,6 +609,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
     def refresh_datasets(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
+        self.dataset_tst = Subset(self.dataset, [])
 
     def perform_split(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
@@ -706,7 +707,22 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
         )
 
     def test_dataloader(self):
-        return None
+        return DataLoader(
+            dataset=self.dataset_tst,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
+
+    def predict_dataloader(self):
+        return DataLoader(
+            dataset=self.dataset_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
 
     def get_feature_names(self):
         return self.data.columns.to_list()

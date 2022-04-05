@@ -1,11 +1,11 @@
 # @package _global_
 
-disease: Parkinson
-data_type: non_harmonized
+disease: Schizophrenia
+data_type: harmonized
 model_type: tabnet
 outcome: "Status"
 
-tst_dataset: "GSE72774"
+tst_dataset: "GSE116379"
 
 project_name: ${disease}_${data_type}_trn_tst_${model_type}
 
@@ -27,9 +27,9 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 2000
-patience: 100
+patience: 10
 
-in_dim: 43019
+in_dim: 670
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
@@ -61,7 +61,7 @@ datamodule:
   trn_fn: "${data_dir}/data_trn_val.pkl"
   val_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
   outcome: ${outcome}
-  batch_size: 128
+  batch_size: 256
   num_workers: 0
   pin_memory: False
   seed: ${seed}
@@ -89,9 +89,9 @@ model_tabnet:
   virtual_batch_size: 128
   mask_type: "sparsemax"
   loss_type: "CrossEntropyLoss"
-  optimizer_lr: 0.001
+  optimizer_lr: 0.005
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 50
+  scheduler_step_size: 30
   scheduler_gamma: 0.9
 
 model:
@@ -101,11 +101,11 @@ callbacks:
   model_checkpoint:
     monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
     mode: ${direction} # can be "max" or "min"
-    save_top_k: 0 # save k best models (determined by above metric)
+    save_top_k: 1 # save k best models (determined by above metric)
     save_last: False # additionaly always save model from last epoch
     verbose: False
-    dirpath: "checkpoints/"
-    filename: "best"
+    dirpath: ""
+    filename: "{epoch:03d}"
     auto_insert_metric_name: False
 
   early_stopping:
