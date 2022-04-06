@@ -76,6 +76,7 @@ def process(config: DictConfig) -> Optional[float]:
     cv_progress = {'fold': [], 'optimized_metric':[]}
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    ckpt_name = config.callbacks.model_checkpoint.filename
 
     for fold_idx, (ids_trn, ids_val) in tqdm(enumerate(cv_splitter.split())):
         datamodule.ids_trn = ids_trn
@@ -86,7 +87,7 @@ def process(config: DictConfig) -> Optional[float]:
         if is_test:
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
 
-        config.callbacks.model_checkpoint.filename += f"_fold_{fold_idx:04d}"
+        config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
 
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
@@ -232,7 +233,7 @@ def process(config: DictConfig) -> Optional[float]:
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             if config.model_type == "tabnet":
-                model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.filename}.ckpt")
+                model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 model.produce_probabilities = True
                 model.eval()
                 model.freeze()

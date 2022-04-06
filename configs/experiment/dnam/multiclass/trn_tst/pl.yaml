@@ -76,6 +76,9 @@ trainer:
   progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
 
+model:
+  type: ${model_type}
+
 model_tabnet:
   _target_: src.models.dnam.tabnet.TabNetModel
   task: "classification"
@@ -93,9 +96,6 @@ model_tabnet:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 30
   scheduler_gamma: 0.9
-
-model:
-  type: ${model_type}
 
 callbacks:
   model_checkpoint:
