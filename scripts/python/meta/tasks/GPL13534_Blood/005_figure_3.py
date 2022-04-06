@@ -18,9 +18,9 @@ import plotly.io as pio
 pio.kaleido.scope.mathjax = None
 
 
-disease = "Schizophrenia"
-dataset = "GSE152027"
-data_type = "non_harmonized"
+disease = "Parkinson"
+dataset = "GSE72774"
+data_type = "harmonized"
 metric = "accuracy_weighted"
 path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/Figure3/baseline"
 
