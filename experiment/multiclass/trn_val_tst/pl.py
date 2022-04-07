@@ -3,6 +3,7 @@ import torch
 import hydra
 from omegaconf import DictConfig
 from src.models.dnam.tabnet import TabNetModel
+from src.models.node.node import NodeModel
 from pytorch_lightning import (
     Callback,
     LightningDataModule,
@@ -23,6 +24,7 @@ from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import perform_shap_explanation
 from datetime import datetime
 from experiment.routines import eval_classification_sa
+from pathlib import Path
 
 
 log = utils.get_logger(__name__)
@@ -97,6 +99,8 @@ def process(config: DictConfig) -> Optional[float]:
         # Init lightning model
         if config.model_type == "tabnet":
             config.model = config["model_tabnet"]
+        elif config.model_type == "node":
+            config.model = config["model_node"]
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -185,6 +189,8 @@ def process(config: DictConfig) -> Optional[float]:
                     'importance': feature_importances_raw
                 }
             )
+        elif config.model_type == "node":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -232,13 +238,19 @@ def process(config: DictConfig) -> Optional[float]:
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
-            if config.model_type == "tabnet":
-                model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                model.produce_probabilities = True
-                model.eval()
-                model.freeze()
-            else:
-                raise ValueError(f"Unsupported model: {config.model_type}")
+            if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
+                if config.model_type == "tabnet":
+                    model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.produce_probabilities = True
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "node":
+                    model = NodeModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.produce_probabilities = True
+                    model.eval()
+                    model.freeze()
+                else:
+                    raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
             best["trainer"] = trainer
             best['shap_kernel'] = shap_kernel
