@@ -18,9 +18,9 @@ import plotly.io as pio
 pio.kaleido.scope.mathjax = None
 
 
-disease = "Parkinson"
-dataset = "GSE72774"
-data_type = "harmonized"
+disease = "Schizophrenia"
+dataset = "GSE152027"
+data_type = "non_harmonized"
 metric = "accuracy_weighted"
 path = f"E:/YandexDisk/Work/pydnameth/draft/03_somewhere/Figure3/baseline"
 
@@ -39,7 +39,7 @@ for index in order:
             y=[models[index]],
             name=models[index],
             text=metrics[index],
-            textfont=dict(size=20),
+            textfont=dict(size=25),
             textposition='auto',
             orientation='h',
             showlegend=False,
@@ -50,8 +50,8 @@ for index in order:
         )
     )
 add_layout(fig, f"Accuracy", f"", "")
-fig.update_yaxes(tickfont_size=20)
+fig.update_yaxes(tickfont_size=25)
 fig.update_xaxes(showticklabels=True)
 fig.update_layout(legend={'itemsizing': 'constant'})
-fig.update_layout(margin=go.layout.Margin(l=180, r=20, b=80, t=25, pad=0))
+fig.update_layout(margin=go.layout.Margin(l=140, r=20, b=80, t=25, pad=0))
 save_figure(fig, f"{path}/{disease}/{dataset}/{data_type}/bar")

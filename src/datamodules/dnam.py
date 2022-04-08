@@ -14,6 +14,12 @@ from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
 from tqdm import tqdm
 from impyute.imputation.cs import fast_knn, mean, median, random, mice, mode, em
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.linear_model import BayesianRidge
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.neighbors import KNeighborsRegressor
 
 
 log = utils.get_logger(__name__)
@@ -934,6 +940,14 @@ class DNAmDataModuleImpute(LightningDataModule):
                 imputed_training = em(df.loc[:, self.features_names].values)
             elif self.imputation == "mode":
                 imputed_training = mode(df.loc[:, self.features_names].values)
+            elif self.imputation == "BayesianRidge":
+                estimator = BayesianRidge(n_iter=10, verbose=1)
+                imp = IterativeImputer(estimator=estimator, max_iter=2, verbose=1)
+                imputed_training = imp.fit_transform(df.loc[:, self.features_names].values)
+            elif self.imputation == "DecisionTreeRegressor":
+                estimator = DecisionTreeRegressor()
+                imp = IterativeImputer(estimator=estimator, max_iter=2, verbose=1)
+                imputed_training = imp.fit_transform(df.loc[:, self.features_names].values)
             else:
                 raise ValueError(f"Unsupported imputation: {self.imputation}")
             df.loc[:, :] = imputed_training
