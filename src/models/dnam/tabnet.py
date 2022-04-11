@@ -139,9 +139,8 @@ class TabNetModel(pl.LightningModule):
             mask_type=self.hparams.mask_type,
         )
 
-    def forward(self, batch):
+    def forward(self, x):
         # Returns output and Masked Loss. We only need the output
-        x, y, ind = batch
         if self.produce_importance:
             return self.tabnet.forward_masks(x)
         else:
@@ -161,7 +160,7 @@ class TabNetModel(pl.LightningModule):
 
     def step(self, batch: Any, stage:str):
         x, y, ind = batch
-        out = self.forward(batch)
+        out = self.forward(x)
         batch_size = x.size(0)
         if self.task == "regression":
             y = y.view(batch_size, -1)
@@ -218,6 +217,11 @@ class TabNetModel(pl.LightningModule):
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
         logs.update(non_logs)
         return logs
+
+    def predict_step(self, batch, batch_idx):
+        x, y, ind = batch
+        out = self.forward(x)
+        return out
 
     def validation_epoch_end(self, outputs: List[Any]):
         pass

@@ -128,9 +128,8 @@ class NodeModel(pl.LightningModule):
             Lambda(lambda x: x[..., :self.hparams.output_dim].mean(dim=-2)),
         )
 
-    def forward(self, batch):
+    def forward(self, x):
         # Returns output and Masked Loss. We only need the output
-        x, y, ind = batch
         x = self.node(x)
         if self.produce_probabilities:
             return torch.softmax(x, dim=1)
@@ -147,7 +146,7 @@ class NodeModel(pl.LightningModule):
 
     def step(self, batch: Any, stage:str):
         x, y, ind = batch
-        out = self.forward(batch)
+        out = self.forward(x)
         batch_size = x.size(0)
         if self.task == "regression":
             y = y.view(batch_size, -1)
@@ -204,6 +203,11 @@ class NodeModel(pl.LightningModule):
         self.log_dict(d, on_step=False, on_epoch=True, logger=True)
         logs.update(non_logs)
         return logs
+
+    def predict_step(self, batch, batch_idx):
+        x, y, ind = batch
+        out = self.forward(x)
+        return out
 
     def validation_epoch_end(self, outputs: List[Any]):
         pass
