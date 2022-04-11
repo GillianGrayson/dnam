@@ -95,7 +95,7 @@ callbacks:
   model_checkpoint:
     monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
     mode: ${direction} # can be "max" or "min"
-    save_top_k: 0 # save k best models (determined by above metric)
+    save_top_k: 1 # save k best models (determined by above metric)
     save_last: False # additionaly always save model from last epoch
     verbose: False
     dirpath: "checkpoints/"

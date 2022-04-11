@@ -46,7 +46,6 @@ class UNNDataModuleNoTest(LightningDataModule):
 
     def __init__(
             self,
-            path: str = "",
             task: str = "",
             features_fn: str = "",
             classes_fn: str = "",

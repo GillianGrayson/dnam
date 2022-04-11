@@ -45,49 +45,40 @@ def inference(config: DictConfig):
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     feature_names = datamodule.get_feature_names()
-    class_names = datamodule.get_class_names()
     outcome_name = datamodule.get_outcome_name()
     df = datamodule.get_df()
-    df['pred'] = 0
     X_test = df.loc[:, feature_names].values
     y_test = df.loc[:, outcome_name].values
 
     if config.model_type == "lightgbm":
         model = lgb.Booster(model_file=config.ckpt_path)
-        y_test_pred_prob = model.predict(X_test, num_iteration=model.best_iteration)
-        y_test_pred_raw = model.predict(X_test, num_iteration=model.best_iteration, raw_score=True)
+        y_test_pred = model.predict(X_test, num_iteration=model.best_iteration)
         def shap_kernel(X):
             y = model.predict(X, num_iteration=model.best_iteration)
             return y
     elif config.model_type == "catboost":
         model = CatBoost()
         model.load_model(config.ckpt_path)
-        y_test_pred_prob = model.predict(X_test, prediction_type="Probability")
-        y_test_pred_raw = model.predict(X_test, prediction_type="RawFormulaVal")
+        y_test_pred = model.predict(X_test)
         def shap_kernel(X):
-            y = model.predict(X, prediction_type="Probability")
+            y = model.predict(X)
             return y
     elif config.model_type == "xgboost":
         model = xgb.Booster()
         model.load_model(config.ckpt_path)
         dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
-        y_test_pred_prob = model.predict(dmat_test)
-        y_test_pred_raw = model.predict(dmat_test, output_margin=True)
+        y_test_pred = model.predict(dmat_test)
         def shap_kernel(X):
             X = xgb.DMatrix(X, feature_names=feature_names)
             y = model.predict(X)
             return y
     elif config.model_type == "tabnet":
         model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}")
-        model.produce_probabilities = True
         model.eval()
         model.freeze()
         X_test_pt = torch.from_numpy(X_test)
-        y_test_pred_prob = model(X_test_pt).cpu().detach().numpy()
-        model.produce_probabilities = False
-        y_test_pred_raw = model(torch.from_numpy(X_test)).cpu().detach().numpy()
+        y_test_pred = model(X_test_pt).cpu().detach().numpy()
         def shap_kernel(X):
-            model.produce_probabilities = True
             X = torch.from_numpy(X)
             tmp = model(X)
             return tmp.cpu().detach().numpy()

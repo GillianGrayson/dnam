@@ -1,18 +1,19 @@
 # @package _global_
 
 data_type: immuno
-model_sa: xgboost
+model_sa: lightgbm
 outcome: "Age"
 
-project_name: unn_${data_type}_regression_${outcome}_trn_val_tst_${model_sa}
+project_name: ${data_type}_trn_val_${model_sa}
 
 seed: 101
 
+cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 10
-cv_groups: "continuous"
+cv_n_repeats: 25
 
 optimized_metric: "mean_absolute_error"
+optimized_part: "val"
 direction: "min"
 
 is_shuffle: False
@@ -49,13 +50,12 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  path: ${data_dir}
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "train_val.xlsx"
+  trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}
   batch_size: 64
-  trn_val_tst_split: [0.80, 0.20]
+  trn_val_split: [0.80, 0.20]
   num_workers: 0
   pin_memory: False
   seed: ${seed}
@@ -80,7 +80,7 @@ catboost:
   loss_function: 'MAE'
   learning_rate: 0.01
   depth: 6
-  min_data_in_leaf: 1
+  min_data_in_leaf: 4
   max_leaves: 31
   task_type: 'CPU'
   verbose: 1

@@ -15,6 +15,8 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
+from src.models.dnam.tabnet import TabNetModel
+from src.models.node.node import NodeModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 import numpy as np
 from src.utils import utils
@@ -30,6 +32,7 @@ from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
 from experiment.routines import eval_regression_sa
 from datetime import datetime
+from pathlib import Path
 
 
 log = utils.get_logger(__name__)
@@ -165,10 +168,10 @@ def process(config: DictConfig) -> Optional[float]:
         if is_test:
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
 
-        y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
-        y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+        y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
         if is_test:
-            y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
 
         if config.model_type == "tabnet":
             feature_importances_raw = np.zeros((len(feature_names)))
@@ -205,8 +208,6 @@ def process(config: DictConfig) -> Optional[float]:
             tmp = model(X)
             return tmp.cpu().detach().numpy()
 
-
-
         metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
         if is_test:
@@ -234,6 +235,17 @@ def process(config: DictConfig) -> Optional[float]:
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
+            if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
+                if config.model_type == "tabnet":
+                    model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "node":
+                    model = NodeModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                else:
+                    raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
             best["trainer"] = trainer
             best['shap_kernel'] = shap_kernel
