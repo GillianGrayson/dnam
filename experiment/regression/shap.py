@@ -15,6 +15,7 @@ log = utils.get_logger(__name__)
 
 
 def local_explain(config, y_real, y_pred, indexes, shap_values, base_value, features, feature_names, path):
+    Path(f"{path}").mkdir(parents=True, exist_ok=True)
     diff_y = np.array(y_pred) - np.array(y_real)
     order = np.argsort(diff_y)
     order_abs = np.argsort(np.abs(diff_y))
@@ -73,59 +74,64 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_value, feat
 
 
 def perform_shap_explanation(config, shap_data):
-    model = shap_data['model']
-    X_all = shap_data['df'].loc[:, shap_data['feature_names']].values
-    X_train = shap_data['df'].loc[shap_data['df'].index[shap_data['ids_trn']], shap_data['feature_names']].values
-    if config.shap_explainer == "Tree":
-        explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(X_all)
-        expected_value = explainer.expected_value
-    elif config.shap_explainer == "Kernel":
-        explainer = shap.KernelExplainer(shap_data['shap_kernel'], X_train)
-        shap_values = explainer.shap_values(X_all)
-        shap_values = shap_values[0]
-        expected_value = explainer.expected_value[0]
-    elif config.shap_explainer == "Deep":
-        explainer = shap.DeepExplainer(model, torch.from_numpy(X_train))
-        shap_values = explainer.shap_values(torch.from_numpy(X_all))
-        expected_value = explainer.expected_value
-    else:
-        raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
-
-    Path(f"shap/global").mkdir(parents=True, exist_ok=True)
-    Path(f"shap/local").mkdir(parents=True, exist_ok=True)
-
-    shap.summary_plot(
-        shap_values=shap_values[shap_data['ids_trn'], :],
-        features=X_train,
-        feature_names=shap_data['feature_names'],
-        # max_display=config.num_top_features,
-        show=False,
-        plot_type="bar"
-    )
-    plt.savefig(f'shap/global/bar.png', bbox_inches='tight')
-    plt.savefig(f'shap/global/bar.pdf', bbox_inches='tight')
-    plt.close()
-
-    shap.summary_plot(
-        shap_values=shap_values[shap_data['ids_trn'], :],
-        features=X_train,
-        feature_names=shap_data['feature_names'],
-        # max_display=config.num_top_features,
-        plot_type="violin",
-        show=False,
-    )
-    plt.savefig(f"shap/global/beeswarm.png", bbox_inches='tight')
-    plt.savefig(f"shap/global/beeswarm.pdf", bbox_inches='tight')
-    plt.close()
-
     for part in ['trn', 'val', 'tst', 'all']:
         if shap_data[f"ids_{part}"] is not None:
+            Path(f"shap/global/{part}").mkdir(parents=True, exist_ok=True)
+            model = shap_data['model']
+            shap_kernel = shap_data['shap_kernel']
+            df = shap_data['df']
+            feature_names = shap_data['feature_names']
+            outcome_name = shap_data['outcome_name']
+            ids = shap_data[f"ids_{part}"]
+            indexes = df.index[ids]
+            X = df.loc[indexes, feature_names].values
+            y_pred = df.loc[indexes, "Estimation"].values
+
+            if config.shap_explainer == "Tree":
+                explainer = shap.TreeExplainer(model)
+                shap_values = explainer.shap_values(X)
+                expected_value = explainer.expected_value
+            elif config.shap_explainer == "Kernel":
+                explainer = shap.KernelExplainer(shap_kernel, X)
+                shap_values = explainer.shap_values(X)
+                shap_values = shap_values[0]
+                expected_value = explainer.expected_value[0]
+            elif config.shap_explainer == "Deep":
+                explainer = shap.DeepExplainer(model, torch.from_numpy(X))
+                shap_values = explainer.shap_values(torch.from_numpy(X))
+                expected_value = explainer.expected_value
+            else:
+                raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
+
+            shap.summary_plot(
+                shap_values=shap_values,
+                features=X,
+                feature_names=feature_names,
+                # max_display=config.num_top_features,
+                plot_type="bar",
+                show=False,
+            )
+            plt.savefig(f'shap/global/{part}/bar.png', bbox_inches='tight')
+            plt.savefig(f'shap/global/{part}/bar.pdf', bbox_inches='tight')
+            plt.close()
+
+            shap.summary_plot(
+                shap_values=shap_values,
+                features=X,
+                feature_names=feature_names,
+                # max_display=config.num_top_features,
+                plot_type="violin",
+                show=False,
+            )
+            plt.savefig(f"shap/global/{part}/beeswarm.png", bbox_inches='tight')
+            plt.savefig(f"shap/global/{part}/beeswarm.pdf", bbox_inches='tight')
+            plt.close()
+
             explanation = shap.Explanation(
-                values=shap_values[shap_data[f'ids_{part}'], :],
-                base_values=np.array([explainer.expected_value] * len(shap_data[f'ids_{part}'])),
-                data=shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], shap_data['feature_names']].values,
-                feature_names=shap_data['feature_names']
+                values=shap_values,
+                base_values=np.array([expected_value] * len(ids)),
+                data=X,
+                feature_names=feature_names
             )
             shap.plots.heatmap(
                 explanation,
@@ -133,33 +139,32 @@ def perform_shap_explanation(config, shap_data):
                 # max_display=config.num_top_features,
                 instance_order=explanation.sum(1)
             )
-            plt.savefig(f"shap/global/heatmap_{part}.png", bbox_inches='tight')
-            plt.savefig(f"shap/global/heatmap_{part}.pdf", bbox_inches='tight')
+            plt.savefig(f"shap/global/{part}/heatmap.png", bbox_inches='tight')
+            plt.savefig(f"shap/global/{part}/heatmap.pdf", bbox_inches='tight')
             plt.close()
 
             Path(f"shap/features/{part}").mkdir(parents=True, exist_ok=True)
-            shap_values_part = shap_values[shap_data[f'ids_{part}'], :]
-            mean_abs_impact = np.mean(np.abs(shap_values_part), axis=0)
+            mean_abs_impact = np.mean(np.abs(shap_values), axis=0)
             features_order = np.argsort(mean_abs_impact)[::-1]
             inds_to_plot = features_order[0:config.num_top_features]
-            for ind in inds_to_plot:
-                feat = shap_data['feature_names'][ind]
+            for feat_id, ind in enumerate(inds_to_plot):
+                feat = feature_names[ind]
                 shap.dependence_plot(
                     ind=ind,
-                    shap_values=shap_values_part,
-                    features=shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], shap_data['feature_names']].values,
-                    feature_names=shap_data['feature_names'],
+                    shap_values=shap_values,
+                    features=X,
+                    feature_names=feature_names,
                     show=False,
                 )
-                plt.savefig(f"shap/features/{part}/{feat}.png", bbox_inches='tight')
-                plt.savefig(f"shap/features/{part}/{feat}.pdf", bbox_inches='tight')
+                plt.savefig(f"shap/features/{part}/{feat_id}_{feat}.png", bbox_inches='tight')
+                plt.savefig(f"shap/features/{part}/{feat_id}_{feat}.pdf", bbox_inches='tight')
                 plt.close()
 
                 fig = go.Figure()
                 fig.add_trace(
                     go.Scatter(
-                        x=shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], shap_data['feature_names']].values[:, ind],
-                        y=shap_values_part[:, ind],
+                        x=X[:, ind],
+                        y=shap_values[:, ind],
                         showlegend=False,
                         name=feat,
                         mode='markers',
@@ -169,7 +174,7 @@ def perform_shap_explanation(config, shap_data):
                             line=dict(
                                 width=1
                             ),
-                            color=shap_data['df'].loc[shap_data['df'].index[shap_data[f'ids_{part}']], "Estimation"].values,
+                            color=y_pred,
                             colorscale=px.colors.sequential.Bluered,
                             showscale=True,
                             colorbar=dict(title=dict(text="Estimation", font=dict(size=20)), tickfont=dict(size=20))
@@ -177,7 +182,6 @@ def perform_shap_explanation(config, shap_data):
                     )
                 )
                 add_layout(fig, feat, f"SHAP value for<br>{feat}", f"", font_size=20)
-                fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
                 fig.update_layout(legend_font_size=20)
                 fig.update_layout(
                     margin=go.layout.Margin(
@@ -188,16 +192,16 @@ def perform_shap_explanation(config, shap_data):
                         pad=0
                     )
                 )
-                save_figure(fig, f"shap/features/{part}/{feat}_estimation")
+                save_figure(fig, f"shap/features/{part}/{feat_id}_{feat}_scatter")
 
-    local_explain(
-        config,
-        shap_data['df'].loc[:, shap_data['outcome_name']].values,
-        shap_data['df'].loc[:, "Estimation"].values,
-        shap_data['df'].index.values,
-        shap_values,
-        expected_value,
-        shap_data['df'].loc[:, shap_data['feature_names']].values,
-        shap_data['feature_names'],
-        "shap/local"
-    )
+            local_explain(
+                config,
+                df.loc[indexes, outcome_name].values,
+                df.loc[indexes, "Estimation"].values,
+                indexes,
+                shap_values,
+                expected_value,
+                X,
+                feature_names,
+                f"shap/local/{part}"
+            )

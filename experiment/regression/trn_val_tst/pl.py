@@ -55,7 +55,6 @@ def process(config: DictConfig) -> Optional[float]:
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-    datamodule.setup()
     datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
     outcome_name = datamodule.get_outcome_name()
@@ -66,13 +65,12 @@ def process(config: DictConfig) -> Optional[float]:
     else:
         is_test = False
 
-    cv_datamodule = RepeatedStratifiedKFoldCVSplitter(
-        data_module=datamodule,
+    cv_splitter = RepeatedStratifiedKFoldCVSplitter(
+        datamodule=datamodule,
+        is_split=config.cv_is_split,
         n_splits=config.cv_n_splits,
         n_repeats=config.cv_n_repeats,
-        groups=config.cv_groups,
-        random_state=config.seed,
-        shuffle=config.is_shuffle
+        random_state=config.seed
     )
 
     best = {}
@@ -83,8 +81,9 @@ def process(config: DictConfig) -> Optional[float]:
     cv_progress = {'fold': [], 'optimized_metric':[]}
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    ckpt_name = config.callbacks.model_checkpoint.filename
 
-    for fold_idx, (dl_trn, ids_trn, dl_val, ids_val) in tqdm(enumerate(cv_datamodule.split())):
+    for fold_idx, (ids_trn, ids_val) in tqdm(enumerate(cv_splitter.split())):
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
@@ -93,12 +92,21 @@ def process(config: DictConfig) -> Optional[float]:
         if is_test:
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
 
+        config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
+
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
         if 'wandb' in config.logger:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
 
         # Init lightning model
+        if config.model_type == "tabnet":
+            config.model = config["model_tabnet"]
+        elif config.model_type == "node":
+            config.model = config["model_node"]
+        else:
+            raise ValueError(f"Unsupported model: {config.model_type}")
+
         log.info(f"Instantiating model <{config.model._target_}>")
         model: LightningModule = hydra.utils.instantiate(config.model)
 
@@ -144,9 +152,42 @@ def process(config: DictConfig) -> Optional[float]:
             log.info("Starting testing!")
             test_dataloader = datamodule.test_dataloader()
             if test_dataloader is not None and len(test_dataloader) > 0:
-                trainer.test(model, test_dataloader)
+                trainer.test(model, test_dataloader, ckpt_path="best")
             else:
                 log.info("Test data is empty!")
+
+        trn_dataloader = datamodule.train_dataloader()
+        val_dataloader = datamodule.val_dataloader()
+        tst_dataloader = datamodule.test_dataloader()
+
+        y_trn = df.loc[df.index[ids_trn], outcome_name].values
+        y_val = df.loc[df.index[ids_val], outcome_name].values
+        if is_test:
+            y_tst = df.loc[df.index[ids_tst], outcome_name].values
+
+        y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+        if is_test:
+            y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+
+        if config.model_type == "tabnet":
+            feature_importances_raw = np.zeros((len(feature_names)))
+            model.produce_importance = True
+            raw_res = trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")
+            M_explain =  torch.cat([x[0] for x in raw_res])
+            model.produce_importance = False
+            feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
+            feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
+            feature_importances = pd.DataFrame.from_dict(
+                {
+                    'feature': feature_names,
+                    'importance': feature_importances_raw
+                }
+            )
+        elif config.model_type == "node":
+            feature_importances = None
+        else:
+            raise ValueError(f"Unsupported model: {config.model_type}")
 
         # Make sure everything closed properly
         log.info("Finalizing!")
@@ -159,56 +200,40 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
-        X_trn = df.loc[df.index[ids_trn], feature_names].values
-        y_trn = df.loc[df.index[ids_trn], outcome_name].values
-        X_val = df.loc[df.index[ids_val], feature_names].values
-        y_val = df.loc[df.index[ids_val], outcome_name].values
-        if is_test:
-            X_tst = df.loc[df.index[ids_tst], feature_names].values
-            y_tst = df.loc[df.index[ids_tst], outcome_name].values
-
-        model.eval()
-        model.freeze()
-
-        feature_importances_raw = np.zeros((len(feature_names)))
-        M_explain, masks = model.forward_masks(torch.from_numpy(X_trn))
-        feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
-        feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
-        feature_importances = pd.DataFrame.from_dict(
-            {
-                'feature': feature_names,
-                'importance': feature_importances_raw
-            }
-        )
-
         def shap_kernel(X):
             X = torch.from_numpy(X)
             tmp = model(X)
             return tmp.cpu().detach().numpy()
 
-        y_trn_pred = model(torch.from_numpy(X_trn)).cpu().detach().numpy().flatten()
-        y_val_pred = model(torch.from_numpy(X_val)).cpu().detach().numpy().flatten()
-        if is_test:
-            y_tst_pred = model(X_tst).cpu().detach().numpy().flatten()
 
-        eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
+
+        metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
+
+        if config.optimized_part == "train":
+            metrics_main = metrics_trn
+        elif config.optimized_part == "val":
+            metrics_main = metrics_val
+        elif config.optimized_part == "test":
+            metrics_main = metrics_tst
+        else:
+            raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
         if config.direction == "min":
-            if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
+            if metrics_main.at[config.optimized_metric, config.optimized_part] < best["optimized_metric"]:
                 is_renew = True
             else:
                 is_renew = False
         elif config.direction == "max":
-            if metrics_val.at[config.optimized_metric, 'val'] > best["optimized_metric"]:
+            if metrics_main.at[config.optimized_metric, config.optimized_part] > best["optimized_metric"]:
                 is_renew = True
             else:
                 is_renew = False
 
         if is_renew:
-            best["optimized_metric"] = metrics_val.at[config.optimized_metric, 'val']
+            best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             best["model"] = model
             best["trainer"] = trainer
             best['shap_kernel'] = shap_kernel
@@ -222,7 +247,7 @@ def process(config: DictConfig) -> Optional[float]:
                 df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
 
         cv_progress['fold'].append(fold_idx)
-        cv_progress['optimized_metric'].append(metrics_val.at[config.optimized_metric, 'val'])
+        cv_progress['optimized_metric'].append(metrics_main.at[config.optimized_metric, config.optimized_part])
 
     cv_progress_df = pd.DataFrame(cv_progress)
     cv_progress_df.set_index('fold', inplace=True)
@@ -245,12 +270,19 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=True)
+    metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=True)
     metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=True)
     if is_test:
-        eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=True)
+        metrics_tst = eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=True)
 
-    best["trainer"].save_checkpoint(f"best_{best['fold']:04d}.ckpt")
+    if config.optimized_part == "train":
+        metrics_main = metrics_trn
+    elif config.optimized_part == "val":
+        metrics_main = metrics_val
+    elif config.optimized_part == "test":
+        metrics_main = metrics_tst
+    else:
+        raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
     if best['feature_importances'] is not None:
         feature_importances = best['feature_importances']
@@ -401,4 +433,4 @@ def process(config: DictConfig) -> Optional[float]:
     # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:
-        return metrics_val.at[optimized_metric, 'val']
+        return metrics_main.at[optimized_metric, config.optimized_part]

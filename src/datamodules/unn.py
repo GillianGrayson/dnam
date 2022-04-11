@@ -62,7 +62,6 @@ class UNNDataModuleNoTest(LightningDataModule):
     ):
         super().__init__()
 
-        self.path = path
         self.task = task
         self.features_fn = features_fn
         self.classes_fn = classes_fn
@@ -79,13 +78,7 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
 
-    def prepare_data(self):
-        """Download data if needed. This method is called only from a single GPU.
-        Do not use it to assign state (self.x = y)."""
-        pass
-
-    def setup(self, stage: Optional[str] = None):
-        self.trn_val = pd.read_excel(f"{self.path}/{self.trn_val_fn}", index_col="index")
+        self.trn_val = pd.read_excel(f"{self.trn_val_fn}", index_col="index")
         features_df = pd.read_excel(self.features_fn)
         self.features_names = features_df.loc[:, 'features'].values
 
@@ -101,12 +94,13 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         self.data = self.trn_val.loc[:, self.features_names]
         self.data = self.data.astype('float32')
-        self.output = self.trn_val.loc[:, [self.outcome]]
         if self.task == 'regression':
+            self.output = self.trn_val.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
+        elif self.task in ['binary', 'multiclass']:
+            self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin']]
 
         if not list(self.data.index.values) == list(self.output.index.values):
-            log.info(f"Error! Indexes have different order")
             raise ValueError(f"Error! Indexes have different order")
 
         # self.dims is returned when you call datamodule.size()
@@ -116,16 +110,20 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         self.ids_trn_val = np.arange(self.trn_val.shape[0])
 
-        self.raw_data = {}
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
+        pass
 
     def refresh_datasets(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
+        self.dataset_tst = Subset(self.dataset, [])
 
     def perform_split(self):
-
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
-
         if self.task in ['binary', 'multiclass']:
             self.ids_trn, self.ids_val = train_test_split(
                 self.ids_trn_val,
@@ -150,15 +148,17 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.ids_tst = None
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
+        self.dataset_tst = Subset(self.dataset, [])
+
+        log.info(f"total_count: {len(self.dataset)}")
+        log.info(f"trn_count: {len(self.dataset_trn)}")
+        log.info(f"val_count: {len(self.dataset_val)}")
 
     def plot_split(self, suffix=''):
         dict_to_plot = {
             "Train": self.ids_trn,
             "Val": self.ids_val
         }
-
-        if not os.path.exists(f"{self.path}/figs"):
-            os.makedirs(f"{self.path}/figs")
         if self.task in ['binary', 'multiclass']:
             for name, ids in dict_to_plot.items():
                 classes_counts = pd.DataFrame(Counter(self.output[f'{self.outcome}_origin'].values[ids]), index=[0])
@@ -201,15 +201,8 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         self.output.to_excel(f"output{suffix}.xlsx", index=True)
 
-        log.info(f"total_count: {len(self.dataset)}")
-        log.info(f"trn_count: {len(self.dataset_trn)}")
-        log.info(f"val_count: {len(self.dataset_val)}")
-
-    def get_trn_val_X_and_y(self):
-        return Subset(self.dataset, self.ids_trn_val), self.dataset.ys[self.ids_trn_val]
-
-    def get_weighted_sampler(self):
-        return self.weighted_sampler
+    def get_trn_val_y(self):
+        return self.dataset.ys[self.ids_trn_val]
 
     def train_dataloader(self):
         ys_trn = self.dataset.ys[self.ids_trn]
@@ -249,7 +242,13 @@ class UNNDataModuleNoTest(LightningDataModule):
         )
 
     def test_dataloader(self):
-        return None
+        return DataLoader(
+            dataset=self.dataset_tst,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            shuffle=False,
+        )
 
     def get_feature_names(self):
         return self.data.columns.to_list()

@@ -208,6 +208,7 @@ def process(config: DictConfig):
 
             ds_trn = lgb.Dataset(X_trn, label=y_trn, feature_name=feature_names)
             ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=feature_names)
+
             evals_result = {}
             model = lgb.train(
                 params=model_params,
@@ -242,6 +243,7 @@ def process(config: DictConfig):
                 return y
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
+
         else:
             raise ValueError(f"Model {config.model_sa} is not supported")
 

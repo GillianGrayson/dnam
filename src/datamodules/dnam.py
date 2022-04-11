@@ -106,7 +106,6 @@ class DNAmDataModuleNoTest(LightningDataModule):
             self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin']]
 
         if not list(self.data.index.values) == list(self.output.index.values):
-            log.info(f"Error! Indexes have different order")
             raise ValueError(f"Error! Indexes have different order")
 
         # self.dims is returned when you call datamodule.size()
@@ -139,8 +138,7 @@ class DNAmDataModuleNoTest(LightningDataModule):
         elif self.task == 'regression':
             ptp = np.ptp(self.dataset.ys[self.ids_trn_val])
             num_bins = 3
-            bins = np.linspace(np.min(self.dataset.ys[self.ids_trn_val]) - 0.1 * ptp,
-                               np.max(self.dataset.ys[self.ids_trn_val]) + 0.1 * ptp, num_bins + 1)
+            bins = np.linspace(np.min(self.dataset.ys[self.ids_trn_val]) - 0.1 * ptp, np.max(self.dataset.ys[self.ids_trn_val]) + 0.1 * ptp, num_bins + 1)
             binned = np.digitize(self.dataset.ys[self.ids_trn_val], bins) - 1
             unique, counts = np.unique(binned, return_counts=True)
             occ = dict(zip(unique, counts))

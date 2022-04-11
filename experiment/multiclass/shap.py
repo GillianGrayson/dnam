@@ -198,7 +198,7 @@ def perform_shap_explanation(config, shap_data):
                 shap_values=shap_values,
                 features=X,
                 feature_names=feature_names,
-                max_display=30,
+                # max_display=config.num_top_features,
                 class_names=class_names,
                 class_inds=list(range(len(class_names))),
                 show=False,
