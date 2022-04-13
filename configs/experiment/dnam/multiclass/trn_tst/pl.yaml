@@ -98,7 +98,7 @@ model_tabnet:
   scheduler_gamma: 0.9
 
 model_node:
-  _target_: src.models.node.node.NodeModel
+  _target_: src.models.node.model.NodeModel
   task: "classification"
   input_dim: ${in_dim}
   output_dim: ${out_dim}

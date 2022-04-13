@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: 1st_Day_right_real_left_real_background_uV
-model_sa: lightgbm
+model_sa: xgboost
 outcome: "class"
 
 project_name: ${data_type}_trn_tst_${model_sa}
@@ -33,7 +33,7 @@ base_dir: "E:/YandexDisk/EEG/Files/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: True
+is_shap: False
 shap_explainer: Tree
 
 # Plot params
@@ -99,7 +99,7 @@ lightgbm:
   output_dim: ${out_dim}
   objective: 'multiclass'
   boosting: 'gbdt'
-  learning_rate: 0.01
+  learning_rate: 0.005
   num_leaves: 31
   device: 'cpu'
   max_depth: -1

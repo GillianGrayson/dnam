@@ -1,39 +1,50 @@
 # @package _global_
 
-data_type: eeg
+data_type: 1st_Day_right_real_left_real_background_uV
+model_type: node
+outcome: "class"
 
-project_name: ${data_type}_multiclass_trn_val_tst_tabnet
+project_name: ${data_type}_trn_tst_${model_type}
 
-is_cv: False
-n_splits: 5
-is_stratified: True
+seed: 69
+
+cv_is_split: False
+cv_n_splits: 5
+cv_n_repeats: 5
+
+optimized_metric: "f1_weighted"
+optimized_part: "val"
+direction: "max"
+
+is_shuffle: True
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-seed: 322
-in_dim: 768
-out_dim: 3
+max_epochs: 2000
+patience: 100
 
-eeg_data_type: 1st_Day_right_im1_left_im1_background
-base_dir: "E:/YandexDisk/EEG/Files/${eeg_data_type}"
+in_dim: 768
+out_dim: 2
+
+base_dir: "E:/YandexDisk/EEG/Files/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: True
+is_shap: False
 shap_explainer: Deep
 
 # Plot params
-num_top_features: 20
-num_examples: 3
+num_top_features: 5
+num_examples: 5
 
 # specify here default training configuration
 defaults:
   - override /datamodule: null
   - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
-  - override /model: tabnetpl.yaml
+  - override /model: null
   - override /callbacks: regular.yaml
   - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
   - override /hydra/hydra_logging: colorlog
@@ -41,29 +52,32 @@ defaults:
 
 # Separate (train/val separated from test) DataModule
 datamodule:
-  _target_: src.datamodules.eeg.EEGDataModuleSeparate
-  path: ${data_dir}
+  _target_: src.datamodules.eeg.EEGDataModuleTrainValNoSplit
+  task: "multiclass"
   features_fn: "${data_dir}/features_df.xlsx"
   classes_fn: "${data_dir}/classes_df.xlsx"
-  trn_val_fn: "train_val_df.xlsx"
-  tst_fn: "test_df.xlsx"
-  outcome: "class"
-  batch_size: 256
-  trn_val_tst_split: [0.80, 0.20]
+  trn_fn: "${data_dir}/train_val_df.xlsx"
+  val_fn: "${data_dir}/test_df.xlsx"
+  outcome: ${outcome}
+  batch_size: 64
   num_workers: 0
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
+  imputation: "median"
 
 trainer:
   gpus: 1
   min_epochs: 1
-  max_epochs: 10
+  max_epochs: ${max_epochs}
   weights_summary: null
   progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
 
 model:
+  type: ${model_type}
+
+model_tabnet:
   _target_: src.models.tabnet.model.TabNetModel
   task: "classification"
   input_dim: ${in_dim}
@@ -76,24 +90,39 @@ model:
   virtual_batch_size: 128
   mask_type: "sparsemax"
   loss_type: "CrossEntropyLoss"
-  optimizer_lr: 0.005
+  optimizer_lr: 0.01
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 100
+  scheduler_step_size: 30
+  scheduler_gamma: 0.9
+
+model_node:
+  _target_: src.models.node.model.NodeModel
+  task: "classification"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  num_trees: 1024
+  num_layers: 1
+  flatten_output: False
+  depth: 5
+  loss_type: "CrossEntropyLoss"
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 30
   scheduler_gamma: 0.9
 
 callbacks:
   model_checkpoint:
-    monitor: "val/f1_weighted" # name of the logged metric which determines when model is improving
-    mode: "max" # can be "max" or "min"
+    monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
+    mode: ${direction} # can be "max" or "min"
     save_top_k: 1 # save k best models (determined by above metric)
     save_last: False # additionaly always save model from last epoch
     verbose: False
-    dirpath: "checkpoints/"
-    filename: "{epoch:03d}"
+    dirpath: ""
+    filename: "best"
     auto_insert_metric_name: False
 
   early_stopping:
-    monitor: "val/f1_weighted" # name of the logged metric which determines when model is improving
-    mode: "max" # can be "max" or "min"
-    patience: 10 # how many epochs of not improving until training stops
+    monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
+    mode: ${direction} # can be "max" or "min"
+    patience: ${patience} # how many epochs of not improving until training stops
     min_delta: 0 # minimum change in the monitored metric needed to qualify as an improvement

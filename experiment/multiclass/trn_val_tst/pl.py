@@ -2,7 +2,7 @@ from typing import List, Optional
 import torch
 import hydra
 from omegaconf import DictConfig
-from src.models.dnam.model import TabNetModel
+from src.models.tabnet.model import TabNetModel
 from src.models.node.model import NodeModel
 from pytorch_lightning import (
     Callback,
