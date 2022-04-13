@@ -1,4 +1,4 @@
-_target_: src.models.dnam.tabnet.TabNetModel
+_target_: src.models.tabnet.model.TabNetModel
 
 task: "classification"
 input_dim: 391023

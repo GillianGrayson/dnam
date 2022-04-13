@@ -1,7 +1,7 @@
 from typing import Any, List
 import torch
 from pytorch_lightning import LightningModule
-from src.models.modules.fcvae_net import FCVAENet
+from src.models.to_delete.modules.fcvae_net import FCVAENet
 
 
 class FCVAEModelV2(LightningModule):

@@ -559,7 +559,7 @@ logger:
 <br>
 
 ### Workflow
-1. Write your PyTorch Lightning model (see [mnist_model.py](src/models/mnist_model.py) for example)
+1. Write your PyTorch Lightning model (see [mnist_model.py](src/models/to_delete/mnist_model.py) for example)
 2. Write your PyTorch Lightning datamodule (see [mnist_datamodule.py](src/datamodules/to_delete/mnist_datamodule.py) for example)
 3. Write your experiment config, containing paths to your model and datamodule
 4. Run training with chosen experiment config: `python run.py experiment=experiment_name`
@@ -612,7 +612,7 @@ These tools help you keep track of hyperparameters and output metrics and allow 
  ```
 You can use many of them at once (see [configs/logger/many_loggers.yaml](configs/logger/many_loggers.yaml) for example).<br>
 You can also write your own logger.<br>
-Lightning provides convenient method for logging custom metrics from inside LightningModule. Read the docs [here](https://pytorch-lightning.readthedocs.io/en/latest/extensions/logging.html#automatic-logging) or take a look at [MNIST example](src/models/mnist_model.py).
+Lightning provides convenient method for logging custom metrics from inside LightningModule. Read the docs [here](https://pytorch-lightning.readthedocs.io/en/latest/extensions/logging.html#automatic-logging) or take a look at [MNIST example](src/models/to_delete/mnist_model.py).
 <br><br>
 
 
@@ -698,7 +698,7 @@ The following is example of loading model from checkpoint and running prediction
 from PIL import Image
 from torchvision import transforms
 
-from src.models.mnist_model import MNISTLitModel
+from src.models.to_delete.mnist_model import MNISTLitModel
 
 
 def predict():

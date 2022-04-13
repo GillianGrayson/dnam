@@ -1,5 +1,5 @@
 import numpy as np
-from src.models.dnam.tabnet import TabNetModel
+from src.models.dnam.model import TabNetModel
 import os
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.violin import add_violin_trace

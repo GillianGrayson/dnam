@@ -1,8 +1,8 @@
 from typing import Any, List
 from pytorch_lightning import LightningModule
-from src.models.fcvae_model_v1 import FCVAEModelV1
-from src.models.fcvae_model_v2 import FCVAEModelV2
-from src.models.fcae_model import FCAEModel
+from src.models.to_delete.fcvae_model_v1 import FCVAEModelV1
+from src.models.to_delete.fcvae_model_v2 import FCVAEModelV2
+from src.models.to_delete.fcae_model import FCAEModel
 from torch import nn
 import torch
 from torchmetrics.classification.accuracy import Accuracy

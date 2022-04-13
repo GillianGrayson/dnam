@@ -1,5 +1,5 @@
 import numpy as np
-from src.models.dnam.tabnet import TabNetModel
+from src.models.dnam.model import TabNetModel
 import torch
 import matplotlib.pyplot as plt
 import plotly.express as px

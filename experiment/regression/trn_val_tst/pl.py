@@ -15,8 +15,8 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from src.models.dnam.tabnet import TabNetModel
-from src.models.node.node import NodeModel
+from src.models.dnam.model import TabNetModel
+from src.models.node.model import NodeModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 import numpy as np
 from src.utils import utils

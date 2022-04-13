@@ -2,8 +2,8 @@ from typing import List, Optional
 import torch
 import hydra
 from omegaconf import DictConfig
-from src.models.dnam.tabnet import TabNetModel
-from src.models.node.node import NodeModel
+from src.models.dnam.model import TabNetModel
+from src.models.node.model import NodeModel
 from pytorch_lightning import (
     Callback,
     LightningDataModule,
