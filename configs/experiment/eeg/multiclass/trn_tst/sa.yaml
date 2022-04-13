@@ -1,28 +1,35 @@
 # @package _global_
 
-data_type: eeg
+data_type: 1st_Day_right_real_left_real_background_uV
 model_sa: lightgbm
+outcome: "class"
 
-project_name: ${data_type}_multiclass_trn_val_tst_${model_sa}
+project_name: ${data_type}_trn_tst_${model_sa}
 
-is_cv: False
-n_splits: 5
-is_stratified: True
+seed: 69
+
+cv_is_split: False
+cv_n_splits: 5
+cv_n_repeats: 5
+
+optimized_metric: "f1_weighted"
+optimized_part: "val"
+direction: "max"
+
+is_shuffle: True
 
 debug: False
 print_config: True
 ignore_warnings: True
 test_after_training: True
 
-seed: 322
+max_epochs: 2000
+patience: 100
+
 in_dim: 768
-out_dim: 3
+out_dim: 2
 
-max_epochs: 100
-patience: 10
-
-eeg_data_type: 1st_Day_right_im1_left_im1_background
-base_dir: "E:/YandexDisk/EEG/Files/${eeg_data_type}"
+base_dir: "E:/YandexDisk/EEG/Files/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -30,8 +37,8 @@ is_shap: True
 shap_explainer: Tree
 
 # Plot params
-num_top_features: 30
-num_examples: 3
+num_top_features: 5
+num_examples: 5
 
 # specify here default training configuration
 defaults:
@@ -45,23 +52,22 @@ defaults:
 
 # Separate (train/val separated from test) DataModule
 datamodule:
-  _target_: src.datamodules.eeg.EEGDataModuleSeparate
-  path: ${data_dir}
+  _target_: src.datamodules.eeg.EEGDataModuleTrainValNoSplit
+  task: "multiclass"
   features_fn: "${data_dir}/features_df.xlsx"
   classes_fn: "${data_dir}/classes_df.xlsx"
-  trn_val_fn: "train_val_df.xlsx"
-  tst_fn: "test_df.xlsx"
-  outcome: "class"
+  trn_fn: "${data_dir}/train_val_df.xlsx"
+  val_fn: "${data_dir}/test_df.xlsx"
+  outcome: ${outcome}
   batch_size: 64
-  trn_val_tst_split: [0.80, 0.20]
   num_workers: 0
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
+  imputation: "median"
 
 # XGBoost model params
 xgboost:
-  input_dim: ${in_dim}
   output_dim: ${out_dim}
   booster: 'gbtree'
   learning_rate: 0.01
@@ -77,7 +83,6 @@ xgboost:
 
 # CatBoost model params
 catboost:
-  input_dim: ${in_dim}
   output_dim: ${out_dim}
   loss_function: 'MultiClass'
   learning_rate: 0.05
@@ -91,7 +96,6 @@ catboost:
 
 # LightGBM model params
 lightgbm:
-  input_dim: ${in_dim}
   output_dim: ${out_dim}
   objective: 'multiclass'
   boosting: 'gbdt'
