@@ -64,6 +64,7 @@ agena = pd.read_excel(f"{path}/{platform}/{dataset}/data/agena/35.xlsx", index_c
 agena = agena.T
 agena.index.name = "subject_id"
 agena_cpgs = list(set(agena.columns.values))
+agena_features = pd.DataFrame({"features": agena_cpgs})
 agena.loc[:, agena_cpgs] *= 0.01
 subjects_common_agena = sorted(list(set(agena.index.values).intersection(set(df.index.values))))
 subjects_agena_only = set(agena.index.values) - set(df.index.values)
@@ -71,6 +72,7 @@ cpgs_common_agena = sorted(list(set(agena_cpgs).intersection(set(betas.columns.v
 
 cogn = pd.read_excel(f"{path}/{platform}/{dataset}/data/cognitive/data.xlsx", index_col='subject_id')
 cogn = cogn[~cogn.index.str.startswith(('Q', 'H'))]
+cogn_features = pd.DataFrame({"features": cogn.columns.values})
 subjects_common_cogn_df = sorted(list(set(cogn.index.values).intersection(set(df.index.values))))
 subjects_common_cogn_immuno = sorted(list(set(cogn.index.values).intersection(set(pheno.index.values))))
 subjects_cogn_minus_df = sorted(list(set(cogn.index.values) - set(df.index.values)))
@@ -83,6 +85,8 @@ cogn_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_cogn_immu
 agena_cogn_immuno_data = pd.merge(cogn_immuno_data, agena, left_index=True, right_index=True)
 
 immuno_data.to_excel(f"{path_save}/immuno/data.xlsx", index=True)
+agena_features.to_excel(f"{path_save}/agena_immuno/features_agena.xlsx", index=False)
 agena_immuno_data.to_excel(f"{path_save}/agena_immuno/data.xlsx", index=True)
+cogn_features.to_excel(f"{path_save}/cogn_immuno/features_cogn.xlsx", index=False)
 cogn_immuno_data.to_excel(f"{path_save}/cogn_immuno/data.xlsx", index=True)
 agena_cogn_immuno_data.to_excel(f"{path_save}/agena_cogn_immuno/data.xlsx", index=True)

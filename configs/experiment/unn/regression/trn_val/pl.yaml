@@ -1,6 +1,6 @@
 # @package _global_
 
-data_type: immuno
+data_type: agena_immuno
 model_type: tabnet
 outcome: "Age"
 
@@ -8,7 +8,7 @@ project_name: ${data_type}_trn_val_${model_type}
 
 seed: 101
 
-in_dim: 46
+in_dim: 58
 out_dim: 1
 
 cv_is_split: True
@@ -53,7 +53,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  features_fn: "${data_dir}/features.xlsx"
+  features_fn: "${data_dir}/features_agena_immuno.xlsx"
   classes_fn: ""
   trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}
@@ -94,14 +94,14 @@ model_tabnet:
   scheduler_gamma: 0.9
 
 model_node:
-  _target_: src.models.node.node.NodeModel
+  _target_: src.models.node.model.NodeModel
   task: "regression"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  num_trees: 2048
+  num_trees: 1024
   num_layers: 1
   flatten_output: False
-  depth: 6
+  depth: 5
   loss_type: "L1Loss"
   optimizer_lr: 0.001
   optimizer_weight_decay: 0.0

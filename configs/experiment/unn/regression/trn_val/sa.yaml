@@ -1,7 +1,7 @@
 # @package _global_
 
-data_type: immuno
-model_sa: lightgbm
+data_type: agena_immuno
+model_sa: catboost
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_sa}
@@ -50,7 +50,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  features_fn: "${data_dir}/features.xlsx"
+  features_fn: "${data_dir}/features_agena_immuno.xlsx"
   classes_fn: ""
   trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}
@@ -95,7 +95,7 @@ lightgbm:
   num_leaves: 31
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 20
+  min_data_in_leaf: 7
   feature_fraction: 0.9
   bagging_fraction: 0.8
   bagging_freq: 5

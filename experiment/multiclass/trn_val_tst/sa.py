@@ -15,7 +15,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
 from experiment.routines import eval_classification_sa
-from experiment.routines import eval_loss
+from experiment.routines import eval_loss, save_feature_importance
 from typing import List
 from catboost import CatBoost
 import lightgbm as lgb
@@ -344,18 +344,7 @@ def process(config: DictConfig):
     else:
         raise ValueError(f"Model {config.model_sa} is not supported")
 
-    best['feature_importances'].sort_values(['importance'], ascending=[False], inplace=True)
-    fig = go.Figure()
-    ys = best['feature_importances']['feature'][0:config.num_top_features][::-1]
-    xs = best['feature_importances']['importance'][0:config.num_top_features][::-1]
-    add_bar_trace(fig, x=xs, y=ys, text=xs, orientation='h')
-    add_layout(fig, f"Feature importance", f"", "")
-    fig.update_yaxes(tickfont_size=10)
-    fig.update_xaxes(showticklabels=True)
-    fig.update_layout(margin=go.layout.Margin(l=110, r=20, b=75, t=25, pad=0))
-    save_figure(fig, f"feature_importances")
-    best['feature_importances'].set_index('feature', inplace=True)
-    best['feature_importances'].to_excel("feature_importances.xlsx", index=True)
+    save_feature_importance(best['feature_importances'], config.num_top_features)
 
     if 'wandb' in config.logger:
         wandb.define_metric(f"epoch")

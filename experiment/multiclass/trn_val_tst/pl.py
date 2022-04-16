@@ -23,7 +23,7 @@ import pandas as pd
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import perform_shap_explanation
 from datetime import datetime
-from experiment.routines import eval_classification_sa
+from experiment.routines import eval_classification_sa, save_feature_importance
 from pathlib import Path
 
 
@@ -313,19 +313,7 @@ def process(config: DictConfig) -> Optional[float]:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
     if best['feature_importances'] is not None:
-        feature_importances = best['feature_importances']
-        feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
-        fig = go.Figure()
-        ys = feature_importances['feature'][0:config.num_top_features][::-1]
-        xs = feature_importances['importance'][0:config.num_top_features][::-1]
-        add_bar_trace(fig, x=xs, y=ys, text=xs, orientation='h')
-        add_layout(fig, f"Feature importance", f"", "")
-        fig.update_yaxes(tickfont_size=10)
-        fig.update_xaxes(showticklabels=True)
-        fig.update_layout(margin=go.layout.Margin(l=130, r=20, b=75, t=25, pad=0))
-        save_figure(fig, f"feature_importances")
-        feature_importances.set_index('feature', inplace=True)
-        feature_importances.to_excel("feature_importances.xlsx", index=True)
+        save_feature_importance(best['feature_importances'], config.num_top_features)
 
     if config.is_shap == True:
         shap_data = {

@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from src.models.dnam.model import TabNetModel
+from src.models.tabnet.model import TabNetModel
 from src.models.node.model import NodeModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 import numpy as np
@@ -30,7 +30,7 @@ from scripts.python.routines.plot.bar import add_bar_trace
 from scipy.stats import mannwhitneyu
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression_sa
+from experiment.routines import eval_regression_sa, save_feature_importance
 from datetime import datetime
 from pathlib import Path
 
@@ -297,19 +297,7 @@ def process(config: DictConfig) -> Optional[float]:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
     if best['feature_importances'] is not None:
-        feature_importances = best['feature_importances']
-        feature_importances.sort_values(['importance'], ascending=[False], inplace=True)
-        fig = go.Figure()
-        ys = feature_importances['feature'][0:config.num_top_features][::-1]
-        xs = feature_importances['importance'][0:config.num_top_features][::-1]
-        add_bar_trace(fig, x=xs, y=ys, text=xs, orientation='h')
-        add_layout(fig, f"Feature importance", f"", "")
-        fig.update_yaxes(tickfont_size=10)
-        fig.update_xaxes(showticklabels=True)
-        fig.update_layout(margin=go.layout.Margin(l=130, r=20, b=75, t=25, pad=0))
-        save_figure(fig, f"feature_importances")
-        feature_importances.set_index('feature', inplace=True)
-        feature_importances.to_excel("feature_importances.xlsx", index=True)
+        save_feature_importance(best['feature_importances'], config.num_top_features)
 
     formula = f"Estimation ~ {outcome_name}"
     model_linear = smf.ols(formula=formula, data=df.loc[df.index[datamodule.ids_trn], :]).fit()
