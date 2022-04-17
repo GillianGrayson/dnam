@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: snp_ecg
-model_sa: catboost
+model_sa: lightgbm
 outcome: "Cardiorisk"
 
 project_name: ${data_type}_trn_val_${model_sa}

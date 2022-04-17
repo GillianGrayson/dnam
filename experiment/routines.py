@@ -43,7 +43,7 @@ def save_feature_importance(df, num_features):
         width=800,
         height=800,
         margin=go.layout.Margin(
-            l=175,
+            l=350,
             r=20,
             b=100,
             t=40,
