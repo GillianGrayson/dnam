@@ -14,6 +14,8 @@ from scripts.python.routines.plot.bar import add_bar_trace
 import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
+from impyute.imputation.cs import fast_knn, mean, median, random, mice, mode, em
+import pathlib
 
 
 log = utils.get_logger(__name__)
@@ -57,6 +59,8 @@ class UNNDataModuleNoTest(LightningDataModule):
             pin_memory: bool = False,
             seed: int = 1337,
             weighted_sampler = False,
+            imputation: str = "median",
+            k: int = 1,
             **kwargs,
     ):
         super().__init__()
@@ -72,12 +76,18 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.pin_memory = pin_memory
         self.seed = seed
         self.weighted_sampler = weighted_sampler
+        self.imputation = imputation
+        self.k = k
 
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
 
-        self.trn_val = pd.read_excel(f"{self.trn_val_fn}", index_col="index")
+        f_ext = pathlib.Path(self.trn_val_fn).suffix
+        if f_ext == '.xlsx':
+            self.trn_val = pd.read_excel(f"{self.trn_val_fn}", index_col="index")
+        elif f_ext == ".pkl":
+            self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
         features_df = pd.read_excel(self.features_fn)
         self.features_names = features_df.loc[:, 'features'].values
 
@@ -92,7 +102,31 @@ class UNNDataModuleNoTest(LightningDataModule):
             self.trn_val[self.outcome].replace(self.classes_dict, inplace=True)
 
         self.data = self.trn_val.loc[:, self.features_names]
+
+        is_nans = self.data.isnull().values.any()
+        if is_nans:
+            n_nans = self.data.isna().sum().sum()
+            log.info(f"Perform imputation for {n_nans} missed values")
+            self.data = self.data.astype('float')
+            if self.imputation == "median":
+                imputed_training = median(self.data.loc[:, :].values)
+            elif self.imputation == "mean":
+                imputed_training = mean(self.data.loc[:, :].values)
+            elif self.imputation == "fast_knn":
+                imputed_training = fast_knn(self.data.loc[:, :].values, k=self.k)
+            elif self.imputation == "random":
+                imputed_training = random(self.data.loc[:, :].values)
+            elif self.imputation == "mice":
+                imputed_training = mice(self.data.loc[:, :].values)
+            elif self.imputation == "em":
+                imputed_training = em(self.data.loc[:, :].values)
+            elif self.imputation == "mode":
+                imputed_training = mode(self.data.loc[:, :].values)
+            else:
+                raise ValueError(f"Unsupported imputation: {self.imputation}")
+            self.data.loc[:, :] = imputed_training
         self.data = self.data.astype('float32')
+
         if self.task == 'regression':
             self.output = self.trn_val.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')

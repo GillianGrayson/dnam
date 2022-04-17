@@ -8,7 +8,7 @@ project_name: ${data_type}_trn_val_${model_type}
 
 seed: 101
 
-in_dim: 58
+in_dim: 46
 out_dim: 1
 
 cv_is_split: True
@@ -53,7 +53,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  features_fn: "${data_dir}/features_agena_immuno.xlsx"
+  features_fn: "${data_dir}/features_immuno.xlsx"
   classes_fn: ""
   trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}
