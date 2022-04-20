@@ -50,6 +50,8 @@ class UNNDataModuleNoTest(LightningDataModule):
             self,
             task: str = "",
             features_fn: str = "",
+            cat_features_fn: str = None,
+            cat_encoding: str = "label",
             classes_fn: str = "",
             trn_val_fn: str = "",
             outcome: str = "",
@@ -67,6 +69,8 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         self.task = task
         self.features_fn = features_fn
+        self.cat_features_fn = cat_features_fn
+        self.cat_encoding = cat_encoding
         self.classes_fn = classes_fn
         self.trn_val_fn = trn_val_fn
         self.outcome = outcome
@@ -88,8 +92,12 @@ class UNNDataModuleNoTest(LightningDataModule):
             self.trn_val = pd.read_excel(f"{self.trn_val_fn}", index_col="index")
         elif f_ext == ".pkl":
             self.trn_val = pd.read_pickle(f"{self.trn_val_fn}")
-        features_df = pd.read_excel(self.features_fn)
-        self.features_names = features_df.loc[:, 'features'].values
+        self.features_names = pd.read_excel(self.features_fn).loc[:, 'features'].values
+        if self.cat_features_fn:
+            self.cat_features_names = pd.read_excel(self.cat_features_fn).loc[:, 'features'].values
+        else:
+            self.cat_features_names = []
+        self.con_features_names = list(set(self.features_names) - set(self.cat_features_names))
 
         if self.task in ['binary', 'multiclass']:
             self.classes_df = pd.read_excel(self.classes_fn)
@@ -102,6 +110,19 @@ class UNNDataModuleNoTest(LightningDataModule):
             self.trn_val[self.outcome].replace(self.classes_dict, inplace=True)
 
         self.data = self.trn_val.loc[:, self.features_names]
+
+        if len(self.cat_features_names) > 0:
+            if self.cat_encoding == "label":
+                for f in self.cat_features_names:
+                    self.data[f] = self.data[f].astype('category')
+                    self.data[f] = self.data[f].cat.codes
+            if self.cat_encoding == "one_hot":
+                one_hot = pd.get_dummies(self.data.loc[:, self.cat_features_names])
+                self.data.drop(self.cat_features_names, axis=1, inplace=True)
+                self.cat_features_names = one_hot.columns.values
+                self.data = self.data.join(one_hot)
+            else:
+                raise ValueError(f"Unsupported cat_encoding: {self.cat_encoding}")
 
         is_nans = self.data.isnull().values.any()
         if is_nans:
@@ -285,6 +306,9 @@ class UNNDataModuleNoTest(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_names(self):
+        return self.con_features_names, self.cat_features_names
 
     def get_outcome_name(self):
         return self.outcome
