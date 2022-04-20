@@ -30,9 +30,13 @@ platform = datasets_info.loc[dataset, 'platform']
 manifest = get_manifest(platform)
 
 path_save = f"{path}/{platform}/{dataset}/special/022_ml_data_cardio"
+pathlib.Path(f"{path_save}/snp").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/ecg").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/sphy").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_save}/snp_ecg").mkdir(parents=True, exist_ok=True)
-pathlib.Path(f"{path_save}/snp_dnam").mkdir(parents=True, exist_ok=True)
-pathlib.Path(f"{path_save}/snp_ecg_dnam").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/snp_sphy").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/ecg_sphy").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/snp_ecg_sphy").mkdir(parents=True, exist_ok=True)
 
 status_col = get_column_name(dataset, 'Status').replace(' ','_')
 age_col = get_column_name(dataset, 'Age').replace(' ','_')
@@ -50,18 +54,43 @@ betas_features = betas.columns.values
 df = pd.merge(pheno, betas, left_index=True, right_index=True)
 df.set_index('ID', inplace=True)
 
-snp = pd.read_excel(f"{path}/{platform}/{dataset}/data/snp_cardio/snp_df.xlsx", index_col='index')
-snp = snp.loc[:, ["Cardiorisk", "Age", "Sex"]]
 ecg = pd.read_excel(f"{path}/{platform}/{dataset}/data/ecg/ecg_df.xlsx", index_col='index')
 ecg_features = pd.read_excel(f"{path}/{platform}/{dataset}/data/ecg/features_df.xlsx").loc[:, 'features'].values
 ecg = ecg.loc[:, ecg_features]
+print(f"ecg: {ecg.shape[0]}")
+ecg.to_excel(f"{path_save}/ecg/data.xlsx", index=True)
+pd.DataFrame({'features': ecg.columns.values}).to_excel(f"{path_save}/ecg/features.xlsx", index=False)
 
-subjs_snp_ecg = sorted(list(set(snp.index.values).intersection(set(ecg.index.values))))
+snp = pd.read_excel(f"{path}/{platform}/{dataset}/data/snp/snp_df.xlsx", index_col='index')
+snp_features = pd.read_excel(f"{path}/{platform}/{dataset}/data/snp/features_df.xlsx").loc[:, 'features'].values
+snp = snp.loc[:, snp_features]
+print(f"snp: {snp.shape[0]}")
+snp.to_excel(f"{path_save}/snp/data.xlsx", index=True)
+pd.DataFrame({'features': snp.columns.values}).to_excel(f"{path_save}/snp/features.xlsx", index=False)
+
+sphy = pd.read_excel(f"{path}/{platform}/{dataset}/data/sphygmo/sphygmo_df.xlsx", index_col='index')
+sphy_features = pd.read_excel(f"{path}/{platform}/{dataset}/data/sphygmo/features_df.xlsx").loc[:, 'features'].values
+sphy = sphy.loc[:, sphy_features]
+print(f"sphy: {sphy.shape[0]}")
+sphy.to_excel(f"{path_save}/sphy/data.xlsx", index=True)
+pd.DataFrame({'features': sphy.columns.values}).to_excel(f"{path_save}/sphy/features.xlsx", index=False)
+
 snp_ecg = pd.merge(snp, ecg, left_index=True, right_index=True)
-subjs_snp_dnam = sorted(list(set(snp.index.values).intersection(set(df.index.values))))
-snp_dnam = pd.merge(snp, df.loc[:, betas_features], left_index=True, right_index=True)
+print(f"snp_ecg: {snp_ecg.shape[0]}")
+snp_ecg.to_excel(f"{path_save}/snp_ecg/data.xlsx", index=True)
+pd.DataFrame({'features': snp_ecg.columns.values}).to_excel(f"{path_save}/snp_ecg/features.xlsx", index=False)
 
-snp_ecg.to_pickle(f"{path_save}/snp_ecg/data.pkl")
-pd.DataFrame({'features': ecg_features}).to_excel(f"{path_save}/snp_ecg/features.xlsx", index=False)
-snp_dnam.to_pickle(f"{path_save}/snp_dnam/data.pkl")
-pd.DataFrame({'features': betas_features}).to_excel(f"{path_save}/snp_dnam/features.xlsx", index=False)
+snp_sphy = pd.merge(snp, sphy, left_index=True, right_index=True)
+print(f"snp_sphy: {snp_sphy.shape[0]}")
+snp_sphy.to_excel(f"{path_save}/snp_sphy/data.xlsx", index=True)
+pd.DataFrame({'features': snp_sphy.columns.values}).to_excel(f"{path_save}/snp_sphy/features.xlsx", index=False)
+
+ecg_sphy = pd.merge(ecg, sphy, left_index=True, right_index=True)
+print(f"ecg_sphy: {ecg_sphy.shape[0]}")
+ecg_sphy.to_excel(f"{path_save}/ecg_sphy/data.xlsx", index=True)
+pd.DataFrame({'features': ecg_sphy.columns.values}).to_excel(f"{path_save}/ecg_sphy/features.xlsx", index=False)
+
+snp_ecg_sphy = pd.merge(snp, ecg_sphy, left_index=True, right_index=True)
+print(f"snp_ecg_sphy: {snp_ecg_sphy.shape[0]}")
+snp_ecg_sphy.to_excel(f"{path_save}/snp_ecg_sphy/data.xlsx", index=True)
+pd.DataFrame({'features': snp_ecg_sphy.columns.values}).to_excel(f"{path_save}/snp_ecg_sphy/features.xlsx", index=False)
