@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: snp_sphy
-model_type: tab_transformer
+model_type: tabnet
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -55,7 +55,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   cat_features_fn: "${data_dir}/cat_features.xlsx"
-  cat_encoding: "label"
+  cat_encoding: "one_hot"
   classes_fn: ""
   trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
@@ -125,10 +125,10 @@ model_tab_transformer:
   dim_head: 16
   mlp_hidden_mults: [4, 2]
   num_special_tokens: 0
-  attn_dropout: 0.1
-  ff_dropout: 0.1
+  attn_dropout: 0.0
+  ff_dropout: 0.0
   loss_type: "L1Loss"
-  optimizer_lr: 0.0001
+  optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
   scheduler_step_size: 30
   scheduler_gamma: 0.9

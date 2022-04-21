@@ -83,6 +83,8 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.imputation = imputation
         self.k = k
 
+        self.shuffle = True
+
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
@@ -288,7 +290,7 @@ class UNNDataModuleNoTest(LightningDataModule):
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
                 pin_memory=self.pin_memory,
-                shuffle=True,
+                shuffle=self.shuffle,
             )
 
     def val_dataloader(self):

@@ -163,6 +163,7 @@ def process(config: DictConfig) -> Optional[float]:
             else:
                 log.info("Test data is empty!")
 
+        datamodule.shuffle = False
         trn_dataloader = datamodule.train_dataloader()
         val_dataloader = datamodule.val_dataloader()
         tst_dataloader = datamodule.test_dataloader()

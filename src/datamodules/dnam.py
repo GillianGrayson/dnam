@@ -79,6 +79,8 @@ class DNAmDataModuleNoTest(LightningDataModule):
         self.seed = seed
         self.weighted_sampler = weighted_sampler
 
+        self.shuffle = True
+
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
@@ -99,6 +101,10 @@ class DNAmDataModuleNoTest(LightningDataModule):
 
         self.data = self.trn_val.loc[:, self.features_names]
         self.data = self.data.astype('float32')
+
+        self.con_features_ids = None
+        self.cat_features_ids = None
+
         if self.task == 'regression':
             self.output = self.trn_val.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
@@ -232,7 +238,7 @@ class DNAmDataModuleNoTest(LightningDataModule):
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
                 pin_memory=self.pin_memory,
-                shuffle=True,
+                shuffle=self.shuffle
             )
 
     def val_dataloader(self):
@@ -255,6 +261,9 @@ class DNAmDataModuleNoTest(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome
@@ -302,6 +311,8 @@ class DNAmDataModuleSeparate(LightningDataModule):
         self.weighted_sampler = weighted_sampler
         self.imputation = imputation
 
+        self.shuffle = True
+
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
@@ -346,6 +357,10 @@ class DNAmDataModuleSeparate(LightningDataModule):
 
         self.data = pd.concat((self.trn_val.loc[:, self.features_names], self.tst.loc[:, self.features_names]))
         self.data = self.data.astype('float32')
+
+        self.con_features_ids = None
+        self.cat_features_ids = None
+
         if self.task == 'regression':
             self.output = self.all.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
@@ -482,7 +497,7 @@ class DNAmDataModuleSeparate(LightningDataModule):
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
                 pin_memory=self.pin_memory,
-                shuffle=True,
+                shuffle=self.shuffle
             )
 
     def val_dataloader(self):
@@ -505,6 +520,9 @@ class DNAmDataModuleSeparate(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome
@@ -549,6 +567,8 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
         self.seed = seed
         self.weighted_sampler = weighted_sampler
         self.imputation = imputation
+
+        self.shuffle = True
 
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
@@ -595,6 +615,10 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
 
         self.data = pd.concat((self.trn.loc[:, self.features_names], self.val.loc[:, self.features_names]))
         self.data = self.data.astype('float32')
+
+        self.con_features_ids = None
+        self.cat_features_ids = None
+
         if self.task == 'regression':
             self.output = self.all.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
@@ -705,7 +729,7 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
                 pin_memory=self.pin_memory,
-                shuffle=True,
+                shuffle=self.shuffle,
             )
 
     def val_dataloader(self):
@@ -728,6 +752,9 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome
@@ -810,6 +837,10 @@ class DNAmDataModuleInference(LightningDataModule):
 
         self.data = self.inference.loc[:, self.features_names]
         self.data = self.data.astype('float32')
+
+        self.con_features_ids = None
+        self.cat_features_ids = None
+
         if self.task == 'regression':
             self.output = self.inference.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
@@ -842,6 +873,9 @@ class DNAmDataModuleInference(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome

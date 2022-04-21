@@ -12,6 +12,7 @@ from scripts.python.routines.plot.bar import add_bar_trace
 import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
+from tqdm import tqdm
 
 
 log = utils.get_logger(__name__)
@@ -75,6 +76,8 @@ class EEGDataModuleSeparate(LightningDataModule):
         self.weighted_sampler = weighted_sampler
         self.imputation = imputation
 
+        self.shuffle = True
+
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
         self.dataset_tst: Optional[Dataset] = None
@@ -119,6 +122,10 @@ class EEGDataModuleSeparate(LightningDataModule):
 
         self.data = pd.concat((self.trn_val.loc[:, self.features_names], self.tst.loc[:, self.features_names]))
         self.data = self.data.astype('float32')
+
+        self.con_features_ids = None
+        self.cat_features_ids = None
+
         if self.task == 'regression':
             self.output = self.all.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
@@ -255,7 +262,7 @@ class EEGDataModuleSeparate(LightningDataModule):
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
                 pin_memory=self.pin_memory,
-                shuffle=True,
+                shuffle=self.shuffle,
             )
 
     def val_dataloader(self):
@@ -278,6 +285,9 @@ class EEGDataModuleSeparate(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome
@@ -322,6 +332,8 @@ class EEGDataModuleTrainValNoSplit(LightningDataModule):
         self.seed = seed
         self.weighted_sampler = weighted_sampler
         self.imputation = imputation
+
+        self.shuffle = True
 
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
@@ -482,7 +494,7 @@ class EEGDataModuleTrainValNoSplit(LightningDataModule):
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
                 pin_memory=self.pin_memory,
-                shuffle=True,
+                shuffle=self.shuffle,
             )
 
     def val_dataloader(self):
