@@ -4,6 +4,7 @@ import hydra
 from omegaconf import DictConfig
 from src.models.tabnet.model import TabNetModel
 from src.models.node.model import NodeModel
+from src.models.tab_transformer.model import TabTransformerModel
 from pytorch_lightning import (
     Callback,
     LightningDataModule,
@@ -106,6 +107,8 @@ def process(config: DictConfig) -> Optional[float]:
             config.model = config["model_node"]
         elif config.model_type == "tab_transformer":
             config.model = config["model_tab_transformer"]
+            config.model.categories = datamodule.categories
+            config.model.num_continuous = len(con_features_ids)
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -198,6 +201,8 @@ def process(config: DictConfig) -> Optional[float]:
             )
         elif config.model_type == "node":
             feature_importances = None
+        elif config.model_type == "tab_transformer":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -253,6 +258,11 @@ def process(config: DictConfig) -> Optional[float]:
                     model.freeze()
                 elif config.model_type == "node":
                     model = NodeModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.produce_probabilities = True
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "tab_transformer":
+                    model = TabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.produce_probabilities = True
                     model.eval()
                     model.freeze()

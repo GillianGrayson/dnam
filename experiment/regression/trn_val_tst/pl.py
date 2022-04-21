@@ -17,6 +17,7 @@ from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
 from src.models.tabnet.model import TabNetModel
 from src.models.node.model import NodeModel
+from src.models.tab_transformer.model import TabTransformerModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 import numpy as np
 from src.utils import utils
@@ -198,6 +199,8 @@ def process(config: DictConfig) -> Optional[float]:
             )
         elif config.model_type == "node":
             feature_importances = None
+        elif config.model_type == "tab_transformer":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -251,6 +254,10 @@ def process(config: DictConfig) -> Optional[float]:
                     model.freeze()
                 elif config.model_type == "node":
                     model = NodeModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "tab_transformer":
+                    model = TabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 else:
