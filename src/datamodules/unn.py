@@ -113,16 +113,21 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         if len(self.cat_features_names) > 0:
             if self.cat_encoding == "label":
+                self.categories = []
                 for f in self.cat_features_names:
                     self.data[f] = self.data[f].astype('category')
                     self.data[f] = self.data[f].cat.codes
-            if self.cat_encoding == "one_hot":
+                    self.categories.append(len(set(self.data[f])))
+            elif self.cat_encoding == "one_hot":
                 one_hot = pd.get_dummies(self.data.loc[:, self.cat_features_names])
                 self.data.drop(self.cat_features_names, axis=1, inplace=True)
                 self.cat_features_names = one_hot.columns.values
                 self.data = self.data.join(one_hot)
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.cat_encoding}")
+
+        self.con_features_ids = sorted([self.data.columns.get_loc(c) for c in self.con_features_names if c in self.data])
+        self.cat_features_ids = sorted([self.data.columns.get_loc(c) for c in self.cat_features_names if c in self.data])
 
         is_nans = self.data.isnull().values.any()
         if is_nans:
@@ -307,8 +312,8 @@ class UNNDataModuleNoTest(LightningDataModule):
     def get_feature_names(self):
         return self.data.columns.to_list()
 
-    def get_con_cat_feature_names(self):
-        return self.con_features_names, self.cat_features_names
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome

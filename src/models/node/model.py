@@ -19,15 +19,25 @@ class NodeModel(pl.LightningModule):
             task="classification",
             input_dim=100,
             output_dim=4,
+
             num_trees=128,
             num_layers=2,
             flatten_output=False,
             depth=4,
+
+            loss_type="MSE",
+            optimizer_lr=0.001,
+            optimizer_weight_decay=0.0005,
+            scheduler_step_size=20,
+            scheduler_gamma=0.9,
             **kwargs
     ):
         super().__init__()
         self.save_hyperparameters()
         self._build_network()
+
+        self.ids_cat = None
+        self.ids_con = None
 
         self.task = task
         self.produce_probabilities = False

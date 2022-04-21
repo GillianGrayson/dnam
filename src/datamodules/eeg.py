@@ -368,6 +368,10 @@ class EEGDataModuleTrainValNoSplit(LightningDataModule):
 
         self.data = pd.concat((self.trn.loc[:, self.features_names], self.val.loc[:, self.features_names]))
         self.data = self.data.astype('float32')
+
+        self.con_features_ids = None
+        self.cat_features_ids = None
+
         if self.task == 'regression':
             self.output = self.all.loc[:, [self.outcome]]
             self.output = self.output.astype('float32')
@@ -501,6 +505,9 @@ class EEGDataModuleTrainValNoSplit(LightningDataModule):
 
     def get_feature_names(self):
         return self.data.columns.to_list()
+
+    def get_con_cat_feature_ids(self):
+        return self.con_features_ids, self.cat_features_ids
 
     def get_outcome_name(self):
         return self.outcome

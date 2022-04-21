@@ -73,6 +73,9 @@ trainer:
   progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
 
+model:
+  type: ${model_type}
+
 model_tabnet:
   _target_: src.models.tabnet.model.TabNetModel
   task: "classification"
@@ -89,6 +92,21 @@ model_tabnet:
   optimizer_lr: 0.02
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
+  scheduler_gamma: 0.9
+
+model_node:
+  _target_: src.models.node.model.NodeModel
+  task: "classification"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  num_trees: 1024
+  num_layers: 1
+  flatten_output: False
+  depth: 5
+  loss_type: "CrossEntropyLoss"
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 30
   scheduler_gamma: 0.9
 
 callbacks:

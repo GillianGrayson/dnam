@@ -52,6 +52,9 @@ def process(config: DictConfig) -> Optional[float]:
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
+    num_features = len(feature_names)
+    config.in_dim = num_features
+    con_features_ids, cat_features_ids = datamodule.get_con_cat_feature_ids()
     class_names = datamodule.get_class_names()
     outcome_name = datamodule.get_outcome_name()
     df = datamodule.get_df()
@@ -101,11 +104,15 @@ def process(config: DictConfig) -> Optional[float]:
             config.model = config["model_tabnet"]
         elif config.model_type == "node":
             config.model = config["model_node"]
+        elif config.model_type == "tab_transformer":
+            config.model = config["model_tab_transformer"]
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
         log.info(f"Instantiating model <{config.model._target_}>")
         model: LightningModule = hydra.utils.instantiate(config.model)
+        model.ids_con = con_features_ids
+        model.ids_cat = cat_features_ids
 
         # Init lightning callbacks
         callbacks: List[Callback] = []
