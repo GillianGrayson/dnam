@@ -6,7 +6,7 @@ outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
-seed: 42
+seed: 101
 
 in_dim: 1 # Will be corrected?
 out_dim: 1
@@ -59,7 +59,7 @@ datamodule:
   classes_fn: ""
   trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
-  batch_size: 64
+  batch_size: 256
   trn_val_split: [0.80, 0.20]
   num_workers: 0
   pin_memory: False
@@ -89,13 +89,13 @@ model_tabnet:
   gamma: 1.3
   n_independent: 1
   n_shared: 2
-  virtual_batch_size: 128
+  virtual_batch_size: 64
   mask_type: "sparsemax"
   loss_type: "L1Loss"
-  optimizer_lr: 0.005
+  optimizer_lr: 0.01
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 100
-  scheduler_gamma: 0.9
+  scheduler_step_size: 30
+  scheduler_gamma: 0.75
 
 model_node:
   _target_: src.models.node.model.NodeModel
