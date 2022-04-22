@@ -1,12 +1,12 @@
 # @package _global_
 
 data_type: snp_sphy
-model_type: tabnet
+model_type: node
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
-seed: 101
+seed: 42
 
 in_dim: 1 # Will be corrected?
 out_dim: 1
@@ -89,13 +89,13 @@ model_tabnet:
   gamma: 1.3
   n_independent: 1
   n_shared: 2
-  virtual_batch_size: 64
+  virtual_batch_size: 128
   mask_type: "sparsemax"
   loss_type: "L1Loss"
-  optimizer_lr: 0.01
+  optimizer_lr: 0.005
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 30
-  scheduler_gamma: 0.75
+  scheduler_step_size: 100
+  scheduler_gamma: 0.9
 
 model_node:
   _target_: src.models.node.model.NodeModel
