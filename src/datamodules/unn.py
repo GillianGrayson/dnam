@@ -83,7 +83,7 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.imputation = imputation
         self.k = k
 
-        self.shuffle = True
+        self.dataloaders_evaluate = False
 
         self.dataset_trn: Optional[Dataset] = None
         self.dataset_val: Optional[Dataset] = None
@@ -266,12 +266,20 @@ class UNNDataModuleNoTest(LightningDataModule):
         return self.dataset.ys[self.ids_trn_val]
 
     def train_dataloader(self):
-        ys_trn = self.dataset.ys[self.ids_trn]
-        if self.task in ['binary', 'multiclass']:
-            class_counter = Counter(ys_trn)
-            class_weights = {c: 1.0 / class_counter[c] for c in class_counter}
-            weights = torch.FloatTensor([class_weights[y] for y in ys_trn])
-            if self.weighted_sampler:
+        if self.dataloaders_evaluate:
+            return DataLoader(
+                dataset=self.dataset_trn,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                pin_memory=self.pin_memory,
+                shuffle=False
+            )
+        else:
+            ys_trn = self.dataset.ys[self.ids_trn]
+            if self.task in ['binary', 'multiclass'] and self.weighted_sampler:
+                class_counter = Counter(ys_trn)
+                class_weights = {c: 1.0 / class_counter[c] for c in class_counter}
+                weights = torch.FloatTensor([class_weights[y] for y in ys_trn])
                 weighted_sampler = WeightedRandomSampler(
                     weights=weights,
                     num_samples=len(weights),
@@ -284,14 +292,14 @@ class UNNDataModuleNoTest(LightningDataModule):
                     pin_memory=self.pin_memory,
                     sampler=weighted_sampler
                 )
-        else:
-            return DataLoader(
-                dataset=self.dataset_trn,
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                pin_memory=self.pin_memory,
-                shuffle=self.shuffle,
-            )
+            else:
+                return DataLoader(
+                    dataset=self.dataset_trn,
+                    batch_size=self.batch_size,
+                    num_workers=self.num_workers,
+                    pin_memory=self.pin_memory,
+                    shuffle=True
+                )
 
     def val_dataloader(self):
         return DataLoader(

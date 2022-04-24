@@ -169,10 +169,11 @@ def process(config: DictConfig) -> Optional[float]:
             else:
                 log.info("Test data is empty!")
 
-        datamodule.shuffle = False
+        datamodule.dataloaders_evaluate = True
         trn_dataloader = datamodule.train_dataloader()
         val_dataloader = datamodule.val_dataloader()
         tst_dataloader = datamodule.test_dataloader()
+        datamodule.dataloaders_evaluate = False
 
         y_trn = df.loc[df.index[ids_trn], outcome_name].values
         y_val = df.loc[df.index[ids_val], outcome_name].values
