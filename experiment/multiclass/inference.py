@@ -1,5 +1,5 @@
 import numpy as np
-from src.models.dnam.model import TabNetModel
+from src.models.tabnet.model import TabNetModel
 import torch
 import lightgbm as lgb
 import pandas as pd

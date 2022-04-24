@@ -1,11 +1,11 @@
 # @package _global_
 
-disease: Schizophrenia
+disease: Parkinson
 data_type: harmonized
-model_type: node
+model_type: tabnet
 outcome: "Status"
 
-tst_dataset: "GSE152027"
+tst_dataset: "GSE72774"
 
 project_name: ${disease}_${data_type}_trn_tst_${model_type}
 
@@ -29,7 +29,7 @@ test_after_training: True
 max_epochs: 2000
 patience: 100
 
-in_dim: 670
+in_dim: 50911
 out_dim: 2
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
