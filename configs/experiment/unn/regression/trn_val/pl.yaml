@@ -1,14 +1,14 @@
 # @package _global_
 
-data_type: agena_immuno
-model_type: tabnet
+data_type: immuno
+model_type: node
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
 seed: 101
 
-in_dim: 46
+in_dim: 1
 out_dim: 1
 
 cv_is_split: True
@@ -27,18 +27,18 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 10000
-patience: 100
+patience: 300
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: True
+is_shap: False
 shap_explainer: Kernel
 
 # Plot params
 num_top_features: 10
-num_examples: 3
+num_examples: 5
 
 # specify here default training configuration
 defaults:
@@ -53,7 +53,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  features_fn: "${data_dir}/features_immuno.xlsx"
+  features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
   trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}
@@ -63,6 +63,8 @@ datamodule:
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
+  imputation: "median"
+  k: 1
 
 trainer:
   gpus: 1
@@ -103,9 +105,9 @@ model_node:
   flatten_output: False
   depth: 5
   loss_type: "L1Loss"
-  optimizer_lr: 0.001
+  optimizer_lr: 0.3
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 30
+  scheduler_step_size: 50
   scheduler_gamma: 0.9
 
 callbacks:

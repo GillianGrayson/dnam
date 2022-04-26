@@ -1,8 +1,7 @@
 import numpy as np
-from src.models.dnam.model import TabNetModel
+from src.models.tabnet.model import TabNetModel
 import torch
 import lightgbm as lgb
-import pandas as pd
 import hydra
 from omegaconf import DictConfig
 from pytorch_lightning import (
@@ -12,12 +11,17 @@ from pytorch_lightning import (
 from experiment.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 from src.utils import utils
-from experiment.routines import eval_classification_sa
-from typing import List
 import wandb
-from catboost import CatBoost
+import statsmodels.formula.api as smf
 import xgboost as xgb
-from experiment.multiclass.shap import perform_shap_explanation
+from experiment.regression.shap import perform_shap_explanation
+import plotly.graph_objects as go
+from scripts.python.routines.plot.save import save_figure
+from scripts.python.routines.plot.layout import add_layout
+from experiment.routines import eval_regression_sa
+from typing import List
+from catboost import CatBoost
+from scripts.python.routines.plot.scatter import add_scatter_trace
 
 
 log = utils.get_logger(__name__)
@@ -52,21 +56,21 @@ def inference(config: DictConfig):
 
     if config.model_type == "lightgbm":
         model = lgb.Booster(model_file=config.ckpt_path)
-        y_test_pred = model.predict(X_test, num_iteration=model.best_iteration)
+        y_test_pred = model.predict(X_test, num_iteration=model.best_iteration).astype('float32')
         def shap_kernel(X):
             y = model.predict(X, num_iteration=model.best_iteration)
             return y
     elif config.model_type == "catboost":
         model = CatBoost()
         model.load_model(config.ckpt_path)
-        y_test_pred = model.predict(X_test)
+        y_test_pred = model.predict(X_test).astype('float32')
         def shap_kernel(X):
             y = model.predict(X)
             return y
     elif config.model_type == "xgboost":
         model = xgb.Booster()
         model.load_model(config.ckpt_path)
-        dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
+        dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names).astype('float32')
         y_test_pred = model.predict(dmat_test)
         def shap_kernel(X):
             X = xgb.DMatrix(X, feature_names=feature_names)
@@ -85,16 +89,21 @@ def inference(config: DictConfig):
     else:
         raise ValueError(f"Unsupported sa_model")
 
-    y_test_pred = np.argmax(y_test_pred_prob, 1)
-
-    eval_classification_sa(config, class_names, y_test, y_test_pred, y_test_pred_prob, loggers, 'inference', is_log=True, is_save=True)
-    df.loc[:, "pred"] = y_test_pred
-    for cl_id, cl in enumerate(class_names):
-        df.loc[:, f"pred_prob_{cl_id}"] = y_test_pred_prob[:, cl_id]
-        df.loc[:, f"pred_raw_{cl_id}"] = y_test_pred_raw[:, cl_id]
-
-    predictions = df.loc[:, [outcome_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]]
+    eval_regression_sa(config, y_test, y_test_pred, loggers, 'inference', is_log=True, is_save=True)
+    df.loc[:, "Estimation"] = y_test_pred
+    predictions = df.loc[:, [outcome_name, "Estimation"]]
     predictions.to_excel(f"predictions.xlsx", index=True)
+
+    formula = f"Estimation ~ {outcome_name}"
+    model_linear = smf.ols(formula=formula, data=df).fit()
+    fig = go.Figure()
+    add_scatter_trace(fig, df.loc[:, outcome_name].values, df.loc[:, "Estimation"].values, f"Inference")
+    add_scatter_trace(fig, df.loc[:, outcome_name].values, model_linear.fittedvalues.values, "", "lines")
+    add_layout(fig, outcome_name, f"Estimation", f"")
+    fig.update_layout({'colorway': ['blue']})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
+    save_figure(fig, f"scatter")
 
     if config.is_shap == True:
         shap_data = {
@@ -102,7 +111,6 @@ def inference(config: DictConfig):
             'shap_kernel': shap_kernel,
             'df': df,
             'feature_names': feature_names,
-            'class_names': class_names,
             'outcome_name': outcome_name,
             'ids_all': np.arange(df.shape[0]),
             'ids_trn': None,
