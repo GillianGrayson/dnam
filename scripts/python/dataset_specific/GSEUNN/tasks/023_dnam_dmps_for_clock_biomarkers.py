@@ -97,6 +97,7 @@ for g_idx, g in enumerate(genes):
             {
                 'CpG': cpgs,
                 'Gene': [g] * len(cpgs),
+                'Order': [g_idx] * len(cpgs),
                 'pval_group': pvals_group,
                 'pval_group_fdr': pvals_group_fdr,
                 'pval_sex': pvals_sex,
