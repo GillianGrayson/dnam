@@ -21,7 +21,13 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout, get_axis
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from statsmodels.stats.multitest import multipletests
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None
 
+color_ctrl = 'lime'
+color_esrd = 'fuchsia'
+color_f = 'red'
+color_m = 'blue'
 
 dataset = "GSEUNN"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -46,46 +52,187 @@ pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
 betas = betas_drop_na(betas)
 df = pd.merge(pheno, betas, left_index=True, right_index=True)
-df.set_index('index', inplace=True)
 
-genes = pd.read_excel(f"{path}/{platform}/{dataset}/special/021_ml_data/immuno/models/immuno_trn_val_lightgbm/runs/2022-04-15_19-17-12/feature_importances.xlsx")
+genes = pd.read_excel(f"{path}/{platform}/{dataset}/special/021_ml_data/immuno/models/immuno_trn_val_lightgbm/runs/2022-04-15_19-17-12/feature_importances.xlsx").loc[:, 'feature'].values
 
-part_3_4 = pd.read_excel(f"{path}/{platform}/{dataset}/data/immuno/part3_part4_with_age_sex.xlsx", index_col='ID')
-part_3_4 = part_3_4[~part_3_4.index.str.startswith(('Q', 'H'))]
-part_3_4['Group'] = 'Control'
-part_3_4['Source'] = 2
+df_res = pd.DataFrame()
+for g_idx, g in enumerate(genes):
+    manifest_g = manifest.loc[manifest['Gene'] == g, :]
 
-pheno.set_index('ID', inplace=True)
-pheno = pheno.append(part_3_4, verify_integrity=True)
-pheno = pheno.loc[(pheno['Group'] == 'Control'), :]
+    fig_group = go.Figure()
+    fig_sex = go.Figure()
+    df_group = pd.DataFrame()
+    df_sex = pd.DataFrame()
+    cpgs = []
+    pvals_group = []
+    pvals_sex = []
+    for cpg_idx, cpg in enumerate(manifest_g.index.values):
+        if cpg in df:
 
-agena = pd.read_excel(f"{path}/{platform}/{dataset}/data/agena/35.xlsx", index_col='CpG')
-agena = agena.T
-agena.index.name = "subject_id"
-agena_cpgs = list(set(agena.columns.values))
-agena_features = pd.DataFrame({"features": agena_cpgs})
-agena.loc[:, agena_cpgs] *= 0.01
-subjects_common_agena = sorted(list(set(agena.index.values).intersection(set(df.index.values))))
-subjects_agena_only = set(agena.index.values) - set(df.index.values)
-cpgs_common_agena = sorted(list(set(agena_cpgs).intersection(set(betas.columns.values))))
+            df_group_g = df.loc[df['Group'].isin(['Control', 'ESRD']), ['Group', cpg]]
+            df_group_g.rename(columns={cpg: 'Values'}, inplace=True)
+            df_group_g['Features'] = cpg
+            df_group = pd.concat([df_group, df_group_g])
 
-cogn = pd.read_excel(f"{path}/{platform}/{dataset}/data/cognitive/data.xlsx", index_col='subject_id')
-cogn = cogn[~cogn.index.str.startswith(('Q', 'H'))]
-cogn_features = pd.DataFrame({"features": cogn.columns.values})
-subjects_common_cogn_df = sorted(list(set(cogn.index.values).intersection(set(df.index.values))))
-subjects_common_cogn_immuno = sorted(list(set(cogn.index.values).intersection(set(pheno.index.values))))
-subjects_cogn_minus_df = sorted(list(set(cogn.index.values) - set(df.index.values)))
-subjects_cogn_minus_pheno = sorted(list(set(cogn.index.values) - set(pheno.index.values)))
-subjects_pheno_minus_cogn = sorted(list(set(pheno.index.values) - set(cogn.index.values)))
+            df_sex_g = df.loc[df['Sex'].isin(['F', 'M']), ['Sex', cpg]]
+            df_sex_g.rename(columns={cpg: 'Values'}, inplace=True)
+            df_sex_g['Features'] = cpg
+            df_sex = pd.concat([df_sex, df_sex_g])
 
-immuno_data = pheno.loc[pheno['Group'] == 'Control']
-agena_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_agena), :], agena, left_index=True, right_index=True)
-cogn_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_cogn_immuno), :], cogn, left_index=True, right_index=True)
-agena_cogn_immuno_data = pd.merge(cogn_immuno_data, agena, left_index=True, right_index=True)
+            vals_ctrl = df.loc[df['Group'] == 'Control', cpg].values
+            vals_esrd = df.loc[df['Group'] == 'ESRD', cpg].values
+            vals_f = df.loc[df['Sex'] == 'F', cpg].values
+            vals_m = df.loc[df['Sex'] == 'M', cpg].values
+            stat_group, pval_group = mannwhitneyu(vals_ctrl, vals_esrd, alternative='two-sided')
+            pvals_group.append(pval_group)
+            stat_sex, pval_sex = mannwhitneyu(vals_f, vals_m, alternative='two-sided')
+            pvals_sex.append(pval_sex)
+            cpgs.append(cpg)
 
-immuno_data.to_excel(f"{path_save}/immuno/data.xlsx", index=True)
-agena_features.to_excel(f"{path_save}/agena_immuno/features_agena.xlsx", index=False)
-agena_immuno_data.to_excel(f"{path_save}/agena_immuno/data.xlsx", index=True)
-cogn_features.to_excel(f"{path_save}/cogn_immuno/features_cogn.xlsx", index=False)
-cogn_immuno_data.to_excel(f"{path_save}/cogn_immuno/data.xlsx", index=True)
-agena_cogn_immuno_data.to_excel(f"{path_save}/agena_cogn_immuno/data.xlsx", index=True)
+    if len(cpgs) > 0:
+        _, pvals_group_fdr, _, _ = multipletests(pvals_group, 0.05, method='fdr_bh')
+        _, pvals_sex_fdr, _, _ = multipletests(pvals_sex, 0.05, method='fdr_bh')
+
+        df_tmp = pd.DataFrame(
+            {
+                'CpG': cpgs,
+                'Gene': [g] * len(cpgs),
+                'pval_group': pvals_group,
+                'pval_group_fdr': pvals_group_fdr,
+                'pval_sex': pvals_sex,
+                'pval_sex_fdr': pvals_sex_fdr
+            }
+        )
+        df_res = pd.concat([df_res, df_tmp])
+
+        fig_group.add_trace(
+            go.Violin(
+                x=df_group.loc[df_group['Group'] == "Control", 'Features'],
+                y=df_group.loc[df_group['Group'] == "Control", 'Values'],
+                legendgroup='Control',
+                scalegroup='Control',
+                name='Control',
+                line=dict(color='black', width=0.05),
+                side='negative',
+                fillcolor=color_ctrl,
+                marker=dict(color=color_ctrl, line=dict(color='black', width=0.01), opacity=0.9),
+            )
+        )
+        fig_group.add_trace(
+            go.Violin(
+                x=df_group.loc[df_group['Group'] == "ESRD", 'Features'],
+                y=df_group.loc[df_group['Group'] == "ESRD", 'Values'],
+                legendgroup='ESRD',
+                scalegroup='ESRD',
+                name='ESRD',
+                line=dict(color='black', width=0.05),
+                side='positive',
+                fillcolor=color_esrd,
+                marker=dict(color=color_esrd, line=dict(color='black', width=0.01), opacity=0.9),
+            )
+        )
+        fig_group.update_traces(box_visible=True, meanline_visible=True, jitter=0.05, scalemode='width')
+        add_layout(fig_group, "", 'Methylation level', f"")
+        fig_group.update_xaxes(autorange=False)
+        fig_group.update_layout(xaxis_range=[-0.75, len(cpgs) - 0.25])
+        fig_group.update_layout(violingap=0, violingroupgap=0, violinmode='overlay')
+        fig_group.update_xaxes(tickangle=270)
+        fig_group.update_xaxes(tickfont_size=15)
+        fig_group.update_layout(
+            margin=go.layout.Margin(
+                l=120,
+                r=20,
+                b=120,
+                t=50,
+                pad=0
+            )
+        )
+        fig_group.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.15,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        for cpg_idx in range(len(cpgs)):
+            fig_group.add_annotation(dict(font=dict(color='black', size=10),
+                                    x=cpg_idx,
+                                    y=1.09,
+                                    showarrow=False,
+                                    text=f"{pvals_group[cpg_idx]:0.2e}",
+                                    textangle=0,
+                                    xref="x",
+                                    yref="y domain"
+                                    ))
+        pathlib.Path(f"{path_save}/figs/{g_idx}_{g}").mkdir(parents=True, exist_ok=True)
+        save_figure(fig_group, f"{path_save}/figs/{g_idx}_{g}/group")
+
+        fig_sex.add_trace(
+            go.Violin(
+                x=df_sex.loc[df_sex['Sex'] == "F", 'Features'],
+                y=df_sex.loc[df_sex['Sex'] == "F", 'Values'],
+                legendgroup='F',
+                scalegroup='F',
+                name='F',
+                line=dict(color='black', width=0.05),
+                side='negative',
+                fillcolor=color_f,
+                marker=dict(color=color_f, line=dict(color='black', width=0.01), opacity=0.9),
+            )
+        )
+        fig_sex.add_trace(
+            go.Violin(
+                x=df_sex.loc[df_sex['Sex'] == "M", 'Features'],
+                y=df_sex.loc[df_sex['Sex'] == "M", 'Values'],
+                legendgroup='M',
+                scalegroup='M',
+                name='M',
+                line=dict(color='black', width=0.05),
+                side='positive',
+                fillcolor=color_m,
+                marker=dict(color=color_m, line=dict(color='black', width=0.01), opacity=0.9),
+            )
+        )
+        fig_sex.update_traces(box_visible=True, meanline_visible=True, jitter=0.05, scalemode='width')
+        add_layout(fig_sex, "", 'Methylation level', f"")
+        fig_sex.update_xaxes(autorange=False)
+        fig_sex.update_layout(xaxis_range=[-0.75, len(cpgs) - 0.25])
+        fig_sex.update_layout(violingap=0, violingroupgap=0, violinmode='overlay')
+        fig_sex.update_xaxes(tickangle=270)
+        fig_sex.update_xaxes(tickfont_size=15)
+        fig_sex.update_layout(
+            margin=go.layout.Margin(
+                l=120,
+                r=20,
+                b=120,
+                t=50,
+                pad=0
+            )
+        )
+        fig_sex.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.15,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        for cpg_idx in range(len(cpgs)):
+            fig_sex.add_annotation(dict(font=dict(color='black', size=10),
+                                          x=cpg_idx,
+                                          y=1.09,
+                                          showarrow=False,
+                                          text=f"{pvals_sex[cpg_idx]:0.2e}",
+                                          textangle=0,
+                                          xref="x",
+                                          yref="y domain"
+                                          ))
+        pathlib.Path(f"{path_save}/figs/{g_idx}_{g}").mkdir(parents=True, exist_ok=True)
+        save_figure(fig_sex, f"{path_save}/figs/{g_idx}_{g}/sex")
+
+    df_res.to_excel(f"{path_save}/res.xlsx")
+
+
