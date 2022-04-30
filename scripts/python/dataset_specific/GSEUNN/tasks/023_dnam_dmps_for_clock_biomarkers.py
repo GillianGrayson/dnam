@@ -36,7 +36,7 @@ platform = datasets_info.loc[dataset, 'platform']
 manifest = get_manifest(platform)
 
 path_save = f"{path}/{platform}/{dataset}/special/023_dnam_dmps_for_clock_biomarkers"
-pathlib.Path(f"{path_save}/figs").mkdir(parents=True, exist_ok=True)
+pathlib.Path(f"{path_save}/figs/by_gene/").mkdir(parents=True, exist_ok=True)
 
 
 status_col = get_column_name(dataset, 'Status').replace(' ','_')
@@ -158,17 +158,17 @@ for g_idx, g in enumerate(genes):
             )
         )
         for cpg_idx in range(len(cpgs)):
-            fig_group.add_annotation(dict(font=dict(color='black', size=10),
+            fig_group.add_annotation(dict(font=dict(color='black', size=6),
                                     x=cpg_idx,
                                     y=1.09,
                                     showarrow=False,
-                                    text=f"{pvals_group[cpg_idx]:0.2e}",
+                                    text=f"{pvals_group[cpg_idx]:0.1e}",
                                     textangle=0,
                                     xref="x",
                                     yref="y domain"
                                     ))
-        pathlib.Path(f"{path_save}/figs/{g_idx}_{g}").mkdir(parents=True, exist_ok=True)
-        save_figure(fig_group, f"{path_save}/figs/{g_idx}_{g}/group")
+        pathlib.Path(f"{path_save}/figs/by_gene/{g_idx}_{g}").mkdir(parents=True, exist_ok=True)
+        save_figure(fig_group, f"{path_save}/figs/by_gene/{g_idx}_{g}/group")
 
         fig_sex.add_trace(
             go.Violin(
@@ -222,18 +222,142 @@ for g_idx, g in enumerate(genes):
             )
         )
         for cpg_idx in range(len(cpgs)):
-            fig_sex.add_annotation(dict(font=dict(color='black', size=10),
+            fig_sex.add_annotation(dict(font=dict(color='black', size=6),
                                           x=cpg_idx,
                                           y=1.09,
                                           showarrow=False,
-                                          text=f"{pvals_sex[cpg_idx]:0.2e}",
+                                          text=f"{pvals_sex[cpg_idx]:0.1e}",
                                           textangle=0,
                                           xref="x",
                                           yref="y domain"
                                           ))
-        pathlib.Path(f"{path_save}/figs/{g_idx}_{g}").mkdir(parents=True, exist_ok=True)
-        save_figure(fig_sex, f"{path_save}/figs/{g_idx}_{g}/sex")
+        pathlib.Path(f"{path_save}/figs/by_gene/{g_idx}_{g}").mkdir(parents=True, exist_ok=True)
+        save_figure(fig_sex, f"{path_save}/figs/by_gene/{g_idx}_{g}/sex")
 
-    df_res.to_excel(f"{path_save}/res.xlsx")
+df_res.set_index("CpG", inplace=True)
 
+n_top = 5
+_, df_res['pvals_group_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pval_group'].values, 0.05, method='fdr_bh')
+_, df_res['pvals_sex_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pval_sex'].values, 0.05, method='fdr_bh')
+df_res.to_excel(f"{path_save}/res.xlsx", index=True)
+df_res_top_group = df_res.sort_values(['pvals_group_fdr_glob'], ascending=[True]).head(5)
+df_res_top_sex = df_res.sort_values(['pvals_sex_fdr_glob'], ascending=[True]).head(5)
+
+for cpg_id, (cpg, row) in enumerate(df_res_top_group.iterrows()):
+    dist_num_bins = 25
+    pval = row['pvals_group_fdr_glob']
+    gene = manifest.at[cpg, 'Gene']
+    fig = go.Figure()
+    vals = df.loc[df['Group'] == 'Control', cpg].values
+    fig.add_trace(
+        go.Violin(
+            y=vals,
+            name='Control',
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=False,
+            marker=dict(line=dict(width=0.3), opacity=1),
+            points='all',
+            bandwidth=np.ptp(vals) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    vals = df.loc[df['Group'] == 'ESRD', cpg].values
+    fig.add_trace(
+        go.Violin(
+            y=vals,
+            name='ESRD',
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=False,
+            marker=dict(line=dict(width=0.3), opacity=1),
+            points='all',
+            bandwidth=np.ptp(vals) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    add_layout(fig, "", "Methylation", f"{cpg} ({gene})<br>p-value: {pval:0.2e}")
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_xaxes(tickfont_size=15)
+    fig.update_layout({'colorway': [color_ctrl, color_esrd]})
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=80,
+            pad=0
+        )
+    )
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.25,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    pathlib.Path(f"{path_save}/figs/top_{n_top}/group").mkdir(parents=True, exist_ok=True)
+    save_figure(fig, f"{path_save}/figs/top_{n_top}/group/{cpg_id:03d}_{cpg}")
+
+for cpg_id, (cpg, row) in enumerate(df_res_top_sex.iterrows()):
+    dist_num_bins = 25
+    pval = row['pvals_sex_fdr_glob']
+    gene = manifest.at[cpg, 'Gene']
+    fig = go.Figure()
+    vals = df.loc[df['Sex'] == 'F', cpg].values
+    fig.add_trace(
+        go.Violin(
+            y=vals,
+            name='F',
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=False,
+            marker=dict(line=dict(width=0.3), opacity=1),
+            points='all',
+            bandwidth=np.ptp(vals) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    vals = df.loc[df['Sex'] == 'M', cpg].values
+    fig.add_trace(
+        go.Violin(
+            y=vals,
+            name='M',
+            box_visible=True,
+            meanline_visible=True,
+            showlegend=False,
+            marker=dict(line=dict(width=0.3), opacity=1),
+            points='all',
+            bandwidth=np.ptp(vals) / dist_num_bins,
+            opacity=0.8
+        )
+    )
+    add_layout(fig, "", "Methylation", f"{cpg} ({gene})<br>p-value: {pval:0.2e}")
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_xaxes(tickfont_size=15)
+    fig.update_layout({'colorway': [color_f, color_m]})
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=80,
+            pad=0
+        )
+    )
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.25,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    pathlib.Path(f"{path_save}/figs/top_{n_top}/sex").mkdir(parents=True, exist_ok=True)
+    save_figure(fig, f"{path_save}/figs/top_{n_top}/sex/{cpg_id:03d}_{cpg}")
 
