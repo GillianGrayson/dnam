@@ -9,7 +9,8 @@ def add_layout(fig, x_label, y_label, title, font_size=25):
             yanchor="bottom",
             y=1.01,
             xanchor="center",
-            x=0.5
+            x=0.5,
+            itemsizing='constant'
         ),
         title=dict(
             text=title,
