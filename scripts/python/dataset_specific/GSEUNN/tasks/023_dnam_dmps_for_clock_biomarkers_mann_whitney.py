@@ -70,6 +70,11 @@ for g_idx, g in enumerate(genes):
     pvals_sex = []
     pvals_age = []
     corrs_age = []
+    pvals_reg_age = []
+    pvals_reg_grp = []
+    pvals_reg_sex = []
+    pvals_reg_age_grp = []
+    pvals_reg_age_sex = []
     for cpg_idx, cpg in enumerate(manifest_g.index.values):
         if cpg in df:
 
@@ -89,6 +94,15 @@ for g_idx, g in enumerate(genes):
             pvals_age.append(pval_age)
             corrs_age.append(corr_age)
 
+            formula = f"{cpg} ~ Age + Sex + Group + Age:Sex + Age:Group"
+            reg = smf.ols(formula=formula, data=df).fit()
+            pvalues = dict(reg.pvalues)
+            pvals_reg_age.append(pvalues["Age"])
+            pvals_reg_grp.append(pvalues["Group[T.ESRD]"])
+            pvals_reg_sex.append(pvalues["Sex[T.M]"])
+            pvals_reg_age_grp.append(pvalues["Age:Group[T.ESRD]"])
+            pvals_reg_age_sex.append(pvalues["Age:Sex[T.M]"])
+
             vals_esrd = df.loc[df['Group'] == 'ESRD', cpg].values
             vals_f = df.loc[df['Sex'] == 'F', cpg].values
             vals_m = df.loc[df['Sex'] == 'M', cpg].values
@@ -102,6 +116,11 @@ for g_idx, g in enumerate(genes):
         _, pvals_group_fdr, _, _ = multipletests(pvals_group, 0.05, method='fdr_bh')
         _, pvals_sex_fdr, _, _ = multipletests(pvals_sex, 0.05, method='fdr_bh')
         _, pvals_age_fdr, _, _ = multipletests(pvals_age, 0.05, method='fdr_bh')
+        _, pvals_reg_age_fdr, _, _ = multipletests(pvals_reg_age, 0.05, method='fdr_bh')
+        _, pvals_reg_grp_fdr, _, _ = multipletests(pvals_reg_grp, 0.05, method='fdr_bh')
+        _, pvals_reg_sex_fdr, _, _ = multipletests(pvals_reg_sex, 0.05, method='fdr_bh')
+        _, pvals_reg_age_grp_fdr, _, _ = multipletests(pvals_reg_age_grp, 0.05, method='fdr_bh')
+        _, pvals_reg_age_sex_fdr, _, _ = multipletests(pvals_reg_age_sex, 0.05, method='fdr_bh')
 
         df_tmp = pd.DataFrame(
             {
@@ -115,6 +134,16 @@ for g_idx, g in enumerate(genes):
                 'pval_age': pvals_age,
                 'pval_age_fdr': pvals_age_fdr,
                 'corr_age': corrs_age,
+                'pvals_reg_age': pvals_reg_age,
+                'pvals_reg_grp': pvals_reg_grp,
+                'pvals_reg_sex': pvals_reg_sex,
+                'pvals_reg_age_grp': pvals_reg_age_grp,
+                'pvals_reg_age_sex': pvals_reg_age_sex,
+                'pvals_reg_age_fdr': pvals_reg_age_fdr,
+                'pvals_reg_grp_fdr': pvals_reg_grp_fdr,
+                'pvals_reg_sex_fdr': pvals_reg_sex_fdr,
+                'pvals_reg_age_grp_fdr': pvals_reg_age_grp_fdr,
+                'pvals_reg_age_sex_fdr': pvals_reg_age_sex_fdr,
             }
         )
         df_res = pd.concat([df_res, df_tmp])
@@ -253,10 +282,17 @@ n_top = 5
 _, df_res['pvals_group_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pval_group'].values, 0.05, method='fdr_bh')
 _, df_res['pvals_sex_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pval_sex'].values, 0.05, method='fdr_bh')
 _, df_res['pvals_age_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pval_age'].values, 0.05, method='fdr_bh')
+_, df_res['pvals_reg_age_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pvals_reg_age'].values, 0.05, method='fdr_bh')
+_, df_res['pvals_reg_grp_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pvals_reg_grp'].values, 0.05, method='fdr_bh')
+_, df_res['pvals_reg_sex_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pvals_reg_sex'].values, 0.05, method='fdr_bh')
+_, df_res['pvals_reg_age_grp_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pvals_reg_age_grp'].values, 0.05, method='fdr_bh')
+_, df_res['pvals_reg_age_sex_fdr_glob'], _, _ = multipletests(df_res.loc[:, 'pvals_reg_age_sex'].values, 0.05, method='fdr_bh')
 df_res.to_excel(f"{path_save}/res.xlsx", index=True)
-df_res_top_group = df_res.sort_values(['pvals_group_fdr_glob'], ascending=[True]).head(5)
-df_res_top_sex = df_res.sort_values(['pvals_sex_fdr_glob'], ascending=[True]).head(5)
-df_res_top_age = df_res.sort_values(['pvals_age_fdr_glob'], ascending=[True]).head(5)
+df_res_top_group = df_res.sort_values(['pvals_group_fdr_glob'], ascending=[True]).head(n_top)
+df_res_top_sex = df_res.sort_values(['pvals_sex_fdr_glob'], ascending=[True]).head(n_top)
+df_res_top_age = df_res.sort_values(['pvals_age_fdr_glob'], ascending=[True]).head(n_top)
+df_res_reg_top_reg_age_grp = df_res.sort_values(['pvals_reg_age_grp_fdr_glob'], ascending=[True]).head(n_top)
+df_res_reg_top_reg_age_sex = df_res.sort_values(['pvals_reg_age_sex_fdr_glob'], ascending=[True]).head(n_top)
 
 for cpg_id, (cpg, row) in enumerate(df_res_top_group.iterrows()):
     dist_num_bins = 25
@@ -464,4 +500,82 @@ for cpg_id, (cpg, row) in enumerate(df_res_top_age.iterrows()):
         )
     )
     save_figure(fig, f"{path_save}/figs/top_{n_top}/age/{cpg_id:03d}_{cpg}_violin")
+
+for cpg_id, (cpg, row) in enumerate(df_res_reg_top_reg_age_grp.iterrows()):
+    dist_num_bins = 25
+    pval = row['pvals_reg_age_grp_fdr_glob']
+    gene = manifest.at[cpg, 'Gene']
+    df_ctrl = df.loc[df['Group'] == 'Control', ['Age', cpg]]
+    df_esrd = df.loc[df['Group'] == 'ESRD', ['Age', cpg]]
+
+    formula = f"{cpg} ~ Age"
+    model_ctrl = smf.ols(formula=formula, data=df_ctrl).fit()
+    model_esrd = smf.ols(formula=formula, data=df_esrd).fit()
+    fig = go.Figure()
+    add_scatter_trace(fig, df_ctrl.loc[:, 'Age'].values, df_ctrl.loc[:, cpg].values, f"Control")
+    add_scatter_trace(fig, df_ctrl.loc[:, 'Age'].values, model_ctrl.fittedvalues.values, "", "lines")
+    add_scatter_trace(fig, df_esrd.loc[:, 'Age'].values, df_esrd.loc[:, cpg].values, f"ESRD")
+    add_scatter_trace(fig, df_esrd.loc[:, 'Age'].values, model_esrd.fittedvalues.values, "", "lines")
+    add_layout(fig, f"Age", f"{cpg} ({gene})", f"p-value: {pval:0.2e}")
+    fig.update_layout({'colorway': [color_ctrl, color_ctrl, color_esrd, color_esrd]})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        title={
+            'y': 1.00,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        }
+    )
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=120,
+            r=20,
+            b=80,
+            t=65,
+            pad=0
+        )
+    )
+    pathlib.Path(f"{path_save}/figs/top_{n_top}/age_group").mkdir(parents=True, exist_ok=True)
+    save_figure(fig, f"{path_save}/figs/top_{n_top}/age_group/{cpg_id:03d}_{cpg}")
+
+for cpg_id, (cpg, row) in enumerate(df_res_reg_top_reg_age_sex.iterrows()):
+    dist_num_bins = 25
+    pval = row['pvals_reg_age_sex_fdr_glob']
+    gene = manifest.at[cpg, 'Gene']
+    df_f = df.loc[df['Sex'] == 'F', ['Age', cpg]]
+    df_m = df.loc[df['Sex'] == 'M', ['Age', cpg]]
+
+    formula = f"{cpg} ~ Age"
+    model_f = smf.ols(formula=formula, data=df_f).fit()
+    model_m = smf.ols(formula=formula, data=df_m).fit()
+    fig = go.Figure()
+    add_scatter_trace(fig, df_f.loc[:, 'Age'].values, df_f.loc[:, cpg].values, f"F")
+    add_scatter_trace(fig, df_f.loc[:, 'Age'].values, model_f.fittedvalues.values, "", "lines")
+    add_scatter_trace(fig, df_m.loc[:, 'Age'].values, df_m.loc[:, cpg].values, f"M")
+    add_scatter_trace(fig, df_m.loc[:, 'Age'].values, model_m.fittedvalues.values, "", "lines")
+    add_layout(fig, f"Age", f"{cpg} ({gene})", f"p-value: {pval:0.2e}")
+    fig.update_layout({'colorway': [color_f, color_f, color_m, color_m]})
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        title={
+            'y': 1.00,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        }
+    )
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=120,
+            r=20,
+            b=80,
+            t=65,
+            pad=0
+        )
+    )
+    pathlib.Path(f"{path_save}/figs/top_{n_top}/age_sex").mkdir(parents=True, exist_ok=True)
+    save_figure(fig, f"{path_save}/figs/top_{n_top}/age_sex/{cpg_id:03d}_{cpg}")
+
+
 
