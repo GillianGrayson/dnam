@@ -56,6 +56,9 @@ part_3_4 = part_3_4[~part_3_4.index.str.startswith(('Q', 'H'))]
 part_3_4['Group'] = 'Control'
 part_3_4['Source'] = 2
 
+age_sex = pd.read_excel(f"{path}/{platform}/{dataset}/data/parsed_L_Q.xlsx", index_col='Code')
+age_sex = age_sex.loc[:, ["Age", "Sex"]]
+
 pheno.set_index('ID', inplace=True)
 pheno = pheno.append(part_3_4, verify_integrity=True)
 pheno = pheno.loc[(pheno['Group'] == 'Control'), :]
@@ -72,6 +75,7 @@ cpgs_common_agena = sorted(list(set(agena_cpgs).intersection(set(betas.columns.v
 
 cogn = pd.read_excel(f"{path}/{platform}/{dataset}/data/cognitive/data.xlsx", index_col='subject_id')
 cogn = cogn[~cogn.index.str.startswith(('Q', 'H'))]
+
 cogn_features = pd.DataFrame({"features": cogn.columns.values})
 subjects_common_cogn_df = sorted(list(set(cogn.index.values).intersection(set(df.index.values))))
 subjects_common_cogn_immuno = sorted(list(set(cogn.index.values).intersection(set(pheno.index.values))))
@@ -83,6 +87,7 @@ immuno_data = pheno.loc[pheno['Group'] == 'Control']
 agena_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_agena), :], agena, left_index=True, right_index=True)
 cogn_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_cogn_immuno), :], cogn, left_index=True, right_index=True)
 agena_cogn_immuno_data = pd.merge(cogn_immuno_data, agena, left_index=True, right_index=True)
+cogn_sex_age = pd.merge(age_sex, cogn, left_index=True, right_index=True)
 
 immuno_data.to_excel(f"{path_save}/immuno/data.xlsx", index=True)
 agena_features.to_excel(f"{path_save}/agena_immuno/features_agena.xlsx", index=False)
@@ -90,3 +95,4 @@ agena_immuno_data.to_excel(f"{path_save}/agena_immuno/data.xlsx", index=True)
 cogn_features.to_excel(f"{path_save}/cogn_immuno/features_cogn.xlsx", index=False)
 cogn_immuno_data.to_excel(f"{path_save}/cogn_immuno/data.xlsx", index=True)
 agena_cogn_immuno_data.to_excel(f"{path_save}/agena_cogn_immuno/data.xlsx", index=True)
+cogn_sex_age.to_excel(f"{path_save}/cogn/data.xlsx", index=True)
