@@ -1,12 +1,12 @@
 # @package _global_
 
 data_type: cogn
-model_type: node
+model_type: tabnet
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
-seed: 42
+seed: 69
 
 in_dim: 1 # Will be corrected
 out_dim: 1
@@ -27,7 +27,7 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 10000
-patience: 100
+patience: 300
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
@@ -37,8 +37,8 @@ is_shap: False
 shap_explainer: Kernel
 
 # Plot params
-num_top_features: 10
-num_examples: 5
+num_top_features: 15
+num_examples: 10
 
 # specify here default training configuration
 defaults:
