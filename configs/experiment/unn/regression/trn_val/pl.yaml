@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: node
+model_type: tabnet
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -53,7 +53,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  features_fn: "${data_dir}/features.xlsx"
+  features_fn: "${data_dir}/features_10_lightgbm.xlsx"
   classes_fn: ""
   trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}

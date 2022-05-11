@@ -57,10 +57,10 @@ part_3_4['Group'] = 'Control'
 part_3_4['Source'] = 2
 
 pheno.set_index('ID', inplace=True)
-df = pheno.append(part_3_4, verify_integrity=True)
+pheno = pheno.append(part_3_4, verify_integrity=True)
 
-ctrl = df.loc[df['Group'] == 'Control']
-esrd = df.loc[df['Group'] == 'ESRD']
+ctrl = pheno.loc[pheno['Group'] == 'Control']
+esrd = pheno.loc[pheno['Group'] == 'ESRD']
 
 outliers_info = pd.read_excel(f"{path}/{platform}/{dataset}/special/017_outlier_detection_in_controls/ctrl.xlsx", index_col='ID')
 outliers_info = outliers_info.loc[:, [outliers_metric]]
