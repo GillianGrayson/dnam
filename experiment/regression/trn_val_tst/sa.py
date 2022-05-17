@@ -13,7 +13,6 @@ from src.utils import utils
 import xgboost as xgb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
 from experiment.routines import eval_regression_sa
 from experiment.routines import eval_loss, save_feature_importance
@@ -25,10 +24,10 @@ import statsmodels.formula.api as smf
 import wandb
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scipy.stats import mannwhitneyu
-import shap
-import copy
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from tqdm import tqdm
+from sklearn.linear_model import ElasticNet
+import pickle
 
 
 log = utils.get_logger(__name__)
@@ -227,6 +226,31 @@ def process(config: DictConfig):
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
+        elif config.model_sa == "elastic_net":
+            model = ElasticNet(
+                alpha=config.elastic_net.alpha,
+                l1_ratio=config.elastic_net.l1_ratio,
+                max_iter=config.elastic_net.max_iter,
+                tol=config.elastic_net.tol,
+            ).fit(X_trn, y_trn)
+
+            y_trn_pred = model.predict(X_trn).astype('float32')
+            y_val_pred = model.predict(X_val).astype('float32')
+            if is_test:
+                y_tst_pred = model.predict(X_tst).astype('float32')
+
+            loss_info = {
+                'epoch': [0],
+                'train/loss': [0],
+                'val/loss': [0]
+            }
+
+            def shap_kernel(X):
+                y = model.predict(X)
+                return y
+
+            feature_importances = pd.DataFrame.from_dict({'feature': ['Intercept'] + feature_names, 'importance': [model.intercept_] + list(model.coef_)})
+
         else:
             raise ValueError(f"Model {config.model_sa} is not supported")
 
@@ -313,6 +337,8 @@ def process(config: DictConfig):
         best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
     elif config.model_sa == "lightgbm":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
+    elif config.model_sa == "elastic_net":
+        pickle.dump(best["model"], open(f"elastic_net_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     else:
         raise ValueError(f"Model {config.model_sa} is not supported")
 

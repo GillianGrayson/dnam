@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_sa: xgboost
+model_sa: elastic_net
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_sa}
@@ -30,7 +30,7 @@ base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: True
+is_shap: False
 shap_explainer: Tree
 
 # Plot params
@@ -50,7 +50,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
-  features_fn: "${data_dir}/features_10_lightgbm.xlsx"
+  features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
   trn_val_fn: "${data_dir}/train_val.xlsx"
   outcome: ${outcome}
@@ -105,3 +105,10 @@ lightgbm:
   metric: 'l1'
   max_epochs: ${max_epochs}
   patience: ${patience}
+
+# ElasticNet model params
+elastic_net:
+  alpha: 3.3
+  l1_ratio: 0.5
+  max_iter: 100000
+  tol: 1e-2
