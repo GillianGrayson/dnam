@@ -63,6 +63,10 @@ pheno.set_index('ID', inplace=True)
 pheno = pheno.append(part_3_4, verify_integrity=True)
 pheno = pheno.loc[(pheno['Group'] == 'Control'), :]
 
+ctrl_paper_df = pd.read_excel(f"{path}/{platform}/{dataset}/special/011_immuno_part3_and_part4_check_clocks/part3_part4_filtered_with_age_sex_16.xlsx", index_col='ID')
+ctrl_paper_indexes = df.loc[df['Group'] == 'Control', :].index.values
+ctrl_paper_indexes = set(ctrl_paper_indexes).union(ctrl_paper_df.index.values)
+
 agena = pd.read_excel(f"{path}/{platform}/{dataset}/data/agena/35.xlsx", index_col='CpG')
 agena = agena.T
 agena.index.name = "subject_id"
@@ -84,12 +88,16 @@ subjects_cogn_minus_pheno = sorted(list(set(cogn.index.values) - set(pheno.index
 subjects_pheno_minus_cogn = sorted(list(set(pheno.index.values) - set(cogn.index.values)))
 
 immuno_data = pheno.loc[pheno['Group'] == 'Control']
+immuno_data.index.name = 'index'
+immuno_data_paper = immuno_data.loc[immuno_data.index.isin(ctrl_paper_indexes), :]
+
 agena_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_agena), :], agena, left_index=True, right_index=True)
 cogn_immuno_data = pd.merge(pheno.loc[pheno.index.isin(subjects_common_cogn_immuno), :], cogn, left_index=True, right_index=True)
 agena_cogn_immuno_data = pd.merge(cogn_immuno_data, agena, left_index=True, right_index=True)
 cogn_sex_age = pd.merge(age_sex, cogn, left_index=True, right_index=True)
 
-immuno_data.to_excel(f"{path_save}/immuno/data.xlsx", index=True)
+immuno_data.to_excel(f"{path_save}/immuno/data_all.xlsx", index=True)
+immuno_data_paper.to_excel(f"{path_save}/immuno/data_paper.xlsx", index=True)
 agena_features.to_excel(f"{path_save}/agena_immuno/features_agena.xlsx", index=False)
 agena_immuno_data.to_excel(f"{path_save}/agena_immuno/data.xlsx", index=True)
 cogn_features.to_excel(f"{path_save}/cogn_immuno/features_cogn.xlsx", index=False)

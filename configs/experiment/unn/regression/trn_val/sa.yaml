@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_sa: elastic_net
+model_sa: lightgbm
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_sa}
@@ -10,7 +10,7 @@ seed: 101
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 10
 
 optimized_metric: "mean_absolute_error"
 optimized_part: "val"
@@ -52,7 +52,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/train_val.xlsx"
+  trn_val_fn: "${data_dir}/data_paper.xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
@@ -94,10 +94,10 @@ lightgbm:
   objective: 'regression'
   boosting: 'gbdt'
   learning_rate: 0.01
-  num_leaves: 31
+  num_leaves: 15
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 7
+  min_data_in_leaf: 12
   feature_fraction: 0.9
   bagging_fraction: 0.8
   bagging_freq: 5
