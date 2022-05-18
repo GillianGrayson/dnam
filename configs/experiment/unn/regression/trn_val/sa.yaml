@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: lightgbm
+model_type: xgboost
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -72,7 +72,7 @@ xgboost:
   sampling_method: 'uniform'
   subsample: 1
   objective: 'reg:squarederror'
-  verbosity: 1
+  verbosity: 0
   eval_metric: 'mae'
   max_epochs: ${max_epochs}
   patience: ${patience}
@@ -85,7 +85,7 @@ catboost:
   min_data_in_leaf: 4
   max_leaves: 31
   task_type: 'CPU'
-  verbose: 1
+  verbose: 0
   max_epochs: ${max_epochs}
   patience: ${patience}
 

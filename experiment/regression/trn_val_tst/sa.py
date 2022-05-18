@@ -120,7 +120,8 @@ def process(config: DictConfig):
                 evals=[(dmat_trn, "train"), (dmat_val, "val")],
                 num_boost_round=config.max_epochs,
                 early_stopping_rounds=config.patience,
-                evals_result=evals_result
+                evals_result=evals_result,
+                verbose_eval=False
             )
 
             y_trn_pred = model.predict(dmat_trn)
