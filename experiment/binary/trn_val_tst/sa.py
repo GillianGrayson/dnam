@@ -214,7 +214,7 @@ def process(config: DictConfig):
                 valid_names=['val', 'train'],
                 evals_result=evals_result,
                 early_stopping_rounds=config.patience,
-                verbose_eval=True
+                verbose_eval=False
             )
 
             y_trn_pred_prob = model.predict(X_trn, num_iteration=model.best_iteration)
