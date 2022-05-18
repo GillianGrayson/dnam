@@ -92,7 +92,7 @@ def process(config: DictConfig):
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
 
-        if config.model_sa == "xgboost":
+        if config.model_type == "xgboost":
             model_params = {
                 'num_class': config.xgboost.output_dim,
                 'booster': config.xgboost.booster,
@@ -146,7 +146,7 @@ def process(config: DictConfig):
             fi = model.get_score(importance_type='weight')
             feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
 
-        elif config.model_sa == "catboost":
+        elif config.model_type == "catboost":
             model_params = {
                 'classes_count': config.catboost.output_dim,
                 'loss_function': config.catboost.loss_function,
@@ -189,7 +189,7 @@ def process(config: DictConfig):
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
 
-        elif config.model_sa == "lightgbm":
+        elif config.model_type == "lightgbm":
             model_params = {
                 'num_class': config.lightgbm.output_dim,
                 'objective': config.lightgbm.objective,
@@ -245,7 +245,7 @@ def process(config: DictConfig):
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
         else:
-            raise ValueError(f"Model {config.model_sa} is not supported")
+            raise ValueError(f"Model {config.model_type} is not supported")
 
         metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
@@ -335,14 +335,14 @@ def process(config: DictConfig):
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
-    if config.model_sa == "xgboost":
+    if config.model_type == "xgboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
-    elif config.model_sa == "catboost":
+    elif config.model_type == "catboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
-    elif config.model_sa == "lightgbm":
+    elif config.model_type == "lightgbm":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
     else:
-        raise ValueError(f"Model {config.model_sa} is not supported")
+        raise ValueError(f"Model {config.model_type} is not supported")
 
     save_feature_importance(best['feature_importances'], config.num_top_features)
 

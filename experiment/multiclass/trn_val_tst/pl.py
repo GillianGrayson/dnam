@@ -102,11 +102,11 @@ def process(config: DictConfig) -> Optional[float]:
 
         # Init lightning model
         if config.model_type == "tabnet":
-            config.model = config["model_tabnet"]
+            config.model = config["tabnet"]
         elif config.model_type == "node":
-            config.model = config["model_node"]
+            config.model = config["node"]
         elif config.model_type == "tab_transformer":
-            config.model = config["model_tab_transformer"]
+            config.model = config["tab_transformer"]
             config.model.categories = datamodule.categories
             config.model.num_continuous = len(con_features_ids)
         else:

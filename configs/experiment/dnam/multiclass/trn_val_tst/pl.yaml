@@ -80,7 +80,7 @@ trainer:
 model:
   type: ${model_type}
 
-model_tabnet:
+tabnet:
   _target_: src.models.tabnet.model.TabNetModel
   task: "classification"
   input_dim: ${in_dim}
@@ -98,7 +98,7 @@ model_tabnet:
   scheduler_step_size: 50
   scheduler_gamma: 0.9
 
-model_node:
+node:
   _target_: src.models.node.model.NodeModel
   task: "classification"
   input_dim: ${in_dim}

@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: 1st_Day_right_real_left_real_background_uV
-model_sa: xgboost
+model_type: xgboost
 outcome: "class"
 
-project_name: ${data_type}_trn_tst_${model_sa}
+project_name: ${data_type}_trn_tst_${model_type}
 
 seed: 69
 

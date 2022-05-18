@@ -12,7 +12,7 @@ import re
 
 disease = "Schizophrenia"
 data_type = "harmonized"
-model_sa = 'catboost'
+model_type = 'catboost'
 run_type = "trn_val_tst"
 tst_dataset = "GSE116379"
 
@@ -35,7 +35,7 @@ direction = "max"
 
 parts = ['train', 'val', 'test']
 
-baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_trn_val_tst_{model_sa}/runs/2022-03-31_00-58-59/metrics_val_best_0002.xlsx"
+baseline_fn = f"{base_dir}/harmonized/models/baseline/{disease}_{data_type}_trn_val_tst_{model_type}/runs/2022-03-31_00-58-59/metrics_val_best_0002.xlsx"
 baseline_metrics_df = pd.read_excel(baseline_fn, index_col="metric")
 
 metrics_global_df = pd.DataFrame(
@@ -45,7 +45,7 @@ metrics_global_df = pd.DataFrame(
 metrics_global_df.index.name = "n_feat"
 for n_feat in n_feats:
     print(n_feat)
-    project_name = f'{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}_{n_feat}'
+    project_name = f'{disease}_{data_type}_{run_type}_{model_type}_{tst_dataset}_{n_feat}'
     files = glob(f"{models_dir}/{project_name}/multiruns/*/*/metrics_{optimized_part}_best_*.xlsx")
 
     if len(files) != num_realizations:
@@ -75,8 +75,8 @@ for n_feat in n_feats:
         for metric in metrics:
             metrics_global_df.at[n_feat, f"{metric}_{part}"] = df.at[metric, part]
 
-Path(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}").mkdir(parents=True, exist_ok=True)
-metrics_global_df.to_excel(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}/metrics.xlsx", index=True)
+Path(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_type}_{tst_dataset}").mkdir(parents=True, exist_ok=True)
+metrics_global_df.to_excel(f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_type}_{tst_dataset}/metrics.xlsx", index=True)
 for p in parts:
     for m in metrics:
         fig = go.Figure()
@@ -103,4 +103,4 @@ for p in parts:
                 pad=0
             )
         )
-        save_figure(fig, f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_sa}_{tst_dataset}/{m}_{p}")
+        save_figure(fig, f"{models_dir}/iterative/{disease}_{data_type}_{run_type}_{model_type}_{tst_dataset}/{m}_{p}")

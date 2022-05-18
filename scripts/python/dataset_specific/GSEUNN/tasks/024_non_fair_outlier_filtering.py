@@ -23,6 +23,7 @@ from scripts.python.routines.plot.p_value import add_p_value_annotation
 from statsmodels.stats.multitest import multipletests
 from sklearn.metrics import mean_absolute_error
 
+thld = 25
 
 dataset = "GSEUNN"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
@@ -84,4 +85,10 @@ immuno_data_not_paper['y_non_paper_pred'] = y_non_paper_pred
 immuno_data_not_paper['y_non_paper_diff'] = y_non_paper_diff
 immuno_data_not_paper['y_non_paper_diff_abs'] = y_non_paper_diff_abs
 
-immuno_data_not_paper.to_excel(f"{path_save}/immuno_data_not_paper.xlsx", index=True)
+add_indexes = immuno_data_not_paper.loc[immuno_data_not_paper['y_non_paper_diff_abs'] < thld, :].index.values
+
+all_indexes = list(set(ctrl_paper_indexes).union(set(add_indexes)))
+
+res_df = immuno_data.loc[immuno_data.index.isin(all_indexes), :]
+
+res_df.to_excel(f"{path_save}/data_thld({thld:d}).xlsx", index=True)

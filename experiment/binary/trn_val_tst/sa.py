@@ -92,7 +92,7 @@ def process(config: DictConfig):
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "Test"
 
-        if config.model_sa == "xgboost":
+        if config.model_type == "xgboost":
             model_params = {
                 'booster': config.xgboost.booster,
                 'eta': config.xgboost.learning_rate,
@@ -145,7 +145,7 @@ def process(config: DictConfig):
             fi = model.get_score(importance_type='weight')
             feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
 
-        elif config.model_sa == "catboost":
+        elif config.model_type == "catboost":
             model_params = {
                 'loss_function': config.catboost.loss_function,
                 'learning_rate': config.catboost.learning_rate,
@@ -187,7 +187,7 @@ def process(config: DictConfig):
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
 
-        elif config.model_sa == "lightgbm":
+        elif config.model_type == "lightgbm":
             model_params = {
                 'objective': config.lightgbm.objective,
                 'boosting': config.lightgbm.boosting,
@@ -241,7 +241,7 @@ def process(config: DictConfig):
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
         else:
-            raise ValueError(f"Model {config.model_sa} is not supported")
+            raise ValueError(f"Model {config.model_type} is not supported")
 
         eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
@@ -321,14 +321,14 @@ def process(config: DictConfig):
     if is_test:
         eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
-    if config.model_sa == "xgboost":
+    if config.model_type == "xgboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
-    elif config.model_sa == "catboost":
+    elif config.model_type == "catboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
-    elif config.model_sa == "lightgbm":
+    elif config.model_type == "lightgbm":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
     else:
-        raise ValueError(f"Model {config.model_sa} is not supported")
+        raise ValueError(f"Model {config.model_type} is not supported")
 
     best['feature_importances'].sort_values(['importance'], ascending=[False], inplace=True)
     fig = go.Figure()

@@ -2,10 +2,10 @@
 
 disease: Parkinson
 data_type: harmonized
-model_sa: lightgbm
+model_type: lightgbm
 outcome: "Status"
 
-project_name: ${disease}_${data_type}_trn_val_${model_sa}
+project_name: ${disease}_${data_type}_trn_val_${model_type}
 
 seed: 69
 

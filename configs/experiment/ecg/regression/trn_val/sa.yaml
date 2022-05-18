@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: snp_sphy
-model_sa: lightgbm
+model_type: lightgbm
 outcome: "Age"
 
-project_name: ${data_type}_trn_val_${model_sa}
+project_name: ${data_type}_trn_val_${model_type}
 
 seed: 42
 

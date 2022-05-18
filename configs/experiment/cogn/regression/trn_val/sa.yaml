@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: cogn
-model_sa: catboost
+model_type: catboost
 outcome: "Age"
 
-project_name: ${data_type}_trn_val_${model_sa}
+project_name: ${data_type}_trn_val_${model_type}
 
 seed: 69
 

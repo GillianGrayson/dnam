@@ -146,4 +146,4 @@ wandb/
 .env
 .autoenv
 
-submit/output/
+submit/dnam/output/

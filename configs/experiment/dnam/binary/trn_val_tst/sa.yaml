@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: harmonized
-model_sa: lightgbm
+model_type: lightgbm
 outcome: "Status"
 
-project_name: dnam_${data_type}_binary_${outcome}_trn_val_tst_${model_sa}
+project_name: dnam_${data_type}_binary_${outcome}_trn_val_tst_${model_type}
 
 seed: 101
 
