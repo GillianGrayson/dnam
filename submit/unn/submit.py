@@ -10,7 +10,7 @@ else:
     sa_or_pl = "sa"
 
 features_fn = "features.xlsx"
-trn_val_fn = "data_thld(25).xlsx"
+trn_val_fn = "data_thld_25.xlsx"
 
 catboost_learning_rate = [0.05]
 catboost_depth = [4]
@@ -19,7 +19,7 @@ catboost_max_leaves = [31]
 
 lightgbm_learning_rate = [0.01]
 lightgbm_num_leaves = [31]
-lightgbm_min_data_in_leaf = [20]
+lightgbm_min_data_in_leaf = [12]
 lightgbm_feature_fraction = [0.9]
 lightgbm_bagging_fraction = [0.8]
 
