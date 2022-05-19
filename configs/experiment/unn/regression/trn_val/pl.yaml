@@ -13,7 +13,7 @@ out_dim: 1
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 1
 
 optimized_metric: "mean_absolute_error"
 optimized_part: "val"
@@ -71,7 +71,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 10
+  progress_bar_refresh_rate: 0
   resume_from_checkpoint: null
 
 model:
