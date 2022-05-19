@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 data_type = "immuno"
-model_type = "lightgbm"
+model_type = "node"
 run_type = "trn_val"
 
 if model_type in ["tabnet", "node", "tab_transformer"]:
