@@ -5,7 +5,10 @@ data_type = "immuno"
 model_type = "node"
 run_type = "trn_val"
 
-model = f"{data_type}_{run_type}_{model_type}"
+features_fn = "features.xlsx"
+trn_val_fn = "data_thld_25.xlsx"
+
+model = f"{data_type}_{run_type}_{model_type}_{features_fn}_{trn_val_fn}"
 
 date_time = "2022-05-19_08-00-57"
 data_path = f"/home/yusipov_i/data/unn/immuno/models/{model}/multiruns/{date_time}"

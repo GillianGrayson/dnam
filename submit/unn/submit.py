@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 data_type = "immuno"
-model_type = "node"
+model_type = "elastic_net"
 run_type = "trn_val"
 
 if model_type in ["tabnet", "node", "tab_transformer"]:
@@ -12,12 +12,12 @@ else:
     sa_or_pl = "sa"
 
 features_fn = "features.xlsx"
-trn_val_fn = "data_thld_25.xlsx"
+trn_val_fn = "data_all.xlsx"
 
 catboost_learning_rate = [0.1, 0.05, 0.01, 0.005]
-catboost_depth = [3, 4, 5]
+catboost_depth = [5, 6, 7]
 catboost_min_data_in_leaf = list(np.linspace(1, 20, 20, dtype=int))
-catboost_max_leaves = [15, 31]
+catboost_max_leaves = [31]
 
 lightgbm_learning_rate = [0.05, 0.01, 0.005, 0.001]
 lightgbm_num_leaves = [15, 31]
@@ -25,10 +25,10 @@ lightgbm_min_data_in_leaf = list(np.linspace(1, 20, 20, dtype=int))
 lightgbm_feature_fraction = [0.9, 0.8]
 lightgbm_bagging_fraction = [0.8, 0.7]
 
-xgboost_learning_rate = [0.1, 0.05, 0.01, 0.005]
+xgboost_learning_rate = [0.7, 0.5, 0.3, 0.1, 0.05, 0.01, 0.005]
 xgboost_booster = ['gbtree']
 xgboost_max_depth = [4, 5, 6, 7]
-xgboost_gamma = [0]
+xgboost_gamma = [0, 0.1, 0.3, 0.5, 1.0, 10.0]
 xgboost_subsample = [1.0]
 
 elastic_net_alpha = list(np.logspace(-3, 2, 101))

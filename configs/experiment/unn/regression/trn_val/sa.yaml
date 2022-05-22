@@ -66,8 +66,8 @@ datamodule:
 # XGBoost model params
 xgboost:
   booster: 'gbtree'
-  learning_rate: 0.01
-  max_depth: 6
+  learning_rate: 0.05
+  max_depth: 5
   gamma: 0
   sampling_method: 'uniform'
   subsample: 1
@@ -80,9 +80,9 @@ xgboost:
 # CatBoost model params
 catboost:
   loss_function: 'MAE'
-  learning_rate: 0.01
-  depth: 6
-  min_data_in_leaf: 4
+  learning_rate: 0.05
+  depth: 3
+  min_data_in_leaf: 7
   max_leaves: 31
   task_type: 'CPU'
   verbose: 0
@@ -93,13 +93,13 @@ catboost:
 lightgbm:
   objective: 'regression'
   boosting: 'gbdt'
-  learning_rate: 0.01
+  learning_rate: 0.05
   num_leaves: 15
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 12
+  min_data_in_leaf: 7
   feature_fraction: 0.9
-  bagging_fraction: 0.8
+  bagging_fraction: 0.7
   bagging_freq: 5
   verbose: -1
   metric: 'l1'
@@ -108,7 +108,7 @@ lightgbm:
 
 # ElasticNet model params
 elastic_net:
-  alpha: 3.3
+  alpha: 8.913
   l1_ratio: 0.5
   max_iter: 100000
   tol: 1e-2
