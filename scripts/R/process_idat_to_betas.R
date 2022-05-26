@@ -24,9 +24,11 @@ library(wateRmelon)
 library(FlowSorted.Blood.EPIC)
 library(FlowSorted.Blood.450k)
 library(FlowSorted.DLPFC.450k)
+library(minfiData)
+library(sva)
 
-path <- "E:/YandexDisk/Work/pydnameth/datasets/GPL13534/GSE61446/raw/idat"
-chip_type = "450K"
+path <- "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/raw/idat"
+chip_type = "EPIC"
 detPcut = 0.01
 
 setwd(path)
@@ -53,6 +55,12 @@ passed_cpgs_origin = rownames(myLoad$beta)
 RGset <- myLoad$rgSet
 Mset <- myLoad$mset
 observables = myLoad$pd
+
+# Additional data saving ======================================================
+MSet <- preprocessRaw(RGset)
+meth_table = getMeth(MSet)
+unmeth_table = getUnmeth(MSet)
+pval_table <- detectionP(RGset)
 
 rm(myLoad)
 
