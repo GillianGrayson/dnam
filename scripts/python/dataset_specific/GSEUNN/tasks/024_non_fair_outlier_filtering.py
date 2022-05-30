@@ -91,4 +91,4 @@ all_indexes = list(set(ctrl_paper_indexes).union(set(add_indexes)))
 
 res_df = immuno_data.loc[immuno_data.index.isin(all_indexes), :]
 
-res_df.to_excel(f"{path_save}/data_thld({thld:d}).xlsx", index=True)
+res_df.to_excel(f"{path_save}/data_thld_{thld:d}.xlsx", index=True)
