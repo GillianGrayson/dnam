@@ -444,7 +444,7 @@ fig.update_layout(
 fig.update_layout(legend_font_size=50)
 save_figure(fig, f"{path_save}/SupplementaryFigure5/tmp")
 
-# Supplementary Figure 5 ===============================================================================================
+# Supplementary Figure 6 ===============================================================================================
 with open(f'{path}/{platform}/{dataset}/features/immuno.txt') as f:
     features = f.read().splitlines()
 
