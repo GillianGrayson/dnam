@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: snp_sphy
-model_type: tabnet
+model_type: tabnet # node tab_transformer tabnet
 outcome: "Age"
 
-project_name: ${data_type}_${Age}_trn_val_${model_type}
+project_name: ${data_type}_${outcome}_trn_val_${model_type}
 
 seed: 42
 
