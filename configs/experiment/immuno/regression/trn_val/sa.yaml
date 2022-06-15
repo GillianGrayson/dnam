@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: xgboost # elastic_net xgboost catboost lightgbm
+model_type: lightgbm # elastic_net xgboost catboost lightgbm
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -52,7 +52,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/data_ctrl_imp(fast_knn)_replace(half).xlsx"
+  trn_val_fn: "${data_dir}/220_imp(fast_knn)_replace(half).xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
