@@ -7,6 +7,7 @@ from pytorch_lightning import (
 )
 from experiment.logging import log_hyperparameters
 from experiment.regression.shap import perform_shap_explanation
+from experiment.regression.lime import perform_lime_explanation
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from src.utils import utils
@@ -457,6 +458,7 @@ def process(config: DictConfig):
             'ids_val': datamodule.ids_val,
             'ids_tst': datamodule.ids_tst
         }
+        perform_lime_explanation(config, shap_data)
         perform_shap_explanation(config, shap_data)
 
     optimized_metric = config.get("optimized_metric")
