@@ -458,7 +458,7 @@ def process(config: DictConfig):
             'ids_val': datamodule.ids_val,
             'ids_tst': datamodule.ids_tst
         }
-        perform_lime_explanation(config, shap_data)
+        #perform_lime_explanation(config, shap_data)
         perform_shap_explanation(config, shap_data)
 
     optimized_metric = config.get("optimized_metric")

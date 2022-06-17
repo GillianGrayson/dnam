@@ -26,8 +26,9 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
 
     for m_id in mistakes_ids[0:num_mistakes]:
         log.info(f"Plotting sample with error {indexes[m_id]}")
+        ind_save = indexes[m_id].replace('/', '_')
         for cl_id, cl in enumerate(class_names):
-            Path(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}").mkdir(parents=True, exist_ok=True)
+            Path(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}").mkdir(parents=True, exist_ok=True)
             shap.plots.waterfall(
                 shap.Explanation(
                     values=shap_values[cl_id][m_id],
@@ -38,8 +39,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                 show=False
             )
             fig = plt.gcf()
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/waterfall_{cl}.pdf", bbox_inches='tight')
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/waterfall_{cl}.png", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}/waterfall_{cl}.pdf", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}/waterfall_{cl}.png", bbox_inches='tight')
             plt.close()
 
             shap.plots.decision(
@@ -50,8 +51,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                 show=False,
             )
             fig = plt.gcf()
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/decision_{cl}.pdf", bbox_inches='tight')
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/decision_{cl}.png", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}/decision_{cl}.pdf", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}/decision_{cl}.png", bbox_inches='tight')
             plt.close()
 
             shap.plots.force(
@@ -63,16 +64,17 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                 matplotlib=True
             )
             fig = plt.gcf()
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/force_{cl}.pdf", bbox_inches='tight')
-            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{indexes[m_id]}/force_{cl}.png", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}/force_{cl}.pdf", bbox_inches='tight')
+            fig.savefig(f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}/force_{cl}.png", bbox_inches='tight')
             plt.close()
 
     passed_examples = {x: 0 for x in range(len(class_names))}
     for p_id in range(features.shape[0]):
         if passed_examples[y_real[p_id]] < config.num_examples:
             log.info(f"Plotting correct sample {indexes[p_id]} for {y_real[p_id]}")
+            ind_save = indexes[p_id].replace('/', '_')
             for cl_id, cl in enumerate(class_names):
-                Path(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}").mkdir(parents=True, exist_ok=True)
+                Path(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}").mkdir(parents=True, exist_ok=True)
 
                 shap.waterfall_plot(
                     shap.Explanation(
@@ -84,8 +86,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                     show=False
                 )
                 fig = plt.gcf()
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/waterfall_{cl}.pdf", bbox_inches='tight')
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/waterfall_{cl}.png", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}/waterfall_{cl}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}/waterfall_{cl}.png", bbox_inches='tight')
                 plt.close()
 
                 shap.plots.decision(
@@ -96,8 +98,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                     show=False,
                 )
                 fig = plt.gcf()
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/decision_{cl}.pdf", bbox_inches='tight')
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/decision_{cl}.png", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}/decision_{cl}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}/decision_{cl}.png", bbox_inches='tight')
                 plt.close()
 
                 shap.plots.force(
@@ -109,8 +111,8 @@ def local_explain(config, y_real, y_pred, indexes, shap_values, base_values, fea
                     matplotlib=True
                 )
                 fig = plt.gcf()
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/force_{cl}.pdf", bbox_inches='tight')
-                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{indexes[p_id]}/force_{cl}.png", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}/force_{cl}.pdf", bbox_inches='tight')
+                fig.savefig(f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}/force_{cl}.png", bbox_inches='tight')
                 plt.close()
 
             passed_examples[y_real[p_id]] += 1

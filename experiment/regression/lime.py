@@ -52,8 +52,9 @@ def perform_lime_explanation(config, shap_data):
 
                     exp_fig = explanation.as_pyplot_figure()
                     plt.title(f"{ind}: Real = {y_real:0.4f}, Estimated = {y_pred:0.4f}",{'fontsize': 20})
-                    exp_fig.savefig(f"lime/{part}/{ind}_{y_diff:0.4f}.pdf", bbox_inches='tight')
-                    exp_fig.savefig(f"lime/{part}/{ind}_{y_diff:0.4f}.png", bbox_inches='tight')
+                    ind_save = ind.replace('/', '_')
+                    exp_fig.savefig(f"lime/{part}/{ind_save}_{y_diff:0.4f}.pdf", bbox_inches='tight')
+                    exp_fig.savefig(f"lime/{part}/{ind_save}_{y_diff:0.4f}.png", bbox_inches='tight')
                     # explanation.save_to_file(f"lime/{part}/{ind}_{y_diff:0.4f}.html")
                     plt.close()
 
