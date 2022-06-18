@@ -33,8 +33,10 @@ base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/022_ml_
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: False
-shap_explainer: Kernel
+# SHAP values
+is_shap: True
+shap_explainer: Kernel # Tree Kernel Deep
+shap_bkgrd: trn # trn all tree_path_dependent
 
 # Plot params
 num_top_features: 10
@@ -101,12 +103,12 @@ node:
   _target_: src.models.node.model.NodeModel
   task: "classification"
   loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
   optimizer_lr: 0.5
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
   scheduler_gamma: 0.9
-  input_dim: ${in_dim}
-  output_dim: ${out_dim}
   num_trees: 1024
   num_layers: 1
   flatten_output: False

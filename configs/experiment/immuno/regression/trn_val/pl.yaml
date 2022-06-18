@@ -101,12 +101,12 @@ node:
   _target_: src.models.node.model.NodeModel
   task: "regression"
   loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
   optimizer_lr: 0.3
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
   scheduler_gamma: 0.9
-  input_dim: ${in_dim}
-  output_dim: ${out_dim}
   num_trees: 1024
   num_layers: 1
   flatten_output: False

@@ -30,8 +30,10 @@ base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/022_ml_
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: False
-shap_explainer: Tree
+# SHAP values
+is_shap: True
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
 # Plot params
 num_top_features: 10
