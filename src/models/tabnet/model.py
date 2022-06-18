@@ -34,7 +34,16 @@ class TabNetModel(BaseModel):
             scheduler_gamma=0.9,
             **kwargs
     ):
-        super().__init__(task=task, output_dim=output_dim)
+        super().__init__(
+            task=task,
+            input_dim=input_dim,
+            output_dim=output_dim,
+            loss_type=loss_type,
+            optimizer_lr=optimizer_lr,
+            optimizer_weight_decay=optimizer_weight_decay,
+            scheduler_step_size=scheduler_step_size,
+            scheduler_gamma=scheduler_gamma,
+        )
         self.save_hyperparameters()
         self._build_network()
 

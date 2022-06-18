@@ -15,12 +15,24 @@ class BaseModel(pl.LightningModule):
     def __init__(
             self,
             task,
+            input_dim,
             output_dim,
+            loss_type,
+            optimizer_lr,
+            optimizer_weight_decay,
+            scheduler_step_size,
+            scheduler_gamma,
     ):
         super().__init__()
 
         self.task = task
+        self.input_dim = input_dim
         self.output_dim = output_dim
+        self.loss_type = loss_type
+        self.optimizer_lr = optimizer_lr
+        self.optimizer_weight_decay = optimizer_weight_decay
+        self.scheduler_step_size = scheduler_step_size
+        self.scheduler_gamma = scheduler_gamma
 
         self.ids_cat = None
         self.ids_con = None
@@ -33,20 +45,20 @@ class BaseModel(pl.LightningModule):
             if self.output_dim < 2:
                 raise ValueError(f"Classification with {self.output_dim} classes")
             self.metrics_dict = {
-                'accuracy_macro': Accuracy(num_classes=self.hparams.output_dim, average='macro'),
-                'accuracy_micro': Accuracy(num_classes=self.hparams.output_dim, average='micro'),
-                'accuracy_weighted': Accuracy(num_classes=self.hparams.output_dim, average='weighted'),
-                'f1_macro': F1(num_classes=self.hparams.output_dim, average='macro'),
-                'f1_micro': F1(num_classes=self.hparams.output_dim, average='micro'),
-                'f1_weighted': F1(num_classes=self.hparams.output_dim, average='weighted'),
-                'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
-                'precision_micro': Precision(num_classes=self.hparams.output_dim, average='micro'),
-                'precision_weighted': Precision(num_classes=self.hparams.output_dim, average='weighted'),
-                'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
-                'recall_micro': Recall(num_classes=self.hparams.output_dim, average='micro'),
-                'recall_weighted': Recall(num_classes=self.hparams.output_dim, average='weighted'),
-                'cohen_kappa': CohenKappa(num_classes=self.hparams.output_dim),
-                'matthews_corr_coef': MatthewsCorrcoef(num_classes=self.hparams.output_dim),
+                'accuracy_macro': Accuracy(num_classes=self.output_dim, average='macro'),
+                'accuracy_micro': Accuracy(num_classes=self.output_dim, average='micro'),
+                'accuracy_weighted': Accuracy(num_classes=self.output_dim, average='weighted'),
+                'f1_macro': F1(num_classes=self.output_dim, average='macro'),
+                'f1_micro': F1(num_classes=self.output_dim, average='micro'),
+                'f1_weighted': F1(num_classes=self.output_dim, average='weighted'),
+                'precision_macro': Precision(num_classes=self.output_dim, average='macro'),
+                'precision_micro': Precision(num_classes=self.output_dim, average='micro'),
+                'precision_weighted': Precision(num_classes=self.output_dim, average='weighted'),
+                'recall_macro': Recall(num_classes=self.output_dim, average='macro'),
+                'recall_micro': Recall(num_classes=self.output_dim, average='micro'),
+                'recall_weighted': Recall(num_classes=self.output_dim, average='weighted'),
+                'cohen_kappa': CohenKappa(num_classes=self.output_dim),
+                'matthews_corr_coef': MatthewsCorrcoef(num_classes=self.output_dim),
             }
             self.metrics_summary = {
                 'accuracy_macro': 'max',
@@ -65,9 +77,9 @@ class BaseModel(pl.LightningModule):
                 'matthews_corr_coef': 'max',
             }
             self.metrics_prob_dict = {
-                'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
-                'auroc_micro': AUROC(num_classes=self.hparams.output_dim, average='micro'),
-                'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
+                'auroc_macro': AUROC(num_classes=self.output_dim, average='macro'),
+                'auroc_micro': AUROC(num_classes=self.output_dim, average='micro'),
+                'auroc_weighted': AUROC(num_classes=self.output_dim, average='weighted'),
             }
             self.metrics_prob_summary = {
                 'auroc_macro': 'max',
@@ -75,9 +87,9 @@ class BaseModel(pl.LightningModule):
                 'auroc_weighted': 'max',
             }
         elif self.task == "regression":
-            if self.hparams.loss_type == "MSE":
+            if self.loss_type == "MSE":
                 self.loss_fn = torch.nn.MSELoss(reduction='mean')
-            elif self.hparams.loss_type == "L1Loss":
+            elif self.loss_type == "L1Loss":
                 self.loss_fn = torch.nn.L1Loss(reduction='mean')
             else:
                 raise ValueError("Unsupported loss_type")
@@ -204,13 +216,13 @@ class BaseModel(pl.LightningModule):
         """
         optimizer = torch.optim.Adam(
             params=self.parameters(),
-            lr=self.hparams.optimizer_lr,
-            weight_decay=self.hparams.optimizer_weight_decay
+            lr=self.optimizer_lr,
+            weight_decay=self.optimizer_weight_decay
         )
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer=optimizer,
-            step_size=self.hparams.scheduler_step_size,
-            gamma=self.hparams.scheduler_gamma
+            step_size=self.scheduler_step_size,
+            gamma=self.scheduler_gamma
         )
 
         return (
