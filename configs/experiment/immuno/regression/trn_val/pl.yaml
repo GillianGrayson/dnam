@@ -6,14 +6,14 @@ outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
-seed: 101
+seed: 42
 
 in_dim: 1
 out_dim: 1
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 1
 
 optimized_metric: "mean_absolute_error"
 optimized_part: "val"
@@ -33,8 +33,10 @@ base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
-is_shap: False
-shap_explainer: Kernel
+# SHAP values
+is_shap: True
+shap_explainer: Kernel # Tree Kernel Deep
+shap_bkgrd: trn # trn all tree_path_dependent
 
 # Plot params
 num_top_features: 10
@@ -55,7 +57,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/data_thld(25).xlsx"
+  trn_val_fn: "${data_dir}/220_imp(fast_knn)_replace(half).xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
@@ -71,7 +73,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 0
+  progress_bar_refresh_rate: 10
   resume_from_checkpoint: null
 
 model:

@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_classification_sa
+from experiment.routines import eval_classification
 from experiment.routines import eval_loss
 from typing import List
 from catboost import CatBoost
@@ -243,10 +243,10 @@ def process(config: DictConfig):
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
-        eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
+        eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+            eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
 
         if config.direction == "min":
             if metrics_val.at[config.optimized_metric, 'val'] < best["optimized_metric"]:
@@ -316,10 +316,10 @@ def process(config: DictConfig):
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values.astype('int32')
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
     if config.model_type == "xgboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")

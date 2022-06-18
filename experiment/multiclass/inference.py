@@ -12,12 +12,12 @@ from pytorch_lightning import (
 from experiment.logging import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 from src.utils import utils
-from experiment.routines import eval_classification_sa
+from experiment.routines import eval_classification
 from typing import List
 import wandb
 from catboost import CatBoost
 import xgboost as xgb
-from experiment.multiclass.shap import perform_shap_explanation
+from experiment.multiclass.shap import explain_shap
 
 
 log = utils.get_logger(__name__)
@@ -96,7 +96,7 @@ def inference(config: DictConfig):
 
     y_test_pred = np.argmax(y_test_pred_prob, 1)
 
-    eval_classification_sa(config, class_names, y_test, y_test_pred, y_test_pred_prob, loggers, 'inference', is_log=True, is_save=True)
+    eval_classification(config, class_names, y_test, y_test_pred, y_test_pred_prob, loggers, 'inference', is_log=True, is_save=True)
     df.loc[:, "pred"] = y_test_pred
     for cl_id, cl in enumerate(class_names):
         df.loc[:, f"pred_prob_{cl_id}"] = y_test_pred_prob[:, cl_id]
@@ -118,7 +118,7 @@ def inference(config: DictConfig):
             'ids_val': None,
             'ids_tst': None
         }
-        perform_shap_explanation(config, shap_data)
+        explain_shap(config, shap_data)
 
     for logger in loggers:
         logger.save()

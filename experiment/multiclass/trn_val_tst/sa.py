@@ -14,14 +14,14 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_classification_sa
+from experiment.routines import eval_classification
 from experiment.routines import eval_loss, save_feature_importance
 from typing import List
 from catboost import CatBoost
 import lightgbm as lgb
 import wandb
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
-from experiment.multiclass.shap import perform_shap_explanation
+from experiment.multiclass.shap import explain_shap
 from tqdm import tqdm
 
 
@@ -139,7 +139,7 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.xgboost.eval_metric]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 X = xgb.DMatrix(X, feature_names=feature_names)
                 y = model.predict(X)
                 return y
@@ -184,7 +184,7 @@ def process(config: DictConfig):
                 'val/loss': metrics_val.iloc[:, 1]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 y = model.predict(X, prediction_type="Probability")
                 return y
 
@@ -239,7 +239,7 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.lightgbm.metric]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 y = model.predict(X, num_iteration=model.best_iteration)
                 return y
 
@@ -248,10 +248,10 @@ def process(config: DictConfig):
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
-        metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
+        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -277,7 +277,7 @@ def process(config: DictConfig):
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             best["model"] = model
             best['loss_info'] = loss_info
-            best['shap_kernel'] = shap_kernel
+            best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx
             best['ids_trn'] = ids_trn
@@ -322,10 +322,10 @@ def process(config: DictConfig):
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -358,20 +358,21 @@ def process(config: DictConfig):
     if 'wandb' in config.logger:
         wandb.finish()
 
+    expl_data = {
+        'model': best["model"],
+        'predict_func': best['predict_func'],
+        'df': df,
+        'feature_names': feature_names,
+        'class_names': class_names,
+        'outcome_name': outcome_name,
+        'ids_all': np.arange(df.shape[0]),
+        'ids_trn': datamodule.ids_trn,
+        'ids_val': datamodule.ids_val,
+        'ids_tst': datamodule.ids_tst
+    }
+
     if config.is_shap == True:
-        shap_data = {
-            'model': best["model"],
-            'shap_kernel': best['shap_kernel'],
-            'df': df,
-            'feature_names': feature_names,
-            'class_names': class_names,
-            'outcome_name': outcome_name,
-            'ids_all': np.arange(df.shape[0]),
-            'ids_trn': datamodule.ids_trn,
-            'ids_val': datamodule.ids_val,
-            'ids_tst': datamodule.ids_tst
-        }
-        perform_shap_explanation(config, shap_data)
+        explain_shap(config, expl_data)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:

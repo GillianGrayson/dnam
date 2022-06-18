@@ -6,7 +6,7 @@ from pytorch_lightning import (
     seed_everything,
 )
 from experiment.logging import log_hyperparameters
-from experiment.regression.shap import perform_shap_explanation
+from experiment.regression.shap import explain_shap
 from experiment.regression.lime import perform_lime_explanation
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
@@ -15,7 +15,7 @@ import xgboost as xgb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression_sa
+from experiment.routines import eval_regression
 from experiment.routines import eval_loss, save_feature_importance
 from typing import List
 from catboost import CatBoost
@@ -136,7 +136,7 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.xgboost.eval_metric]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 X = xgb.DMatrix(X, feature_names=feature_names)
                 y = model.predict(X)
                 return y
@@ -174,7 +174,7 @@ def process(config: DictConfig):
                 'val/loss': metrics_val.iloc[:, 1]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 y = model.predict(X)
                 return y
 
@@ -222,7 +222,7 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.lightgbm.metric]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 y = model.predict(X, num_iteration=model.best_iteration)
                 return y
 
@@ -247,7 +247,7 @@ def process(config: DictConfig):
                 'val/loss': [0]
             }
 
-            def shap_kernel(X):
+            def predict_func(X):
                 y = model.predict(X)
                 return y
 
@@ -256,10 +256,10 @@ def process(config: DictConfig):
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
-        metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
+        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            metrics_tst = eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -285,7 +285,7 @@ def process(config: DictConfig):
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             best["model"] = model
             best['loss_info'] = loss_info
-            best['shap_kernel'] = shap_kernel
+            best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx
             best['ids_trn'] = ids_trn
@@ -319,10 +319,10 @@ def process(config: DictConfig):
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        metrics_tst = eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -446,20 +446,20 @@ def process(config: DictConfig):
     if 'wandb' in config.logger:
         wandb.finish()
 
+    expl_data = {
+        'model': best["model"],
+        'predict_func': best['predict_func'],
+        'df': df,
+        'feature_names': feature_names,
+        'outcome_name': outcome_name,
+        'ids_all': np.arange(df.shape[0]),
+        'ids_trn': datamodule.ids_trn,
+        'ids_val': datamodule.ids_val,
+        'ids_tst': datamodule.ids_tst
+    }
+
     if config.is_shap == True:
-        shap_data = {
-            'model': best["model"],
-            'shap_kernel': best['shap_kernel'],
-            'df': df,
-            'feature_names': feature_names,
-            'outcome_name': outcome_name,
-            'ids_all': np.arange(df.shape[0]),
-            'ids_trn': datamodule.ids_trn,
-            'ids_val': datamodule.ids_val,
-            'ids_tst': datamodule.ids_tst
-        }
-        #perform_lime_explanation(config, shap_data)
-        perform_shap_explanation(config, shap_data)
+        explain_shap(config, expl_data)
 
     optimized_metric = config.get("optimized_metric")
     if optimized_metric:

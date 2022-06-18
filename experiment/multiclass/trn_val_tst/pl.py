@@ -22,9 +22,9 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
-from experiment.multiclass.shap import perform_shap_explanation
+from experiment.multiclass.shap import explain_shap
 from datetime import datetime
-from experiment.routines import eval_classification_sa, save_feature_importance
+from experiment.routines import eval_classification, save_feature_importance
 from pathlib import Path
 
 
@@ -219,16 +219,16 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
-        def shap_kernel(X):
+        def predict_func(X):
             model.produce_probabilities = True
             X = torch.from_numpy(X)
             tmp = model(X)
             return tmp.cpu().detach().numpy()
 
-        metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
+        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -272,7 +272,7 @@ def process(config: DictConfig) -> Optional[float]:
                     raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
             best["trainer"] = trainer
-            best['shap_kernel'] = shap_kernel
+            best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx
             best['ids_trn'] = ids_trn
@@ -317,10 +317,10 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_classification_sa(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_classification_sa(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        metrics_tst = eval_classification_sa(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -334,20 +334,20 @@ def process(config: DictConfig) -> Optional[float]:
     if best['feature_importances'] is not None:
         save_feature_importance(best['feature_importances'], config.num_top_features)
 
+    expl_data = {
+        'model': best["model"],
+        'predict_func': best['predict_func'],
+        'df': df,
+        'feature_names': feature_names,
+        'class_names': class_names,
+        'outcome_name': outcome_name,
+        'ids_all': np.arange(df.shape[0]),
+        'ids_trn': datamodule.ids_trn,
+        'ids_val': datamodule.ids_val,
+        'ids_tst': datamodule.ids_tst
+    }
     if config.is_shap == True:
-        shap_data = {
-            'model': best["model"],
-            'shap_kernel': best['shap_kernel'],
-            'df': df,
-            'feature_names': feature_names,
-            'class_names': class_names,
-            'outcome_name': outcome_name,
-            'ids_all': np.arange(df.shape[0]),
-            'ids_trn': datamodule.ids_trn,
-            'ids_val': datamodule.ids_val,
-            'ids_tst': datamodule.ids_tst
-        }
-        perform_shap_explanation(config, shap_data)
+        explain_shap(config, expl_data)
 
     # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")

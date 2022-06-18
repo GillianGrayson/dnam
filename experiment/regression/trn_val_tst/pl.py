@@ -24,14 +24,14 @@ from src.utils import utils
 import pandas as pd
 from tqdm import tqdm
 from experiment.routines import plot_confusion_matrix
-from experiment.regression.shap import perform_shap_explanation
+from experiment.regression.shap import explain_shap
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
 from scipy.stats import mannwhitneyu
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression_sa, save_feature_importance
+from experiment.routines import eval_regression, save_feature_importance
 from datetime import datetime
 from pathlib import Path
 
@@ -217,15 +217,15 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
-        def shap_kernel(X):
+        def predict_func(X):
             X = torch.from_numpy(X)
             tmp = model(X)
             return tmp.cpu().detach().numpy()
 
-        metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
+        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
+        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
         if is_test:
-            metrics_tst = eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -266,7 +266,7 @@ def process(config: DictConfig) -> Optional[float]:
                     raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
             best["trainer"] = trainer
-            best['shap_kernel'] = shap_kernel
+            best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx
             best['ids_trn'] = ids_trn
@@ -300,10 +300,10 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    metrics_trn = eval_regression_sa(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=True)
-    metrics_val = eval_regression_sa(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=True)
+    metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=True)
+    metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=True)
     if is_test:
-        metrics_tst = eval_regression_sa(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=True)
+        metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=True)
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -434,19 +434,20 @@ def process(config: DictConfig) -> Optional[float]:
     )
     save_figure(fig, f"violin")
 
+    expl_data = {
+        'model': best["model"],
+        'predict_func': best['predict_func'],
+        'df': df,
+        'feature_names': feature_names,
+        'outcome_name': outcome_name,
+        'ids_all': np.arange(df.shape[0]),
+        'ids_trn': datamodule.ids_trn,
+        'ids_val': datamodule.ids_val,
+        'ids_tst': datamodule.ids_tst
+    }
+
     if config.is_shap == True:
-        shap_data = {
-            'model': best["model"],
-            'shap_kernel': best['shap_kernel'],
-            'df': df,
-            'feature_names': feature_names,
-            'outcome_name': outcome_name,
-            'ids_all': np.arange(df.shape[0]),
-            'ids_trn': datamodule.ids_trn,
-            'ids_val': datamodule.ids_val,
-            'ids_tst': datamodule.ids_tst
-        }
-        perform_shap_explanation(config, shap_data)
+        explain_shap(config, expl_data)
 
     # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")

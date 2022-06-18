@@ -55,7 +55,7 @@ def save_feature_importance(df, num_features):
     df.to_excel("feature_importances.xlsx", index=True)
 
 
-def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, suffix=''):
+def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, suffix=''):
     metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
     metrics_summary = {
         'accuracy_macro': 'max',
@@ -102,7 +102,7 @@ def eval_classification_sa(config, class_names, y_real, y_pred, y_pred_prob, log
     return metrics_df
 
 
-def eval_regression_sa(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, suffix=''):
+def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, suffix=''):
     metrics_classes_dict = get_regression_metrics_dict(object)
     metrics_summary = {
         'mean_absolute_error': 'min',

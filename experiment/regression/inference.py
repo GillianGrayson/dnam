@@ -14,11 +14,11 @@ from src.utils import utils
 import wandb
 import statsmodels.formula.api as smf
 import xgboost as xgb
-from experiment.regression.shap import perform_shap_explanation
+from experiment.regression.shap import explain_shap
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression_sa
+from experiment.routines import eval_regression
 from typing import List
 from catboost import CatBoost
 from scripts.python.routines.plot.scatter import add_scatter_trace
@@ -89,7 +89,7 @@ def inference(config: DictConfig):
     else:
         raise ValueError(f"Unsupported sa_model")
 
-    eval_regression_sa(config, y_test, y_test_pred, loggers, 'inference', is_log=True, is_save=True)
+    eval_regression(config, y_test, y_test_pred, loggers, 'inference', is_log=True, is_save=True)
     df.loc[:, "Estimation"] = y_test_pred
     predictions = df.loc[:, [outcome_name, "Estimation"]]
     predictions.to_excel(f"predictions.xlsx", index=True)
@@ -117,7 +117,7 @@ def inference(config: DictConfig):
             'ids_val': None,
             'ids_tst': None
         }
-        perform_shap_explanation(config, shap_data)
+        explain_shap(config, shap_data)
 
     for logger in loggers:
         logger.save()

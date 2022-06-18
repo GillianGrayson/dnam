@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: catboost # elastic_net xgboost catboost lightgbm
+model_type: lightgbm # elastic_net xgboost catboost lightgbm
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -26,16 +26,18 @@ test_after_training: True
 max_epochs: 10000
 patience: 1000
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
+# SHAP values
 is_shap: True
-shap_explainer: Tree
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
 # Plot params
 num_top_features: 10
-num_examples: 500
+num_examples: 10
 
 # specify here default training configuration
 defaults:
