@@ -20,8 +20,13 @@ class TabTransformerModel(BaseModel):
     def __init__(
             self,
             task="regression",
-            input_dim=1,
+            loss_type="MSE",
+            input_dim=100,
             output_dim=1,
+            optimizer_lr=0.001,
+            optimizer_weight_decay=0.0005,
+            scheduler_step_size=20,
+            scheduler_gamma=0.9,
 
             categories=None,
             num_continuous=None,
@@ -36,18 +41,13 @@ class TabTransformerModel(BaseModel):
             attn_dropout=0.1,
             ff_dropout=0.1,
 
-            loss_type="MSE",
-            optimizer_lr=0.001,
-            optimizer_weight_decay=0.0005,
-            scheduler_step_size=20,
-            scheduler_gamma=0.9,
             **kwargs
     ):
         super().__init__(
             task=task,
+            loss_type=loss_type,
             input_dim=input_dim,
             output_dim=output_dim,
-            loss_type=loss_type,
             optimizer_lr=optimizer_lr,
             optimizer_weight_decay=optimizer_weight_decay,
             scheduler_step_size=scheduler_step_size,

@@ -15,9 +15,9 @@ class BaseModel(pl.LightningModule):
     def __init__(
             self,
             task,
+            loss_type,
             input_dim,
             output_dim,
-            loss_type,
             optimizer_lr,
             optimizer_weight_decay,
             scheduler_step_size,
@@ -26,9 +26,9 @@ class BaseModel(pl.LightningModule):
         super().__init__()
 
         self.task = task
+        self.loss_type = loss_type
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.loss_type = loss_type
         self.optimizer_lr = optimizer_lr
         self.optimizer_weight_decay = optimizer_weight_decay
         self.scheduler_step_size = scheduler_step_size

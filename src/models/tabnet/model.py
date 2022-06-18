@@ -15,9 +15,14 @@ class TabNetModel(BaseModel):
 
     def __init__(
             self,
-            task="classification",
+            task="regression",
+            loss_type="MSE",
             input_dim=100,
-            output_dim=4,
+            output_dim=1,
+            optimizer_lr=0.001,
+            optimizer_weight_decay=0.0005,
+            scheduler_step_size=20,
+            scheduler_gamma=0.9,
 
             n_d_n_a=8,
             n_steps=3,
@@ -27,18 +32,13 @@ class TabNetModel(BaseModel):
             virtual_batch_size=128,
             mask_type="sparsemax",
 
-            loss_type="MSE",
-            optimizer_lr=0.001,
-            optimizer_weight_decay=0.0005,
-            scheduler_step_size=20,
-            scheduler_gamma=0.9,
             **kwargs
     ):
         super().__init__(
             task=task,
+            loss_type=loss_type,
             input_dim=input_dim,
             output_dim=output_dim,
-            loss_type=loss_type,
             optimizer_lr=optimizer_lr,
             optimizer_weight_decay=optimizer_weight_decay,
             scheduler_step_size=scheduler_step_size,
