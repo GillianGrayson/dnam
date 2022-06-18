@@ -1,10 +1,10 @@
 from typing import Any, List
 import torch
 from pytorch_lightning import LightningModule
-from src.models.to_delete.modules.fcae_net import FCAENet
+from src.models.old.modules.fcvae_net import FCVAENet
 
 
-class FCAEModel(LightningModule):
+class FCVAEModelV1(LightningModule):
     """
     A LightningModule organizes your PyTorch code into 5 sections:
         - Computations (init).
@@ -23,6 +23,7 @@ class FCAEModel(LightningModule):
             n_latent: int = 256,
             topology: int = 256,
             loss_type: str = "MSE",
+            kl_coeff: int = 256,
             lr: float = 0.001,
             weight_decay: float = 0.0005,
             **kwargs
@@ -42,21 +43,38 @@ class FCAEModel(LightningModule):
         else:
             raise ValueError("Unsupported loss_type")
 
-        self.model = FCAENet(hparams=self.hparams)
+        self.model = FCVAENet(hparams=self.hparams)
 
     def forward(self, x: torch.Tensor):
-        return self.model.forward(x)
+        return self.model.forward_v1(x)
 
     def get_latent(self, x: torch.Tensor):
-        z = self.model.encode(x)
+        mu, log_var = self.model.encode(x)
+        p, q, z = self.model.v1_reparametrize(mu, log_var)
         return z
 
     def step(self, batch: Any):
         x, y, ind = batch
-        x_hat = self.model(x)
-        loss = self.loss_fn(x_hat, x)
+
+        mu, log_var = self.model.encode(x)
+        p, q, z =  self.model.v1_reparametrize(mu, log_var)
+        x_hat =  self.model.decoder(z)
+
+        recon_loss = self.loss_fn(x_hat, x)
+
+        log_qz = q.log_prob(z)
+        log_pz = p.log_prob(z)
+
+        kl = log_qz - log_pz
+        kl_mean = kl.mean()
+        kl_final = kl_mean * self.hparams.kl_coeff
+
+        loss = kl_final + recon_loss
+
         logs = {
             "loss": loss,
+            "recon_loss": recon_loss,
+            "kl_loss": kl_final
         }
         return loss, logs
 

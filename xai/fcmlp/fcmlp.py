@@ -1,5 +1,5 @@
 import numpy as np
-from src.models.fcmlp.model import FCMLPModel
+from src.models.old.fcmlp.model import FCMLPModel
 from tqdm import tqdm
 import pandas as pd
 import dotenv

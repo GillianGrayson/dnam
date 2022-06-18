@@ -23,7 +23,7 @@ def calc_metric(self, y_true, y_score):
         value = torchmetrics.functional.recall(y_score_torch, y_true_torch, average=self.average, num_classes=self.num_classes)
     elif self.metric_type == "cohen_kappa":
         value = torchmetrics.functional.cohen_kappa(y_score_torch, y_true_torch, num_classes=self.num_classes)
-    elif self.metric_type == "matthews_corrcoef":
+    elif self.metric_type == "matthews_corr_coef":
         value = torchmetrics.functional.matthews_corrcoef(y_score_torch, y_true_torch, num_classes=self.num_classes)
     elif self.metric_type == "mean_absolute_error":
         value = torchmetrics.functional.mean_absolute_error(y_score_torch, y_true_torch)
@@ -31,11 +31,11 @@ def calc_metric(self, y_true, y_score):
         value = torchmetrics.functional.mean_absolute_percentage_error(y_score_torch, y_true_torch)
     elif self.metric_type == "mean_squared_error":
         value = torchmetrics.functional.mean_squared_error(y_score_torch, y_true_torch)
-    elif self.metric_type == "pearson_corrcoef":
+    elif self.metric_type == "pearson_corr_coef":
         value = torchmetrics.functional.pearson_corrcoef(y_score_torch, y_true_torch)
     elif self.metric_type == "r2_score":
         value = torchmetrics.functional.r2_score(y_score_torch, y_true_torch)
-    elif self.metric_type == "spearman_corrcoef":
+    elif self.metric_type == "spearman_corr_coef":
         value = torchmetrics.functional.spearman_corrcoef(y_score_torch, y_true_torch)
     else:
         raise ValueError("Unsupported metrics")
@@ -137,11 +137,11 @@ def get_classification_metrics_dict(num_classes, base_class):
                 "__call__": calc_metric
             }
         ),
-        "matthews_corrcoef": type(
-            "matthews_corrcoef",
+        "matthews_corr_coef": type(
+            "matthews_corr_coef",
             (base_class,),
             {
-                "metric_type": "matthews_corrcoef",
+                "metric_type": "matthews_corr_coef",
                 "average": "",
                 "num_classes": num_classes,
                 "__init__": init_metric,
@@ -215,11 +215,11 @@ def get_regression_metrics_dict(base_class):
                 "__call__": calc_metric
             }
         ),
-        "pearson_corrcoef": type(
-            "pearson_corrcoef",
+        "pearson_corr_coef": type(
+            "pearson_corr_coef",
             (base_class,),
             {
-                "metric_type": "pearson_corrcoef",
+                "metric_type": "pearson_corr_coef",
                 "__init__": init_metric,
                 "__call__": calc_metric
             }
@@ -233,11 +233,11 @@ def get_regression_metrics_dict(base_class):
                 "__call__": calc_metric
             }
         ),
-        "spearman_corrcoef": type(
-            "spearman_corrcoef",
+        "spearman_corr_coef": type(
+            "spearman_corr_coef",
             (base_class,),
             {
-                "metric_type": "spearman_corrcoef",
+                "metric_type": "spearman_corr_coef",
                 "__init__": init_metric,
                 "__call__": calc_metric
             }

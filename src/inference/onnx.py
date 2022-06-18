@@ -1,6 +1,6 @@
-from src.models.to_delete.fcmlp_model import FCMLPModel
-from src.models.to_delete.fcvae_model_v2 import FCVAEModelV2
-from src.models.to_delete.extractor_mlp_model import ExtractorFCMLPModel
+from src.models.old.fcmlp_model import FCMLPModel
+from src.models.old.fcvae_model_v2 import FCVAEModelV2
+from src.models.old.extractor_mlp_model import ExtractorFCMLPModel
 import pickle
 from src.datamodules.to_delete.datasets.dnam_dataset import DNAmDataset
 from torch.utils.data import DataLoader

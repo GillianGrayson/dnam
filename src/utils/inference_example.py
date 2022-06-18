@@ -1,7 +1,7 @@
 from PIL import Image
 from torchvision import transforms
 
-from src.models.to_delete.mnist_model import MNISTLitModel
+from src.models.old.mnist_model import MNISTLitModel
 
 
 def predict():

@@ -8,9 +8,10 @@ import pytorch_lightning as pl
 import torch
 from pytorch_tabnet.tab_network import TabNet
 from pytorch_tabnet.utils import create_explain_matrix
+from src.models.base import BaseModel
 
 
-class TabNetModel(pl.LightningModule):
+class TabNetModel(BaseModel):
 
     def __init__(
             self,
@@ -33,97 +34,9 @@ class TabNetModel(pl.LightningModule):
             scheduler_gamma=0.9,
             **kwargs
     ):
-        super().__init__()
+        super().__init__(task=task, output_dim=output_dim)
         self.save_hyperparameters()
         self._build_network()
-
-        self.ids_cat = None
-        self.ids_con = None
-
-        self.task = task
-        self.produce_probabilities = False
-        self.produce_importance = False
-
-        if task == "classification":
-            self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
-            if output_dim < 2:
-                raise ValueError(f"Classification with {output_dim} classes")
-            self.metrics_dict = {
-                'accuracy_macro': Accuracy(num_classes=self.hparams.output_dim, average='macro'),
-                'accuracy_micro': Accuracy(num_classes=self.hparams.output_dim, average='micro'),
-                'accuracy_weighted': Accuracy(num_classes=self.hparams.output_dim, average='weighted'),
-                'f1_macro': F1(num_classes=self.hparams.output_dim, average='macro'),
-                'f1_micro': F1(num_classes=self.hparams.output_dim, average='micro'),
-                'f1_weighted': F1(num_classes=self.hparams.output_dim, average='weighted'),
-                'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
-                'precision_micro': Precision(num_classes=self.hparams.output_dim, average='micro'),
-                'precision_weighted': Precision(num_classes=self.hparams.output_dim, average='weighted'),
-                'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
-                'recall_micro': Recall(num_classes=self.hparams.output_dim, average='micro'),
-                'recall_weighted': Recall(num_classes=self.hparams.output_dim, average='weighted'),
-                'cohens_kappa': CohenKappa(num_classes=self.hparams.output_dim),
-                'matthews_corr': MatthewsCorrcoef(num_classes=self.hparams.output_dim),
-            }
-            self.metrics_summary = {
-                'accuracy_macro': 'max',
-                'accuracy_micro': 'max',
-                'accuracy_weighted': 'max',
-                'f1_macro': 'max',
-                'f1_micro': 'max',
-                'f1_weighted': 'max',
-                'precision_macro': 'max',
-                'precision_micro': 'max',
-                'precision_weighted': 'max',
-                'recall_macro': 'max',
-                'recall_micro': 'max',
-                'recall_weighted': 'max',
-                'cohens_kappa': 'max',
-                'matthews_corr': 'max',
-            }
-            self.metrics_prob_dict = {
-                'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
-                'auroc_micro': AUROC(num_classes=self.hparams.output_dim, average='micro'),
-                'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
-            }
-            self.metrics_prob_summary = {
-                'auroc_macro': 'max',
-                'auroc_micro': 'max',
-                'auroc_weighted': 'max',
-            }
-        elif task == "regression":
-            if self.hparams.loss_type == "MSE":
-                self.loss_fn = torch.nn.MSELoss(reduction='mean')
-            elif self.hparams.loss_type == "L1Loss":
-                self.loss_fn = torch.nn.L1Loss(reduction='mean')
-            else:
-                raise ValueError("Unsupported loss_type")
-            self.metrics_dict = {
-                'CosineSimilarity': CosineSimilarity(),
-                'MeanAbsoluteError': MeanAbsoluteError(),
-                'MeanAbsolutePercentageError': MeanAbsolutePercentageError(),
-                'MeanSquaredError': MeanSquaredError(),
-                'PearsonCorrcoef': PearsonCorrcoef(),
-                'R2Score': R2Score(),
-                'SpearmanCorrcoef': SpearmanCorrcoef(),
-            }
-            self.metrics_summary = {
-                'CosineSimilarity': 'min',
-                'MeanAbsoluteError': 'min',
-                'MeanAbsolutePercentageError': 'min',
-                'MeanSquaredError': 'min',
-                'PearsonCorrcoef': 'max',
-                'R2Score': 'max',
-                'SpearmanCorrcoef': 'max'
-            }
-            self.metrics_prob_dict = {}
-            self.metrics_prob_summary = {}
-
-        self.metrics_train = MetricCollection(self.metrics_dict)
-        self.metrics_train_prob = MetricCollection(self.metrics_prob_dict)
-        self.metrics_val = self.metrics_train.clone()
-        self.metrics_val_prob = self.metrics_train_prob.clone()
-        self.metrics_test = self.metrics_train.clone()
-        self.metrics_test_prob = self.metrics_train_prob.clone()
 
     def _build_network(self):
         self.tabnet = TabNet(
@@ -156,112 +69,31 @@ class TabNetModel(pl.LightningModule):
                 return x
 
     def on_fit_start(self) -> None:
-        for stage_type in ['train', 'val', 'test']:
-            for m, sum in self.metrics_summary.items():
-                wandb.define_metric(f"{stage_type}/{m}", summary=sum)
-            for m, sum in self.metrics_prob_summary.items():
-                wandb.define_metric(f"{stage_type}/{m}", summary=sum)
-            wandb.define_metric(f"{stage_type}/loss", summary='min')
+        super().on_fit_start()
 
     def step(self, batch: Any, stage:str):
-        x, y, ind = batch
-        out = self.forward(x)
-        batch_size = x.size(0)
-        if self.task == "regression":
-            y = y.view(batch_size, -1)
-        loss = self.loss_fn(out, y)
-
-        logs = {"loss": loss}
-        non_logs = {}
-        if self.task == "classification":
-            probs = torch.softmax(out, dim=1)
-            preds = torch.argmax(out, dim=1)
-            non_logs["preds"] = preds
-            non_logs["targets"] = y
-            if stage == "train":
-                logs.update(self.metrics_train(preds, y))
-                try:
-                    logs.update(self.metrics_train_prob(probs, y))
-                except ValueError:
-                    pass
-            elif stage == "val":
-                logs.update(self.metrics_val(preds, y))
-                try:
-                    logs.update(self.metrics_val_prob(probs, y))
-                except ValueError:
-                    pass
-            elif stage == "test":
-                logs.update(self.metrics_test(preds, y))
-                try:
-                    logs.update(self.metrics_val_prob(probs, y))
-                except ValueError:
-                    pass
-        elif self.task == "regression":
-            if stage == "train":
-                logs.update(self.metrics_train(out, y))
-            elif stage == "val":
-                logs.update(self.metrics_val(out, y))
-            elif stage == "test":
-                logs.update(self.metrics_test(out, y))
-
-        return loss, logs, non_logs
+        return super().step(batch=batch, stage=stage)
 
     def training_step(self, batch: Any, batch_idx: int):
-        loss, logs, non_logs = self.step(batch, "train")
-        d = {f"train/{k}": v for k, v in logs.items()}
-        self.log_dict(d, on_step=False, on_epoch=True, logger=True)
-        logs.update(non_logs)
-        return logs
+        return super().training_step(batch=batch, batch_idx=batch_idx)
 
     def training_epoch_end(self, outputs: List[Any]):
-        pass
+        return super().training_epoch_end(outputs=outputs)
 
     def validation_step(self, batch: Any, batch_idx: int):
-        loss, logs, non_logs = self.step(batch, "val")
-        d = {f"val/{k}": v for k, v in logs.items()}
-        self.log_dict(d, on_step=False, on_epoch=True, logger=True)
-        logs.update(non_logs)
-        return logs
-
-    def predict_step(self, batch, batch_idx):
-        x, y, ind = batch
-        out = self.forward(x)
-        return out
+        return super().validation_step(batch=batch, batch_idx=batch_idx)
 
     def validation_epoch_end(self, outputs: List[Any]):
-        pass
+        return super().validation_epoch_end(outputs=outputs)
 
     def test_step(self, batch: Any, batch_idx: int):
-        loss, logs, non_logs = self.step(batch, "test")
-        d = {f"test/{k}": v for k, v in logs.items()}
-        self.log_dict(d, on_step=False, on_epoch=True, logger=True)
-        logs.update(non_logs)
-        return logs
+        return super().test_step(batch=batch, batch_idx=batch_idx)
 
     def test_epoch_end(self, outputs: List[Any]):
-        pass
+        return super().test_epoch_end(outputs=outputs)
+
+    def predict_step(self, batch, batch_idx):
+        return super().predict_step(batch=batch, batch_idx=batch_idx)
 
     def configure_optimizers(self):
-        """Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
-
-        See examples here:
-            https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#configure-optimizers
-        """
-        optimizer = torch.optim.Adam(
-            params=self.parameters(),
-            lr=self.hparams.optimizer_lr,
-            weight_decay=self.hparams.optimizer_weight_decay
-        )
-        scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer=optimizer,
-            step_size=self.hparams.scheduler_step_size,
-            gamma=self.hparams.scheduler_gamma
-        )
-
-        return (
-            {
-                "optimizer": optimizer,
-                "lr_scheduler": scheduler
-            }
-        )
+        return super().configure_optimizers()

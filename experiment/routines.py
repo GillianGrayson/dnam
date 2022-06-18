@@ -65,7 +65,7 @@ def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, logger
         'f1_micro': 'max',
         'f1_weighted': 'max',
         'cohen_kappa': 'max',
-        'matthews_corrcoef': 'max',
+        'matthews_corr_coef': 'max',
     }
     metrics_summary['auroc_weighted'] = 'max'
     metrics_summary['auroc_macro'] = 'max'
@@ -108,9 +108,9 @@ def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=
         'mean_absolute_error': 'min',
         'mean_absolute_percentage_error': 'min',
         'mean_squared_error': 'min',
-        'pearson_corrcoef': 'max',
+        'pearson_corr_coef': 'max',
         'r2_score': 'max',
-        'spearman_corrcoef': 'max',
+        'spearman_corr_coef': 'max',
     }
 
     metrics = [metrics_classes_dict[m]() for m in metrics_summary]

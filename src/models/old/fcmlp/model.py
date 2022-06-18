@@ -3,6 +3,7 @@ from pytorch_lightning import LightningModule
 from torch import nn
 import torch
 from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, AUROC, CohenKappa, MatthewsCorrcoef, ConfusionMatrix
+from torchmetrics import CosineSimilarity, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, PearsonCorrcoef, R2Score, SpearmanCorrcoef
 import wandb
 
 
@@ -45,10 +46,53 @@ class FCMLPModel(LightningModule):
         output_layer = nn.Linear(self.topology[-2], self.topology[-1])
         self.mlp_layers.append(output_layer)
 
+
         if task == "classification":
             self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
             if n_output < 2:
                 raise ValueError(f"Classification with {n_output} classes")
+            self.metrics_dict = {
+                'accuracy_macro': Accuracy(num_classes=self.hparams.output_dim, average='macro'),
+                'accuracy_micro': Accuracy(num_classes=self.hparams.output_dim, average='micro'),
+                'accuracy_weighted': Accuracy(num_classes=self.hparams.output_dim, average='weighted'),
+                'f1_macro': F1(num_classes=self.hparams.output_dim, average='macro'),
+                'f1_micro': F1(num_classes=self.hparams.output_dim, average='micro'),
+                'f1_weighted': F1(num_classes=self.hparams.output_dim, average='weighted'),
+                'precision_macro': Precision(num_classes=self.hparams.output_dim, average='macro'),
+                'precision_micro': Precision(num_classes=self.hparams.output_dim, average='micro'),
+                'precision_weighted': Precision(num_classes=self.hparams.output_dim, average='weighted'),
+                'recall_macro': Recall(num_classes=self.hparams.output_dim, average='macro'),
+                'recall_micro': Recall(num_classes=self.hparams.output_dim, average='micro'),
+                'recall_weighted': Recall(num_classes=self.hparams.output_dim, average='weighted'),
+                'cohen_kappa': CohenKappa(num_classes=self.hparams.output_dim),
+                'matthews_corr_coef': MatthewsCorrcoef(num_classes=self.hparams.output_dim),
+            }
+            self.metrics_summary = {
+                'accuracy_macro': 'max',
+                'accuracy_micro': 'max',
+                'accuracy_weighted': 'max',
+                'f1_macro': 'max',
+                'f1_micro': 'max',
+                'f1_weighted': 'max',
+                'precision_macro': 'max',
+                'precision_micro': 'max',
+                'precision_weighted': 'max',
+                'recall_macro': 'max',
+                'recall_micro': 'max',
+                'recall_weighted': 'max',
+                'cohen_kappa': 'max',
+                'matthews_corr_coef': 'max',
+            }
+            self.metrics_prob_dict = {
+                'auroc_macro': AUROC(num_classes=self.hparams.output_dim, average='macro'),
+                'auroc_micro': AUROC(num_classes=self.hparams.output_dim, average='micro'),
+                'auroc_weighted': AUROC(num_classes=self.hparams.output_dim, average='weighted'),
+            }
+            self.metrics_prob_summary = {
+                'auroc_macro': 'max',
+                'auroc_micro': 'max',
+                'auroc_weighted': 'max',
+            }
         elif task == "regression":
             if self.hparams.loss_type == "MSE":
                 self.loss_fn = torch.nn.MSELoss(reduction='mean')
@@ -56,39 +100,26 @@ class FCMLPModel(LightningModule):
                 self.loss_fn = torch.nn.L1Loss(reduction='mean')
             else:
                 raise ValueError("Unsupported loss_type")
-
-        self.mlp = nn.Sequential(*self.mlp_layers)
-
-        self.metrics_dict = {
-            'accuracy': Accuracy(num_classes=self.n_output),
-            'f1_macro': F1(num_classes=self.n_output, average='macro'),
-            'precision_macro': Precision(num_classes=self.n_output, average='macro'),
-            'recall_macro': Recall(num_classes=self.n_output, average='macro'),
-            'f1_weighted': F1(num_classes=self.n_output, average='weighted'),
-            'precision_weighted': Precision(num_classes=self.n_output, average='weighted'),
-            'recall_weighted': Recall(num_classes=self.n_output, average='weighted'),
-            'cohens_kappa': CohenKappa(num_classes=self.n_output),
-            'matthews_corr': MatthewsCorrcoef(num_classes=self.n_output),
-        }
-        self.metrics_summary = {
-            'accuracy': 'max',
-            'f1_macro': 'max',
-            'precision_macro': 'max',
-            'recall_macro': 'max',
-            'f1_weighted': 'max',
-            'precision_weighted': 'max',
-            'recall_weighted': 'max',
-            'cohens_kappa': 'max',
-            'matthews_corr': 'max',
-        }
-        self.metrics_prob_dict = {
-            # 'auroc_macro': AUROC(num_classes=self.n_output, average='macro'),
-            # 'auroc_weighted': AUROC(num_classes=self.n_output, average='weighted'),
-        }
-        self.metrics_prob_summary = {
-            # 'auroc_macro': 'max',
-            # 'auroc_weighted': 'max',
-        }
+            self.metrics_dict = {
+                'cosine_similarity': CosineSimilarity(),
+                'mean_absolute_error': MeanAbsoluteError(),
+                'mean_absolute_percentage_error': MeanAbsolutePercentageError(),
+                'mean_squared_error': MeanSquaredError(),
+                'pearson_corr_coef': PearsonCorrcoef(),
+                'r2_score': R2Score(),
+                'spearman_corr_coef': SpearmanCorrcoef(),
+            }
+            self.metrics_summary = {
+                'cosine_similarity': 'min',
+                'mean_absolute_error': 'min',
+                'mean_absolute_percentage_error': 'min',
+                'mean_squared_error': 'min',
+                'pearson_corr_coef': 'max',
+                'r2_score': 'max',
+                'spearman_corr_coef': 'max'
+            }
+            self.metrics_prob_dict = {}
+            self.metrics_prob_summary = {}
 
         self.metrics_train = MetricCollection(self.metrics_dict)
         self.metrics_train_prob = MetricCollection(self.metrics_prob_dict)

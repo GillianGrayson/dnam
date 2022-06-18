@@ -1,4 +1,4 @@
-from src.models.to_delete.fcmlp_model import FCMLPModel
+from src.models.old.fcmlp_model import FCMLPModel
 import pickle
 from src.datamodules.to_delete.datasets.dnam_dataset import DNAmDataset
 from torch.utils.data import DataLoader
