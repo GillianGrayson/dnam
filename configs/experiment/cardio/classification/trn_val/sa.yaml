@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: snp_sphy
-model_type: xgboost # xgboost catboost lightgbm
+model_type: lightgbm # xgboost catboost lightgbm
 outcome: "SNP9" # SNP9 SNP12 SNPCol SNPMTHFR SNPApoB
 
 out_dim: 3
@@ -28,18 +28,18 @@ test_after_training: True
 max_epochs: 10000
 patience: 1000
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/022_ml_data_cardio/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/022_ml_data_cardio/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
 is_shap: True
-shap_explainer: Tree # Tree Kernel Deep
-shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
+shap_explainer: Kernel # Tree Kernel Deep
+shap_bkgrd: trn # trn all tree_path_dependent
 
 # Plot params
 num_top_features: 10
-num_examples: 10
+num_examples: 1
 
 # specify here default training configuration
 defaults:

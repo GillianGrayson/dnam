@@ -37,7 +37,7 @@ shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
 # Plot params
 num_top_features: 10
-num_examples: 10
+num_examples: 1
 
 # specify here default training configuration
 defaults:
@@ -105,7 +105,7 @@ lightgbm:
   feature_fraction: 0.9
   bagging_fraction: 0.8
   bagging_freq: 5
-  verbose: 0
+  verbose: -1
   metric: 'l1'
   max_epochs: ${max_epochs}
   patience: ${patience}

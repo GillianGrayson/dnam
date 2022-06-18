@@ -144,7 +144,6 @@ def explain_shap(config, expl_data):
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
-
     for part in ['trn', 'val', 'tst', 'all']:
         if expl_data[f"ids_{part}"] is not None:
             log.info(f"Calculating SHAP for {part}")
@@ -210,12 +209,15 @@ def explain_shap(config, expl_data):
             elif config.shap_explainer == "Kernel":
                 shap_values = explainer.shap_values(X)
                 expected_value = explainer.expected_value
+                log.info(f"Base probability check: {np.linalg.norm(np.mean(y_pred_prob, axis=0) - np.array(expected_value))}")
             elif config.shap_explainer == "Deep":
                 model.produce_probabilities = True
                 shap_values = explainer.shap_values(torch.from_numpy(X))
                 expected_value = explainer.expected_value
+                log.info(f"Base probability check: {np.linalg.norm(np.mean(y_pred_prob, axis=0) - np.array(expected_value))}")
             else:
                 raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
+
 
             shap.summary_plot(
                 shap_values=shap_values,
@@ -232,7 +234,7 @@ def explain_shap(config, expl_data):
             plt.close()
 
             for cl_id, cl in enumerate(expl_data['class_names']):
-                Path(f"shap/{part}/{cl}").mkdir(parents=True, exist_ok=True)
+                Path(f"shap/{part}/global/{cl}").mkdir(parents=True, exist_ok=True)
                 shap.summary_plot(
                     shap_values=shap_values[cl_id],
                     features=X,
