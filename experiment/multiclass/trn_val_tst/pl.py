@@ -23,6 +23,7 @@ from src.utils import utils
 import pandas as pd
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import explain_shap
+from experiment.multiclass.lime import explain_lime
 from datetime import datetime
 from experiment.routines import eval_classification, save_feature_importance
 from pathlib import Path
@@ -220,6 +221,7 @@ def process(config: DictConfig) -> Optional[float]:
         )
 
         def predict_func(X):
+            X = np.float32(X)
             model.produce_probabilities = True
             X = torch.from_numpy(X)
             tmp = model(X)
@@ -346,6 +348,8 @@ def process(config: DictConfig) -> Optional[float]:
         'ids_val': datamodule.ids_val,
         'ids_tst': datamodule.ids_tst
     }
+    if config.is_lime == True:
+        explain_lime(config, expl_data)
     if config.is_shap == True:
         explain_shap(config, expl_data)
 

@@ -22,6 +22,7 @@ import lightgbm as lgb
 import wandb
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import explain_shap
+from experiment.multiclass.lime import explain_lime
 from tqdm import tqdm
 
 
@@ -371,6 +372,8 @@ def process(config: DictConfig):
         'ids_tst': datamodule.ids_tst
     }
 
+    if config.is_lime == True:
+        explain_lime(config, expl_data)
     if config.is_shap == True:
         explain_shap(config, expl_data)
 

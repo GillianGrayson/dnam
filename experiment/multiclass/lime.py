@@ -47,7 +47,6 @@ def explain_lime(config, expl_data):
     samples_to_plot_corrects = {}
     for part in ['trn', 'val', 'tst', 'all']:
         if expl_data[f"ids_{part}"] is not None:
-            Path(f"lime/{part}/samples/mistakes").mkdir(parents=True, exist_ok=True)
             Path(f"lime/{part}/samples/corrects").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
@@ -98,30 +97,35 @@ def explain_lime(config, expl_data):
 
         if ind in samples_to_plot_mistakes:
             for part in samples_to_plot_mistakes[ind]:
+                path_curr = f"lime/{part}/samples/mistakes/real({class_names[y_real]})_pred({class_names[y_pred]})"
+                Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
                 exp_fig = explanation.as_pyplot_figure()
-                plt.title(f"{ind}: Real = {y_real:d}, Pred = {y_pred:d}", {'fontsize': 20})
+                plt.title(f"{ind}: Real = {class_names[y_real]}, Pred = {class_names[y_pred]}", {'fontsize': 20})
                 ind_save = ind.replace('/', '_')
-                exp_fig.savefig(f"lime/{part}/samples/mistakes/{ind_save}.pdf", bbox_inches='tight')
-                exp_fig.savefig(f"lime/{part}/samples/mistakes/{ind_save}.png", bbox_inches='tight')
+                exp_fig.savefig(f"{path_curr}/{ind_save}.pdf", bbox_inches='tight')
+                exp_fig.savefig(f"{path_curr}/{ind_save}.png", bbox_inches='tight')
                 plt.close()
 
         if ind in samples_to_plot_corrects:
             for part in samples_to_plot_corrects[ind]:
+                path_curr = f"lime/{part}/samples/corrects/real({class_names[y_real]})_pred({class_names[y_pred]})"
+                Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
                 exp_fig = explanation.as_pyplot_figure()
-                plt.title(f"{ind}: Real = {y_real:d}, Pred = {y_pred:d}", {'fontsize': 20})
+                plt.title(f"{ind}: Real = {class_names[y_real]}, Pred = {class_names[y_pred]}", {'fontsize': 20})
                 ind_save = ind.replace('/', '_')
-                exp_fig.savefig(f"lime/{part}/samples/corrects/{ind_save}.pdf", bbox_inches='tight')
-                exp_fig.savefig(f"lime/{part}/samples/corrects/{ind_save}.png", bbox_inches='tight')
+                exp_fig.savefig(f"{path_curr}/{ind_save}.pdf", bbox_inches='tight')
+                exp_fig.savefig(f"{path_curr}/{ind_save}.png", bbox_inches='tight')
                 plt.close()
 
     features_common = set(feature_names)
-    for cl_id, cl in enumerate(class_names):
-        df_weights[cl].dropna(axis=1, how='all', inplace=True)
-        df_weights[cl] = df_weights[cl].apply(pd.to_numeric, errors='coerce')
-        features_common.intersection(set(df_weights[cl].columns.values))
-        if config.lime_save_weights:
-            df_weights[cl].to_excel(f"lime/weights.xlsx", sheet_name=f"{cl}")
-    features_common = list(features_common)
+    with pd.ExcelWriter(f"lime/weights.xlsx") as writer:
+        for cl_id, cl in enumerate(class_names):
+            df_weights[cl].dropna(axis=1, how='all', inplace=True)
+            df_weights[cl] = df_weights[cl].apply(pd.to_numeric, errors='coerce')
+            features_common.intersection(set(df_weights[cl].columns.values))
+            if config.lime_save_weights:
+                df_weights[cl].to_excel(writer, sheet_name=f"{cl}")
+        features_common = list(features_common)
 
     for part in ['trn', 'val', 'tst', 'all']:
         if expl_data[f"ids_{part}"] is not None:
@@ -129,9 +133,6 @@ def explain_lime(config, expl_data):
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
             X = df.loc[indexes, features_common].values
-            y_pred = df.loc[indexes, "pred"].values
-            y_pred_prob = df.loc[indexes, [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
-            y_pred_raw = df.loc[indexes, [f"pred_raw_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
             lime_weights_all = []
             for cl_id, cl in enumerate(class_names):
@@ -175,6 +176,7 @@ def explain_lime(config, expl_data):
                 show=False,
                 color=plt.get_cmap("Set1")
             )
+            plt.xlabel('Mean |LIME weights|')
             plt.savefig(f'lime/{part}/global/bar.png', bbox_inches='tight')
             plt.savefig(f'lime/{part}/global/bar.pdf', bbox_inches='tight')
             plt.close()
