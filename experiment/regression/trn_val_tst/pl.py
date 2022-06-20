@@ -25,6 +25,7 @@ import pandas as pd
 from tqdm import tqdm
 from experiment.routines import plot_confusion_matrix
 from experiment.regression.shap import explain_shap
+from experiment.regression.lime import explain_lime
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.bar import add_bar_trace
@@ -445,7 +446,8 @@ def process(config: DictConfig) -> Optional[float]:
         'ids_val': datamodule.ids_val,
         'ids_tst': datamodule.ids_tst
     }
-
+    if config.is_lime == True:
+        explain_lime(config, expl_data)
     if config.is_shap == True:
         explain_shap(config, expl_data)
 

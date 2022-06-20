@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: node
+model_type: node # tabnet node
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -29,14 +29,20 @@ test_after_training: True
 max_epochs: 10000
 patience: 300
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: True
+is_shap: False
 shap_explainer: Kernel # Tree Kernel Deep
 shap_bkgrd: trn # trn all tree_path_dependent
+
+# LIME weights
+is_lime: True
+lime_bkgrd: trn # trn all
+lime_num_features: all # 10 all
+lime_save_weights: True
 
 # Plot params
 num_top_features: 10
@@ -57,7 +63,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/220_imp(fast_knn)_replace(half).xlsx"
+  trn_val_fn: "${data_dir}/data_paper_train.xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
