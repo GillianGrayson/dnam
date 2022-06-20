@@ -39,6 +39,7 @@ shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 is_lime: True
 lime_bkgrd: trn # trn all
 lime_num_features: all # 10 all
+lime_save_weights: True
 
 # Plot params
 num_top_features: 10
@@ -59,7 +60,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/220_imp(fast_knn)_replace(half).xlsx"
+  trn_val_fn: "${data_dir}/data_paper_train.xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
