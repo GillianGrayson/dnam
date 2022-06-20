@@ -9,6 +9,7 @@ from src.utils import utils
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
+from scripts.python.routines.plot.scatter import add_scatter_trace
 import plotly.express as px
 import lime
 import lime.lime_tabular
@@ -81,8 +82,6 @@ def explain_lime(config, expl_data):
         X = df.loc[ind, feature_names].values
         y_real = df.at[ind, outcome_name]
         y_pred = df.at[ind, "pred"]
-        y_pred_prob = df.loc[indexes_all, [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
-        y_pred_raw = df.loc[indexes_all, [f"pred_raw_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
         explanation = explainer.explain_instance(
             data_row=X,
@@ -115,83 +114,156 @@ def explain_lime(config, expl_data):
                 exp_fig.savefig(f"lime/{part}/samples/corrects/{ind_save}.png", bbox_inches='tight')
                 plt.close()
 
+    features_common = set(feature_names)
     for cl_id, cl in enumerate(class_names):
         df_weights[cl].dropna(axis=1, how='all', inplace=True)
         df_weights[cl] = df_weights[cl].apply(pd.to_numeric, errors='coerce')
+        features_common.intersection(set(df_weights[cl].columns.values))
         if config.lime_save_weights:
             df_weights[cl].to_excel(f"lime/weights.xlsx", sheet_name=f"{cl}")
+    features_common = list(features_common)
 
     for part in ['trn', 'val', 'tst', 'all']:
         if expl_data[f"ids_{part}"] is not None:
             Path(f"lime/{part}/global").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
-            X = df.loc[indexes, df_weights.columns.values].values
-            lime_weights = df_weights.loc[indexes, :].values
-            y_pred = df.loc[indexes, "Estimation"].values
+            X = df.loc[indexes, features_common].values
+            y_pred = df.loc[indexes, "pred"].values
+            y_pred_prob = df.loc[indexes, [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+            y_pred_raw = df.loc[indexes, [f"pred_raw_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+
+            lime_weights_all = []
+            for cl_id, cl in enumerate(class_names):
+                Path(f"lime/{part}/global/{cl}").mkdir(parents=True, exist_ok=True)
+                lime_weights = df_weights[cl].loc[indexes, features_common].values
+                lime_weights_all.append(lime_weights)
+
+                shap.summary_plot(
+                    shap_values=lime_weights,
+                    features=X,
+                    feature_names=features_common,
+                    # max_display=config.num_top_features,
+                    plot_type="bar",
+                    show=False,
+                )
+                plt.xlabel('Mean |LIME weights|')
+                plt.savefig(f'lime/{part}/global/{cl}/bar.png', bbox_inches='tight')
+                plt.savefig(f'lime/{part}/global/{cl}/bar.pdf', bbox_inches='tight')
+                plt.close()
+
+                shap.summary_plot(
+                    shap_values=lime_weights,
+                    features=X,
+                    feature_names=features_common,
+                    # max_display=config.num_top_features,
+                    plot_type="violin",
+                    show=False,
+                )
+                plt.xlabel('LIME weights')
+                plt.savefig(f"lime/{part}/global/{cl}/beeswarm.png", bbox_inches='tight')
+                plt.savefig(f"lime/{part}/global/{cl}/beeswarm.pdf", bbox_inches='tight')
+                plt.close()
 
             shap.summary_plot(
-                shap_values=lime_weights,
+                shap_values=lime_weights_all,
                 features=X,
-                feature_names=df_weights.columns.values,
+                feature_names=features_common,
                 # max_display=config.num_top_features,
-                plot_type="bar",
+                class_names=class_names,
+                class_inds=list(range(len(class_names))),
                 show=False,
+                color=plt.get_cmap("Set1")
             )
-            plt.xlabel('Mean |LIME weights|')
             plt.savefig(f'lime/{part}/global/bar.png', bbox_inches='tight')
             plt.savefig(f'lime/{part}/global/bar.pdf', bbox_inches='tight')
             plt.close()
 
-            shap.summary_plot(
-                shap_values=lime_weights,
-                features=X,
-                feature_names=df_weights.columns.values,
-                # max_display=config.num_top_features,
-                plot_type="violin",
-                show=False,
-            )
-            plt.xlabel('LIME weights')
-            plt.savefig(f"lime/{part}/global/beeswarm.png", bbox_inches='tight')
-            plt.savefig(f"lime/{part}/global/beeswarm.pdf", bbox_inches='tight')
-            plt.close()
-
-            Path(f"lime/{part}/features").mkdir(parents=True, exist_ok=True)
-            mean_abs_impact = np.mean(np.abs(lime_weights), axis=0)
-            features_order = np.argsort(mean_abs_impact)[::-1]
-            feat_ids_to_plot = features_order[0:config.num_top_features]
-            for rank, feat_id in enumerate(feat_ids_to_plot):
-                feat = feature_names[feat_id]
+            mean_abs_lime_weights = np.sum([np.mean(np.absolute(lime_weights_all[cl_id]), axis=0) for cl_id, cl in enumerate(class_names)], axis=0)
+            order = np.argsort(mean_abs_lime_weights)[::-1]
+            features = np.asarray(feature_names)[order]
+            features_best = features[0:config.num_top_features]
+            for feat_id, feat in enumerate(features_best):
                 fig = go.Figure()
-                fig.add_trace(
-                    go.Scatter(
-                        x=X[:, feat_id],
-                        y=lime_weights[:, feat_id],
-                        showlegend=False,
-                        name=feat,
-                        mode='markers',
-                        marker=dict(
-                            size=10,
-                            opacity=0.7,
-                            line=dict(
-                                width=1
-                            ),
-                            color=y_pred,
-                            colorscale=px.colors.sequential.Bluered,
-                            showscale=True,
-                            colorbar=dict(title=dict(text="Estimation", font=dict(size=20)), tickfont=dict(size=20))
-                        )
-                    )
-                )
-                add_layout(fig, feat, f"LIME weights for<br>{feat}", f"", font_size=20)
+                for cl_id, cl in enumerate(class_names):
+                    Path(f"lime/{part}/features/{cl}").mkdir(parents=True, exist_ok=True)
+                    lime_weights_cl = lime_weights_all[cl_id][:, order[feat_id]]
+                    real_values = df.loc[indexes, feat].values
+                    add_scatter_trace(fig, real_values, lime_weights_cl, cl)
+                add_layout(fig, f"{feat}", f"LIME weights for<br>{feat}", f"")
                 fig.update_layout(legend_font_size=20)
+                fig.update_layout(legend={'itemsizing': 'constant'})
                 fig.update_layout(
                     margin=go.layout.Margin(
-                        l=120,
+                        l=150,
                         r=20,
                         b=80,
-                        t=25,
+                        t=35,
                         pad=0
                     )
                 )
-                save_figure(fig, f"lime/{part}/features/{rank}_{feat}_scatter")
+                fig.update_layout({'colorway': px.colors.qualitative.Set1})
+                save_figure(fig, f"lime/{part}/features/{feat_id}_{feat}_scatter")
+
+                for cl_id, cl in enumerate(class_names):
+                    fig = go.Figure()
+                    lime_weights_cl = lime_weights_all[cl_id][:, order[feat_id]]
+                    real_values = df.loc[indexes, feat].values
+                    add_scatter_trace(fig, real_values, lime_weights_cl, "")
+                    add_layout(fig, f"{feat}", f"LIME weights for<br>{feat}", f"")
+                    fig.update_layout(legend_font_size=20)
+                    fig.update_layout(legend={'itemsizing': 'constant'})
+                    fig.update_layout(
+                        margin=go.layout.Margin(
+                            l=150,
+                            r=20,
+                            b=80,
+                            t=20,
+                            pad=0
+                        )
+                    )
+                    fig.update_layout({'colorway': ['red']})
+                    save_figure(fig, f"lime/{part}/features/{cl}/{feat_id}_{feat}_scatter")
+
+                fig = go.Figure()
+                for cl_id, cl in enumerate(class_names):
+                    vals = df.loc[(df.index.isin(indexes)) & (df[outcome_name] == cl_id), feat].values
+                    fig.add_trace(
+                        go.Violin(
+                            y=vals,
+                            name=f"{cl}",
+                            box_visible=True,
+                            meanline_visible=True,
+                            showlegend=False,
+                            line_color='black',
+                            fillcolor=px.colors.qualitative.Set1[cl_id],
+                            marker=dict(color=px.colors.qualitative.Set1[cl_id], line=dict(color='black', width=0.3), opacity=0.8),
+                            points='all',
+                            bandwidth=np.ptp(vals) / 25,
+                            opacity=0.8
+                        )
+                    )
+                add_layout(fig, "", f"{feat}", f"")
+                fig.update_layout({'colorway': px.colors.qualitative.Set1})
+                fig.update_layout(legend={'itemsizing': 'constant'})
+                fig.update_layout(title_xref='paper')
+                fig.update_layout(legend_font_size=20)
+                fig.update_layout(
+                    margin=go.layout.Margin(
+                        l=130,
+                        r=20,
+                        b=50,
+                        t=20,
+                        pad=0
+                    )
+                )
+                fig.update_layout(
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.25,
+                        xanchor="center",
+                        x=0.5
+                    )
+                )
+                save_figure(fig, f"lime/{part}/features/{feat_id}_{feat}_violin")

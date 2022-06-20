@@ -157,6 +157,7 @@ def explain_lime(config, expl_data):
                 )
                 add_layout(fig, feat, f"LIME weights for<br>{feat}", f"", font_size=20)
                 fig.update_layout(legend_font_size=20)
+                fig.update_layout(legend={'itemsizing': 'constant'})
                 fig.update_layout(
                     margin=go.layout.Margin(
                         l=120,
