@@ -89,6 +89,7 @@ def explain_lime(config, expl_data):
                 plt.close()
 
     df_weights.dropna(axis=1, how='all', inplace=True)
+    df_weights = df_weights.apply(pd.to_numeric, errors='coerce')
     if config.lime_save_weights:
         df_weights.to_excel(f"lime/weights.xlsx")
 
