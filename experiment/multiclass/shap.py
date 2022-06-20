@@ -22,6 +22,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
     Path(f"{path}").mkdir(parents=True, exist_ok=True)
     is_correct_pred = (np.array(y_real) == np.array(y_pred))
     mistakes_ids = np.where(is_correct_pred == False)[0]
+    corrects_ids = np.where(is_correct_pred == True)[0]
+
     num_mistakes = min(len(mistakes_ids), config.num_examples)
 
     for m_id in mistakes_ids[0:num_mistakes]:
@@ -29,7 +31,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
 
         ind_save = indexes[m_id].replace('/', '_')
         for cl_id, cl in enumerate(class_names):
-            path_curr = f"{path}/errors/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}"
+            path_curr = f"{path}/mistakes/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}"
             Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
             shap.plots.waterfall(
                 shap.Explanation(
@@ -70,20 +72,20 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
             fig.savefig(f"{path_curr}/force_{cl}.png", bbox_inches='tight')
             plt.close()
 
-    passed_examples = {x: 0 for x in range(len(class_names))}
-    for p_id in range(features.shape[0]):
-        if passed_examples[y_real[p_id]] < config.num_examples:
-            log.info(f"Plotting correct sample {indexes[p_id]} for {y_real[p_id]}")
-            ind_save = indexes[p_id].replace('/', '_')
+    correct_samples = {x: 0 for x in range(len(class_names))}
+    for c_id in corrects_ids:
+        if correct_samples[y_real[c_id]] < config.num_examples:
+            log.info(f"Plotting correct sample {indexes[c_id]} for {y_real[c_id]}")
+            ind_save = indexes[c_id].replace('/', '_')
             for cl_id, cl in enumerate(class_names):
-                path_curr = f"{path}/corrects/{class_names[y_real[p_id]]}/{ind_save}"
+                path_curr = f"{path}/corrects/{class_names[y_real[c_id]]}/{ind_save}"
                 Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
 
                 shap.waterfall_plot(
                     shap.Explanation(
-                        values=shap_values[cl_id][p_id],
+                        values=shap_values[cl_id][c_id],
                         base_values=base_values[cl_id],
-                        data=features[p_id],
+                        data=features[c_id],
                         feature_names=feature_names
                     ),
                     show=False
@@ -95,8 +97,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
 
                 shap.plots.decision(
                     base_value=base_values[cl_id],
-                    shap_values=shap_values[cl_id][p_id],
-                    features=features[p_id],
+                    shap_values=shap_values[cl_id][c_id],
+                    features=features[c_id],
                     feature_names=feature_names,
                     show=False,
                 )
@@ -107,8 +109,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
 
                 shap.plots.force(
                     base_value=base_values[cl_id],
-                    shap_values=shap_values[cl_id][p_id],
-                    features=features[p_id],
+                    shap_values=shap_values[cl_id][c_id],
+                    features=features[c_id],
                     feature_names=feature_names,
                     show=False,
                     matplotlib=True
@@ -118,7 +120,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
                 fig.savefig(f"{path_curr}/force_{cl}.png", bbox_inches='tight')
                 plt.close()
 
-            passed_examples[y_real[p_id]] += 1
+            correct_samples[y_real[c_id]] += 1
 
 
 def explain_shap(config, expl_data):

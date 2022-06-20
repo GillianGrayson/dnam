@@ -55,10 +55,10 @@ def explain_lime(config, expl_data):
             num_examples = config.num_examples
             ids_selected = list(set(np.concatenate((order[0:num_examples], order[-num_examples:], order_abs[0:num_examples]))))
             for s in ids_selected:
-                if df.index[s] in samples_to_plot:
-                    samples_to_plot[df.index[s]].append(part)
+                if indexes[s] in samples_to_plot:
+                    samples_to_plot[indexes[s]].append(part)
                 else:
-                    samples_to_plot[df.index[s]] = [part]
+                    samples_to_plot[indexes[s]] = [part]
 
     ids_all = expl_data[f"ids_all"]
     indexes_all = df.index[ids_all]

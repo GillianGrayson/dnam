@@ -42,57 +42,84 @@ def explain_lime(config, expl_data):
         mode='classification'
     )
 
-    samples_to_plot = {}
+    samples_to_plot_mistakes = {}
+    samples_to_plot_corrects = {}
     for part in ['trn', 'val', 'tst', 'all']:
         if expl_data[f"ids_{part}"] is not None:
-            Path(f"lime/{part}/samples").mkdir(parents=True, exist_ok=True)
+            Path(f"lime/{part}/samples/mistakes").mkdir(parents=True, exist_ok=True)
+            Path(f"lime/{part}/samples/corrects").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
             y_real = df.loc[indexes, outcome_name].values
-            y_pred = df.loc[indexes, "Estimation"].values
-            y_diff = np.array(y_pred) - np.array(y_real)
-            order = np.argsort(y_diff)
-            order_abs = np.argsort(np.abs(y_diff))
-            num_examples = config.num_examples
-            ids_selected = list(set(np.concatenate((order[0:num_examples], order[-num_examples:], order_abs[0:num_examples]))))
-            for s in ids_selected:
-                if df.index[s] in samples_to_plot:
-                    samples_to_plot[df.index[s]].append(part)
+            y_pred = df.loc[indexes, "pred"].values
+            is_correct_pred = (np.array(y_real) == np.array(y_pred))
+            mistakes_ids = np.where(is_correct_pred == False)[0]
+            corrects_ids = np.where(is_correct_pred == True)[0]
+
+            num_mistakes = min(len(mistakes_ids), config.num_examples)
+            for m_id in mistakes_ids[0:num_mistakes]:
+                if indexes[m_id] in samples_to_plot_mistakes:
+                    samples_to_plot_mistakes[indexes[m_id]].append(part)
                 else:
-                    samples_to_plot[df.index[s]] = [part]
+                    samples_to_plot_mistakes[indexes[m_id]] = [part]
+
+            correct_samples = {x: 0 for x in range(len(class_names))}
+            for c_id in corrects_ids:
+                if correct_samples[y_real[c_id]] < config.num_examples:
+                    if indexes[c_id] in samples_to_plot_corrects:
+                        samples_to_plot_corrects[indexes[c_id]].append(part)
+                    else:
+                        samples_to_plot_corrects[indexes[c_id]] = [part]
+                    correct_samples[y_real[c_id]] += 1
 
     ids_all = expl_data[f"ids_all"]
     indexes_all = df.index[ids_all]
-    df_weights = pd.DataFrame(index=df.index, columns=feature_names)
+    df_weights = {}
+    for cl_id, cl in enumerate(class_names):
+        df_weights[cl] = pd.DataFrame(index=df.index, columns=feature_names)
     for ind in tqdm(indexes_all, desc=f'Calculating LIME explanations'):
         X = df.loc[ind, feature_names].values
         y_real = df.at[ind, outcome_name]
-        y_pred = df.at[ind, "Estimation"]
-        y_diff = y_pred - y_real
+        y_pred = df.at[ind, "pred"]
+        y_pred_prob = df.loc[indexes_all, [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+        y_pred_raw = df.loc[indexes_all, [f"pred_raw_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
         explanation = explainer.explain_instance(
             data_row=X,
             predict_fn=predict_func,
-            num_features=num_features
+            num_features=num_features,
+            labels=class_names,
+            top_labels=len(class_names),
         )
 
-        exp_map = explanation.as_map()[1]
-        for elem in exp_map:
-            df_weights.at[ind, feature_names[elem[0]]] = elem[1]
+        exp_map = explanation.as_map()
+        for cl_id, cl in enumerate(class_names):
+            for elem in exp_map[cl_id]:
+                df_weights[cl].at[ind, feature_names[elem[0]]] = elem[1]
 
-        if ind in samples_to_plot:
-            for part in samples_to_plot[ind]:
+        if ind in samples_to_plot_mistakes:
+            for part in samples_to_plot_mistakes[ind]:
                 exp_fig = explanation.as_pyplot_figure()
-                plt.title(f"{ind}: Real = {y_real:0.4f}, Estimated = {y_pred:0.4f}", {'fontsize': 20})
+                plt.title(f"{ind}: Real = {y_real:d}, Pred = {y_pred:d}", {'fontsize': 20})
                 ind_save = ind.replace('/', '_')
-                exp_fig.savefig(f"lime/{part}/samples/{ind_save}_{y_diff:0.4f}.pdf", bbox_inches='tight')
-                exp_fig.savefig(f"lime/{part}/samples/{ind_save}_{y_diff:0.4f}.png", bbox_inches='tight')
+                exp_fig.savefig(f"lime/{part}/samples/mistakes/{ind_save}.pdf", bbox_inches='tight')
+                exp_fig.savefig(f"lime/{part}/samples/mistakes/{ind_save}.png", bbox_inches='tight')
                 plt.close()
 
-    df_weights.dropna(axis=1, how='all', inplace=True)
-    df_weights = df_weights.apply(pd.to_numeric, errors='coerce')
-    if config.lime_save_weights:
-        df_weights.to_excel(f"lime/weights.xlsx")
+        if ind in samples_to_plot_corrects:
+            for part in samples_to_plot_corrects[ind]:
+                exp_fig = explanation.as_pyplot_figure()
+                plt.title(f"{ind}: Real = {y_real:d}, Pred = {y_pred:d}", {'fontsize': 20})
+                ind_save = ind.replace('/', '_')
+                exp_fig.savefig(f"lime/{part}/samples/corrects/{ind_save}.pdf", bbox_inches='tight')
+                exp_fig.savefig(f"lime/{part}/samples/corrects/{ind_save}.png", bbox_inches='tight')
+                plt.close()
+
+    for cl_id, cl in enumerate(class_names):
+        df_weights[cl].dropna(axis=1, how='all', inplace=True)
+        df_weights[cl] = df_weights[cl].apply(pd.to_numeric, errors='coerce')
+        if config.lime_save_weights:
+            df_weights[cl].to_excel(f"lime/weights.xlsx", sheet_name=f"{cl}")
 
     for part in ['trn', 'val', 'tst', 'all']:
         if expl_data[f"ids_{part}"] is not None:
