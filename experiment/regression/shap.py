@@ -16,16 +16,16 @@ log = utils.get_logger(__name__)
 
 def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, features, feature_names, path):
     Path(f"{path}").mkdir(parents=True, exist_ok=True)
-    diff_y = np.array(y_pred) - np.array(y_real)
-    order = np.argsort(diff_y)
-    order_abs = np.argsort(np.abs(diff_y))
+    y_diff = np.array(y_pred) - np.array(y_real)
+    order = np.argsort(y_diff)
+    order_abs = np.argsort(np.abs(y_diff))
     num_examples = config.num_examples
 
     # Select samples with the biggest positive difference, the biggest positive difference, the smallest difference
     ids = list(set(np.concatenate((order[0:num_examples], order[-num_examples:], order_abs[0:num_examples]))))
     log.info(f"Number of samples: {len(ids)}")
     for m_id in ids:
-        diff = diff_y[m_id]
+        diff = y_diff[m_id]
         log.info(f"Plotting sample {m_id}: {indexes[m_id]} (real = {y_real[m_id]:0.4f}, estimated = {y_pred[m_id]:0.4f}) with diff = {diff:0.4f}")
 
         ind_save = indexes[m_id].replace('/', '_')

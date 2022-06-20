@@ -7,7 +7,7 @@ from pytorch_lightning import (
 )
 from experiment.logging import log_hyperparameters
 from experiment.regression.shap import explain_shap
-from experiment.regression.lime import perform_lime_explanation
+from experiment.regression.lime import explain_lime
 from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from src.utils import utils
@@ -458,6 +458,8 @@ def process(config: DictConfig):
         'ids_tst': datamodule.ids_tst
     }
 
+    if config.is_lime == True:
+        explain_lime(config, expl_data)
     if config.is_shap == True:
         explain_shap(config, expl_data)
 
