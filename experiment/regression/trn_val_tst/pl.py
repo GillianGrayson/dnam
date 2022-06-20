@@ -219,6 +219,7 @@ def process(config: DictConfig) -> Optional[float]:
         )
 
         def predict_func(X):
+            X = np.float32(X)
             X = torch.from_numpy(X)
             tmp = model(X)
             return tmp.cpu().detach().numpy()

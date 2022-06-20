@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: node # tabnet node
+model_type: tabnet # tabnet node
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
