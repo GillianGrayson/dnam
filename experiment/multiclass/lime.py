@@ -19,6 +19,118 @@ from tqdm import tqdm
 
 log = utils.get_logger(__name__)
 
+def get_figure_for_sample_explanation(exp_map, class_names, feature_names):
+    fig = make_subplots(
+        rows=1,
+        cols=len(class_names),
+        shared_yaxes=False,
+        shared_xaxes=False,
+        subplot_titles=class_names
+    )
+    for cl_id, cl in enumerate(class_names):
+        xs = [x[1] for x in exp_map[cl_id]][::-1]
+        ys = [feature_names[x[0]] for x in exp_map[cl_id]][::-1]
+        bases = [0 if x < 0 else 0 for x in xs]
+        colors = ['darkblue' if x < 0 else 'crimson' for x in xs]
+        fig.add_trace(
+            go.Bar(
+                x=xs,
+                y=list(range(len(ys))),
+                orientation='h',
+                marker_color=colors,
+                base=bases
+            ),
+            row=1,
+            col=cl_id + 1
+        )
+
+        fig.update_xaxes(
+            autorange=True,
+            title_text=f"LIME weights",
+            row=1,
+            col=cl_id + 1,
+            showgrid=True,
+            zeroline=True,
+            linecolor='black',
+            showline=True,
+            gridcolor='gainsboro',
+            gridwidth=0.05,
+            mirror="allticks",
+            ticks='outside',
+            titlefont=dict(
+                color='black',
+                size=20
+            ),
+            showticklabels=True,
+            tickangle=0,
+            tickfont=dict(
+                color='black',
+                size=20
+            ),
+            exponentformat='e',
+            showexponent='all'
+        )
+        fig.update_yaxes(
+            autorange=False,
+            tickmode='array',
+            tickvals=list(range(len(ys))),
+            range=[-0.5, len(xs) - 0.5],
+            ticktext=ys,
+            title_text="",
+            row=1,
+            col=cl_id + 1,
+            showgrid=True,
+            zeroline=False,
+            linecolor='black',
+            showline=True,
+            gridcolor='gainsboro',
+            gridwidth=0.05,
+            mirror=True,
+            ticks='outside',
+            titlefont=dict(
+                color='black',
+                size=20
+            ),
+            showticklabels=True,
+            tickangle=0,
+            tickfont=dict(
+                color='black',
+                size=20
+            ),
+            exponentformat='e',
+            showexponent='all'
+        )
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.01,
+            xanchor="center",
+            x=0.5
+        ),
+        title=dict(
+            text="",
+            font=dict(size=25)
+        ),
+        template="none",
+        autosize=False,
+        width=2200,
+        height=800,
+        margin=go.layout.Margin(
+            l=150,
+            r=20,
+            b=100,
+            t=40,
+            pad=0
+        )
+    )
+    fig.update_layout(legend_font_size=20)
+    fig.update_annotations(font_size=40)
+    fig.update_layout(legend={'itemsizing': 'constant'})
+    return fig
+
 
 def explain_lime(config, expl_data):
 
@@ -101,129 +213,16 @@ def explain_lime(config, expl_data):
                 path_curr = f"lime/{part}/samples/mistakes/real({class_names[y_real]})_pred({class_names[y_pred]})"
                 Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
                 ind_save = ind.replace('/', '_')
-
-                fig = make_subplots(
-                    rows=1,
-                    cols=len(class_names),
-                    shared_yaxes=False,
-                    shared_xaxes=False,
-                    subplot_titles=class_names
-                )
-                for cl_id, cl in enumerate(class_names):
-
-                    xs = [x[1] for x in exp_map[cl_id]][::-1]
-                    ys = [feature_names[x[0]] for x in exp_map[cl_id]][::-1]
-                    bases = [0 if x < 0 else 0 for x in xs]
-                    colors = ['darkblue' if x < 0 else 'crimson' for x in xs]
-                    fig.add_trace(
-                        go.Bar(
-                            x=xs,
-                            y=list(range(len(ys))),
-                            orientation='h',
-                            marker_color=colors,
-                            base=bases
-                        ),
-                        row = 1,
-                        col = cl_id + 1
-                    )
-
-                    fig.update_xaxes(
-                        autorange=True,
-                        title_text=f"LIME weights",
-                        row=1,
-                        col=cl_id + 1,
-                        showgrid=True,
-                        zeroline=True,
-                        linecolor='black',
-                        showline=True,
-                        gridcolor='gainsboro',
-                        gridwidth=0.05,
-                        mirror="allticks",
-                        ticks='outside',
-                        titlefont=dict(
-                            color='black',
-                            size=20
-                        ),
-                        showticklabels=True,
-                        tickangle=0,
-                        tickfont=dict(
-                            color='black',
-                            size=20
-                        ),
-                        exponentformat='e',
-                        showexponent='all'
-                    )
-                    fig.update_yaxes(
-                        autorange=False,
-                        tickmode='array',
-                        tickvals=list(range(len(ys))),
-                        range=[-0.5, len(xs) - 0.5],
-                        ticktext=ys,
-                        title_text="",
-                        row=1,
-                        col=cl_id + 1,
-                        showgrid=True,
-                        zeroline=False,
-                        linecolor='black',
-                        showline=True,
-                        gridcolor='gainsboro',
-                        gridwidth=0.05,
-                        mirror=True,
-                        ticks='outside',
-                        titlefont=dict(
-                            color='black',
-                            size=20
-                        ),
-                        showticklabels=True,
-                        tickangle=0,
-                        tickfont=dict(
-                            color='black',
-                            size=20
-                        ),
-                        exponentformat='e',
-                        showexponent='all'
-                    )
-                fig.update_layout(legend_font_size=20)
-                fig.update_layout(showlegend=False)
-                fig.update_layout(
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.01,
-                        xanchor="center",
-                        x=0.5
-                    ),
-                    title=dict(
-                        text="",
-                        font=dict(size=25)
-                    ),
-                    template="none",
-                    autosize=False,
-                    width=2200,
-                    height=800,
-                    margin=go.layout.Margin(
-                        l=150,
-                        r=20,
-                        b=100,
-                        t=40,
-                        pad=0
-                    )
-                )
-                fig.update_layout(legend_font_size=20)
-                fig.update_annotations(font_size=40)
-                fig.update_layout(legend={'itemsizing': 'constant'})
+                fig = get_figure_for_sample_explanation(exp_map, class_names, feature_names)
                 save_figure(fig, f"{path_curr}/{ind_save}")
 
         if ind in samples_to_plot_corrects:
             for part in samples_to_plot_corrects[ind]:
                 path_curr = f"lime/{part}/samples/corrects/real({class_names[y_real]})_pred({class_names[y_pred]})"
                 Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
-                exp_fig = explanation.as_pyplot_figure()
-                plt.title(f"{ind}: Real = {class_names[y_real]}, Pred = {class_names[y_pred]}", {'fontsize': 20})
                 ind_save = ind.replace('/', '_')
-                exp_fig.savefig(f"{path_curr}/{ind_save}.pdf", bbox_inches='tight')
-                exp_fig.savefig(f"{path_curr}/{ind_save}.png", bbox_inches='tight')
-                plt.close()
+                fig = get_figure_for_sample_explanation(exp_map, class_names, feature_names)
+                save_figure(fig, f"{path_curr}/{ind_save}")
 
     features_common = set(feature_names)
     with pd.ExcelWriter(f"lime/weights.xlsx") as writer:
