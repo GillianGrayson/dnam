@@ -119,6 +119,9 @@ def explain_lime(config, expl_data):
             num_features=num_features
         )
 
+        if abs(y_pred - explanation.predicted_value) > 1e-5:
+            raise ValueError(f"Wrong model prediction for {ind}: predict_func={explanation.predicted_value}, df={y_pred}")
+
         exp_map = explanation.as_map()[1]
         for elem in exp_map:
             df_weights.at[ind, feature_names[elem[0]]] = elem[1]
@@ -128,8 +131,8 @@ def explain_lime(config, expl_data):
                 ind_save = ind.replace('/', '_')
                 fig = get_figure_for_sample_explanation(exp_map, feature_names)
                 fig.update_layout(
-                    title_font_size=30,
-                    title_text=f"{ind}: Real: {y_real:0.2f}, Pred: {y_pred:0.2f}",
+                    title_font_size=25,
+                    title_text=f"{ind}: Real: {y_real:0.2f}, Pred: {y_pred:0.2f}, LIME: {explanation.local_pred[0]}",
                     title_xanchor="center",
                     title_xref="paper"
                 )

@@ -278,6 +278,23 @@ def process(config: DictConfig):
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             best["model"] = model
             best['loss_info'] = loss_info
+
+            if config.model_type == "xgboost":
+                def predict_func(X):
+                    X = xgb.DMatrix(X, feature_names=feature_names)
+                    y = best["model"].predict(X)
+                    return y
+            elif config.model_type == "catboost":
+                def predict_func(X):
+                    y = best["model"].predict(X, prediction_type="Probability")
+                    return y
+            elif config.model_type == "lightgbm":
+                def predict_func(X):
+                    y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
+                    return y
+            else:
+                raise ValueError(f"Model {config.model_type} is not supported")
+
             best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx

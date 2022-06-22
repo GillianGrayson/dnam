@@ -220,13 +220,6 @@ def process(config: DictConfig) -> Optional[float]:
             logger=loggers,
         )
 
-        def predict_func(X):
-            X = np.float32(X)
-            model.produce_probabilities = True
-            X = torch.from_numpy(X)
-            tmp = model(X)
-            return tmp.cpu().detach().numpy()
-
         metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
         metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
         if is_test:
@@ -274,6 +267,14 @@ def process(config: DictConfig) -> Optional[float]:
                     raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
             best["trainer"] = trainer
+
+            def predict_func(X):
+                X = np.float32(X)
+                best["model"].produce_probabilities = True
+                X = torch.from_numpy(X)
+                tmp = best["model"](X)
+                return tmp.cpu().detach().numpy()
+
             best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx

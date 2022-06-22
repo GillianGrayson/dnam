@@ -136,11 +136,6 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.xgboost.eval_metric]
             }
 
-            def predict_func(X):
-                X = xgb.DMatrix(X, feature_names=feature_names)
-                y = model.predict(X)
-                return y
-
             fi = model.get_score(importance_type='weight')
             feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
 
@@ -173,10 +168,6 @@ def process(config: DictConfig):
                 'train/loss': metrics_train.iloc[:, 1],
                 'val/loss': metrics_val.iloc[:, 1]
             }
-
-            def predict_func(X):
-                y = model.predict(X)
-                return y
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
 
@@ -222,10 +213,6 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.lightgbm.metric]
             }
 
-            def predict_func(X):
-                y = model.predict(X, num_iteration=model.best_iteration)
-                return y
-
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
         elif config.model_type == "elastic_net":
@@ -246,10 +233,6 @@ def process(config: DictConfig):
                 'train/loss': [0],
                 'val/loss': [0]
             }
-
-            def predict_func(X):
-                y = model.predict(X)
-                return y
 
             feature_importances = pd.DataFrame.from_dict({'feature': ['Intercept'] + feature_names, 'importance': [model.intercept_] + list(model.coef_)})
 
@@ -285,6 +268,27 @@ def process(config: DictConfig):
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             best["model"] = model
             best['loss_info'] = loss_info
+
+            if config.model_type == "xgboost":
+                def predict_func(X):
+                    X = xgb.DMatrix(X, feature_names=feature_names)
+                    y = best["model"].predict(X)
+                    return y
+            elif config.model_type == "catboost":
+                def predict_func(X):
+                    y = best["model"].predict(X)
+                    return y
+            elif config.model_type == "lightgbm":
+                def predict_func(X):
+                    y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
+                    return y
+            elif config.model_type == "elastic_net":
+                def predict_func(X):
+                    y = best["model"].predict(X)
+                    return y
+            else:
+                raise ValueError(f"Model {config.model_type} is not supported")
+
             best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
             best['fold'] = fold_idx
@@ -293,6 +297,7 @@ def process(config: DictConfig):
             df.loc[df.index[ids_trn], "Estimation"] = y_trn_pred
             df.loc[df.index[ids_val], "Estimation"] = y_val_pred
             if is_test:
+                best['ids_tst'] = ids_tst
                 df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
 
         cv_progress['fold'].append(fold_idx)

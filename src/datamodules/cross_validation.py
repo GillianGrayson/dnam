@@ -54,7 +54,7 @@ class RepeatedStratifiedKFoldCVSplitter(CVSplitter):
             self._datamodule.setup()
             train_val_y = self._datamodule.get_trn_val_y()
 
-            if self._datamodule.task in ['binary', 'multiclass']:
+            if self._datamodule.task in ['binary', 'multiclass', 'classification']:
                 splits = self._k_fold.split(X=range(len(train_val_y)), y=train_val_y, groups=train_val_y)
             elif self._datamodule.task == "regression":
                 ptp = np.ptp(train_val_y)
