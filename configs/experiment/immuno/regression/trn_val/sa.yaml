@@ -26,7 +26,7 @@ test_after_training: True
 max_epochs: 10000
 patience: 1000
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -43,7 +43,7 @@ lime_save_weights: True
 
 # Plot params
 num_top_features: 10
-num_examples: 1
+num_examples: 20
 
 # specify here default training configuration
 defaults:

@@ -17,6 +17,50 @@ from tqdm import tqdm
 
 log = utils.get_logger(__name__)
 
+def get_figure_for_sample_explanation(exp_map, feature_names):
+    fig = go.Figure()
+    xs = [x[1] for x in exp_map][::-1]
+    ys = [feature_names[x[0]] for x in exp_map][::-1]
+    bases = [0 if x < 0 else 0 for x in xs]
+    colors = ['darkblue' if x < 0 else 'crimson' for x in xs]
+    fig.add_trace(
+        go.Bar(
+            x=xs,
+            y=list(range(len(ys))),
+            orientation='h',
+            marker_color=colors,
+            base=bases
+        )
+    )
+    add_layout(fig, "LIME weights", "", "")
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        yaxis=dict(
+            tickmode='array',
+            tickvals=list(range(len(ys))),
+            ticktext=ys
+        )
+    )
+    fig.update_yaxes(autorange=False)
+    fig.update_layout(yaxis_range=[-0.5, len(ys) - 0.5])
+    fig.update_yaxes(tickfont_size=24)
+    fig.update_xaxes(tickfont_size=24)
+    fig.update_layout(
+        autosize=False,
+        width=600 + 20 * len(max(ys, key=len)),
+        height=40 * len(ys),
+        margin=go.layout.Margin(
+            l=20 * len(max(ys, key=len)),
+            r=20,
+            b=100,
+            t=60,
+            pad=0
+        )
+    )
+    fig.update_layout(legend={'itemsizing': 'constant'})
+    return fig
+
 
 def explain_lime(config, expl_data):
 
@@ -81,12 +125,15 @@ def explain_lime(config, expl_data):
 
         if ind in samples_to_plot:
             for part in samples_to_plot[ind]:
-                exp_fig = explanation.as_pyplot_figure()
-                plt.title(f"{ind}: Real = {y_real:0.4f}, Estimated = {y_pred:0.4f}", {'fontsize': 20})
                 ind_save = ind.replace('/', '_')
-                exp_fig.savefig(f"lime/{part}/samples/{ind_save}_{y_diff:0.4f}.pdf", bbox_inches='tight')
-                exp_fig.savefig(f"lime/{part}/samples/{ind_save}_{y_diff:0.4f}.png", bbox_inches='tight')
-                plt.close()
+                fig = get_figure_for_sample_explanation(exp_map, feature_names)
+                fig.update_layout(
+                    title_font_size=30,
+                    title_text=f"{ind}: Real: {y_real:0.2f}, Pred: {y_pred:0.2f}",
+                    title_xanchor="center",
+                    title_xref="paper"
+                )
+                save_figure(fig, f"lime/{part}/samples/{ind_save}_{y_diff:0.4f}")
 
     df_weights.dropna(axis=1, how='all', inplace=True)
     df_weights = df_weights.apply(pd.to_numeric, errors='coerce')
