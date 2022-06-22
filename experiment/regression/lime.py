@@ -132,7 +132,7 @@ def explain_lime(config, expl_data):
                 fig = get_figure_for_sample_explanation(exp_map, feature_names)
                 fig.update_layout(
                     title_font_size=25,
-                    title_text=f"{ind}: Real: {y_real:0.2f}, Pred: {y_pred:0.2f}, LIME: {explanation.local_pred[0]}",
+                    title_text=f"{ind}: Real: {y_real:0.2f}, Pred: {y_pred:0.2f}, LIME: {explanation.local_pred[0]:0.2f}",
                     title_xanchor="center",
                     title_xref="paper"
                 )
