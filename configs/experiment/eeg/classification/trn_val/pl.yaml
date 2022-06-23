@@ -11,7 +11,7 @@ out_dim: 2
 
 project_name: ${data_type}_${experiment_type}_trn_val_${model_type}
 
-seed: 42
+seed: 1337
 
 cv_is_split: True
 cv_n_splits: 5
@@ -29,7 +29,7 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 10000
-patience: 300
+patience: 200
 
 base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
@@ -95,7 +95,7 @@ tabnet:
   loss_type: "CrossEntropyLoss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.0005
+  optimizer_lr: 0.01
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
   scheduler_gamma: 0.9
