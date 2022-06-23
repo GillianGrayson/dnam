@@ -11,9 +11,9 @@ out_dim: 2
 
 project_name: ${data_type}_${experiment_type}_trn_val_${model_type}
 
-seed: 69
+seed: 42
 
-cv_is_split: False
+cv_is_split: True
 cv_n_splits: 5
 cv_n_repeats: 1
 
@@ -21,7 +21,7 @@ optimized_metric: "f1_weighted"
 optimized_part: "val"
 direction: "max"
 
-is_shuffle: True
+is_shuffle: False
 
 debug: False
 print_config: True
@@ -83,7 +83,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 100
+  progress_bar_refresh_rate: 0
   resume_from_checkpoint: null
 
 model:
@@ -95,9 +95,9 @@ tabnet:
   loss_type: "CrossEntropyLoss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.005
+  optimizer_lr: 0.0005
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 100
+  scheduler_step_size: 50
   scheduler_gamma: 0.9
   n_d_n_a: 8
   n_steps: 3
