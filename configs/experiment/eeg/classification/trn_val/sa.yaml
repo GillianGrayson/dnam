@@ -1,14 +1,18 @@
 # @package _global_
 
-data_type: 1st_Day_right_real_left_real_background_uV
-model_type: xgboost
-outcome: "class"
+data_type: 1st_day
+model_type: catboost # xgboost catboost lightgbm
+outcome: "class_simp"
 
-project_name: ${data_type}_trn_tst_${model_type}
+experiment_type: real
 
-seed: 69
+out_dim: 2
 
-cv_is_split: False
+project_name: ${data_type}_${experiment_type}_trn_val_${model_type}
+
+seed: 42
+
+cv_is_split: True
 cv_n_splits: 5
 cv_n_repeats: 5
 
@@ -23,22 +27,27 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 2000
-patience: 100
+max_epochs: 10000
+patience: 300
 
-in_dim: 768
-out_dim: 2
-
-base_dir: "E:/YandexDisk/EEG/Files/${data_type}"
+base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
+# SHAP values
 is_shap: False
-shap_explainer: Tree
+shap_explainer: Kernel # Tree Kernel Deep
+shap_bkgrd: trn # trn all tree_path_dependent
+
+# LIME weights
+is_lime: False
+lime_bkgrd: trn # trn all
+lime_num_features: all # 10 all
+lime_save_weights: True
 
 # Plot params
-num_top_features: 5
-num_examples: 5
+num_top_features: 10
+num_examples: 1
 
 # specify here default training configuration
 defaults:
@@ -50,33 +59,35 @@ defaults:
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
 
-# Separate (train/val separated from test) DataModule
 datamodule:
-  _target_: src.datamodules.eeg.EEGDataModuleTrainValNoSplit
+  _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "multiclass"
-  features_fn: "${data_dir}/features_df.xlsx"
-  classes_fn: "${data_dir}/classes_df.xlsx"
-  trn_fn: "${data_dir}/train_val_df.xlsx"
-  val_fn: "${data_dir}/test_df.xlsx"
+  features_fn: "${data_dir}/features.xlsx"
+  cat_features_fn: ""
+  cat_encoding: ""
+  classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
+  trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
+  split_feature: subject
   batch_size: 64
   num_workers: 0
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
-  imputation: "median"
+  imputation: fast_knn
+  k: 1
 
 # XGBoost model params
 xgboost:
   output_dim: ${out_dim}
   booster: 'gbtree'
-  learning_rate: 0.01
-  max_depth: 6
+  learning_rate: 0.05
+  max_depth: 5
   gamma: 0
   sampling_method: 'uniform'
   subsample: 1
   objective: 'multi:softprob'
-  verbosity: 1
+  verbosity: 0
   eval_metric: 'mlogloss'
   max_epochs: ${max_epochs}
   patience: ${patience}
@@ -86,11 +97,11 @@ catboost:
   output_dim: ${out_dim}
   loss_function: 'MultiClass'
   learning_rate: 0.05
-  depth: 4
-  min_data_in_leaf: 1
+  depth: 5
+  min_data_in_leaf: 6
   max_leaves: 31
   task_type: 'CPU'
-  verbose: 1
+  verbose: 0
   max_epochs: ${max_epochs}
   patience: ${patience}
 
@@ -103,11 +114,11 @@ lightgbm:
   num_leaves: 31
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 20
+  min_data_in_leaf: 7
   feature_fraction: 0.9
   bagging_fraction: 0.8
   bagging_freq: 5
-  verbose: 0
+  verbose: -1
   metric: 'multi_logloss'
   max_epochs: ${max_epochs}
   patience: ${patience}

@@ -1,16 +1,21 @@
 # @package _global_
 
-data_type: 1st_Day_right_real_left_real_background_uV
-model_type: node
-outcome: "class"
+data_type: 1st_day
+model_type: lightgbm # xgboost catboost lightgbm
+outcome: "class_simp"
 
-project_name: ${data_type}_trn_tst_${model_type}
+experiment_type: real
+
+in_dim: 1 # Will be corrected
+out_dim: 2
+
+project_name: ${data_type}_${experiment_type}_trn_val_${model_type}
 
 seed: 69
 
 cv_is_split: False
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 1
 
 optimized_metric: "f1_weighted"
 optimized_part: "val"
@@ -23,22 +28,27 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 2000
-patience: 100
+max_epochs: 10000
+patience: 300
 
-in_dim: 768
-out_dim: 2
-
-base_dir: "E:/YandexDisk/EEG/Files/${data_type}"
+base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
+# SHAP values
 is_shap: False
-shap_explainer: Deep
+shap_explainer: Kernel # Tree Kernel Deep
+shap_bkgrd: trn # trn all tree_path_dependent
+
+# LIME weights
+is_lime: False
+lime_bkgrd: trn # trn all
+lime_num_features: all # 10 all
+lime_save_weights: True
 
 # Plot params
-num_top_features: 5
-num_examples: 5
+num_top_features: 10
+num_examples: 1
 
 # specify here default training configuration
 defaults:
@@ -50,28 +60,30 @@ defaults:
   - override /hydra/hydra_logging: colorlog
   - override /hydra/job_logging: colorlog
 
-# Separate (train/val separated from test) DataModule
 datamodule:
-  _target_: src.datamodules.eeg.EEGDataModuleTrainValNoSplit
+  _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "multiclass"
-  features_fn: "${data_dir}/features_df.xlsx"
-  classes_fn: "${data_dir}/classes_df.xlsx"
-  trn_fn: "${data_dir}/train_val_df.xlsx"
-  val_fn: "${data_dir}/test_df.xlsx"
+  features_fn: "${data_dir}/features.xlsx"
+  cat_features_fn: ""
+  cat_encoding: ""
+  classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
+  trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
+  split_feature: subject
   batch_size: 64
   num_workers: 0
   pin_memory: False
   seed: ${seed}
   weighted_sampler: True
-  imputation: "median"
+  imputation: fast_knn
+  k: 1
 
 trainer:
   gpus: 1
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 10
+  progress_bar_refresh_rate: 100
   resume_from_checkpoint: null
 
 model:
@@ -80,8 +92,13 @@ model:
 tabnet:
   _target_: src.models.tabnet.model.TabNetModel
   task: "classification"
+  loss_type: "CrossEntropyLoss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
+  optimizer_lr: 0.005
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.9
   n_d_n_a: 8
   n_steps: 3
   gamma: 1.3
@@ -89,26 +106,42 @@ tabnet:
   n_shared: 2
   virtual_batch_size: 128
   mask_type: "sparsemax"
-  loss_type: "CrossEntropyLoss"
-  optimizer_lr: 0.01
-  optimizer_weight_decay: 0.0
-  scheduler_step_size: 30
-  scheduler_gamma: 0.9
 
 node:
   _target_: src.models.node.model.NodeModel
   task: "classification"
+  loss_type: "CrossEntropyLoss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
+  optimizer_lr: 0.5
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 50
+  scheduler_gamma: 0.9
   num_trees: 1024
   num_layers: 1
   flatten_output: False
-  depth: 5
+  depth: 6
+
+tab_transformer:
+  _target_: src.models.tab_transformer.model.TabTransformerModel
+  task: "classification"
   loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
   optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
-  scheduler_step_size: 30
+  scheduler_step_size: 50
   scheduler_gamma: 0.9
+  categories: None
+  num_continuous: None
+  dim: 32
+  depth: 6
+  heads: 8
+  dim_head: 16
+  mlp_hidden_mults: [4, 2]
+  num_special_tokens: 0
+  attn_dropout: 0.0
+  ff_dropout: 0.0
 
 callbacks:
   model_checkpoint:

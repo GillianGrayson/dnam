@@ -55,6 +55,7 @@ class UNNDataModuleNoTest(LightningDataModule):
             classes_fn: str = "",
             trn_val_fn: str = "",
             outcome: str = "",
+            split_feature = None,
             trn_val_split: Tuple[float, float] = (0.8, 0.2),
             batch_size: int = 64,
             num_workers: int = 0,
@@ -74,6 +75,7 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.classes_fn = classes_fn
         self.trn_val_fn = trn_val_fn
         self.outcome = outcome
+        self.split_feature = split_feature
         self.trn_val_split = trn_val_split
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -156,10 +158,16 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.data = self.data.astype('float32')
 
         if self.task == 'regression':
-            self.output = self.trn_val.loc[:, [self.outcome]]
-            self.output = self.output.astype('float32')
+            if self.split_feature is None:
+                self.output = self.trn_val.loc[:, [self.outcome]]
+            else:
+                self.output = self.trn_val.loc[:, [self.outcome, self.split_feature]]
+            self.output = self.output.astype({self.outcome: 'float32'})
         elif self.task in ['binary', 'multiclass']:
-            self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin']]
+            if self.split_feature is None:
+                self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin']]
+            else:
+                self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin', self.split_feature]]
 
         if not list(self.data.index.values) == list(self.output.index.values):
             raise ValueError(f"Error! Indexes have different order")
@@ -182,6 +190,9 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
         self.dataset_tst = Subset(self.dataset, [])
+        log.info(f"trn_count: {len(self.dataset_trn)}")
+        log.info(f"val_count: {len(self.dataset_val)}")
+        log.info(f"tst_count: {len(self.dataset_tst)}")
 
     def perform_split(self):
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
@@ -264,6 +275,9 @@ class UNNDataModuleNoTest(LightningDataModule):
 
     def get_trn_val_y(self):
         return self.dataset.ys[self.ids_trn_val]
+
+    def get_trn_val_split_feature(self):
+        return self.dataset.output.loc[self.dataset.output.index[self.ids_trn_val], self.split_feature]
 
     def train_dataloader(self):
         if self.dataloaders_evaluate:
