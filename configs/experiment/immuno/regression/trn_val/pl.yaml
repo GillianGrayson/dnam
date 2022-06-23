@@ -1,12 +1,12 @@
 # @package _global_
 
 data_type: immuno
-model_type: tabnet # tabnet node
+model_type: node # tabnet node
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
-seed: 42
+seed: 101
 
 in_dim: 1
 out_dim: 1
@@ -27,19 +27,19 @@ ignore_warnings: True
 test_after_training: True
 
 max_epochs: 10000
-patience: 300
+patience: 200
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: True
+is_shap: False # True False
 shap_explainer: Kernel # Tree Kernel Deep
 shap_bkgrd: trn # trn all tree_path_dependent
 
 # LIME weights
-is_lime: True
+is_lime: False # True False
 lime_bkgrd: trn # trn all
 lime_num_features: all # 10 all
 lime_save_weights: True
@@ -63,7 +63,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/data_paper_train.xlsx"
+  trn_val_fn: "${data_dir}/data_all.xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
@@ -79,7 +79,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 10
+  progress_bar_refresh_rate: 0 #10
   resume_from_checkpoint: null
 
 model:
