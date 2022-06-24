@@ -70,6 +70,9 @@ class TabNetModel(BaseModel):
             else:
                 return x
 
+    def on_train_start(self) -> None:
+        super().on_train_start()
+
     def on_fit_start(self) -> None:
         super().on_fit_start()
 
@@ -96,6 +99,9 @@ class TabNetModel(BaseModel):
 
     def predict_step(self, batch, batch_idx):
         return super().predict_step(batch=batch, batch_idx=batch_idx)
+
+    def on_epoch_end(self):
+        return super().on_epoch_end()
 
     def configure_optimizers(self):
         return super().configure_optimizers()

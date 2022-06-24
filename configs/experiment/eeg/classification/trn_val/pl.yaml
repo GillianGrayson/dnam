@@ -67,10 +67,10 @@ datamodule:
   cat_features_fn: ""
   cat_encoding: ""
   classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
-  trn_val_fn: "${data_dir}/data.xlsx"
+  trn_val_fn: "${data_dir}/data_govn.xlsx"
   outcome: ${outcome}
   split_feature: subject
-  batch_size: 64
+  batch_size: 32
   num_workers: 0
   pin_memory: False
   seed: ${seed}

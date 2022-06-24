@@ -3,6 +3,7 @@ from torch import nn
 from torchmetrics import MetricCollection, Accuracy, F1Score, Precision, Recall, CohenKappa, MatthewsCorrCoef, AUROC
 from torchmetrics import CosineSimilarity, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, PearsonCorrCoef, R2Score, SpearmanCorrCoef
 import wandb
+from torchmetrics import MaxMetric
 from typing import Dict
 import pytorch_lightning as pl
 import torch
@@ -121,6 +122,12 @@ class BaseModel(pl.LightningModule):
         self.metrics_test = self.metrics_train.clone()
         self.metrics_test_prob = self.metrics_train_prob.clone()
 
+    def on_train_start(self):
+        # by default lightning executes validation step sanity checks before training starts,
+        # so we need to make sure all MaxMetric doesn't store accuracy from these checks
+        # self.max_metric.reset()
+        pass
+
     def on_fit_start(self) -> None:
         for stage_type in ['train', 'val', 'test']:
             for m, sum in self.metrics_summary.items():
@@ -206,6 +213,16 @@ class BaseModel(pl.LightningModule):
         x, y, ind = batch
         out = self.forward(x)
         return out
+
+    def on_epoch_end(self):
+        for m in self.metrics_dict:
+            self.metrics_train[m].reset()
+            self.metrics_val[m].reset()
+            self.metrics_test[m].reset()
+        for m in self.metrics_prob_dict:
+            self.metrics_train_prob[m].reset()
+            self.metrics_val_prob[m].reset()
+            self.metrics_test_prob[m].reset()
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
