@@ -1,7 +1,7 @@
 from typing import Any, List
 from torch import nn
-from torchmetrics import MetricCollection, Accuracy, F1, Precision, Recall, CohenKappa, MatthewsCorrcoef, AUROC
-from torchmetrics import CosineSimilarity, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, PearsonCorrcoef, R2Score, SpearmanCorrcoef
+from torchmetrics import MetricCollection, Accuracy, F1Score, Precision, Recall, CohenKappa, MatthewsCorrCoef, AUROC
+from torchmetrics import CosineSimilarity, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, PearsonCorrCoef, R2Score, SpearmanCorrCoef
 import wandb
 from typing import Dict
 import pytorch_lightning as pl
@@ -48,9 +48,9 @@ class BaseModel(pl.LightningModule):
                 'accuracy_macro': Accuracy(num_classes=self.output_dim, average='macro'),
                 'accuracy_micro': Accuracy(num_classes=self.output_dim, average='micro'),
                 'accuracy_weighted': Accuracy(num_classes=self.output_dim, average='weighted'),
-                'f1_macro': F1(num_classes=self.output_dim, average='macro'),
-                'f1_micro': F1(num_classes=self.output_dim, average='micro'),
-                'f1_weighted': F1(num_classes=self.output_dim, average='weighted'),
+                'f1_macro': F1Score(num_classes=self.output_dim, average='macro'),
+                'f1_micro': F1Score(num_classes=self.output_dim, average='micro'),
+                'f1_weighted': F1Score(num_classes=self.output_dim, average='weighted'),
                 'precision_macro': Precision(num_classes=self.output_dim, average='macro'),
                 'precision_micro': Precision(num_classes=self.output_dim, average='micro'),
                 'precision_weighted': Precision(num_classes=self.output_dim, average='weighted'),
@@ -58,7 +58,7 @@ class BaseModel(pl.LightningModule):
                 'recall_micro': Recall(num_classes=self.output_dim, average='micro'),
                 'recall_weighted': Recall(num_classes=self.output_dim, average='weighted'),
                 'cohen_kappa': CohenKappa(num_classes=self.output_dim),
-                'matthews_corr_coef': MatthewsCorrcoef(num_classes=self.output_dim),
+                'matthews_corr_coef': MatthewsCorrCoef(num_classes=self.output_dim),
             }
             self.metrics_summary = {
                 'accuracy_macro': 'max',
@@ -98,9 +98,9 @@ class BaseModel(pl.LightningModule):
                 'mean_absolute_error': MeanAbsoluteError(),
                 'mean_absolute_percentage_error': MeanAbsolutePercentageError(),
                 'mean_squared_error': MeanSquaredError(),
-                'pearson_corr_coef': PearsonCorrcoef(),
+                'pearson_corr_coef': PearsonCorrCoef(),
                 'r2_score': R2Score(),
-                'spearman_corr_coef': SpearmanCorrcoef(),
+                'spearman_corr_coef': SpearmanCorrCoef(),
             }
             self.metrics_summary = {
                 'cosine_similarity': 'min',
@@ -159,7 +159,7 @@ class BaseModel(pl.LightningModule):
             elif stage == "test":
                 logs.update(self.metrics_test(preds, y))
                 try:
-                    logs.update(self.metrics_val_prob(probs, y))
+                    logs.update(self.metrics_test_prob(probs, y))
                 except ValueError:
                     pass
         elif self.task == "regression":
