@@ -55,7 +55,7 @@ def save_feature_importance(df, num_features):
     df.to_excel("feature_importances.xlsx", index=True)
 
 
-def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, suffix=''):
+def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, metric_suffix='', file_suffix=''):
     metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
     metrics_summary = {
         'accuracy_macro': 'max',
@@ -75,7 +75,7 @@ def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, logger
     if is_log:
         if 'wandb' in config.logger:
             for m, sum in metrics_summary.items():
-                wandb.define_metric(f"{part}/{m}", summary=sum)
+                wandb.define_metric(f"{part}/{m}{metric_suffix}", summary=sum)
 
     metrics_dict = {'metric': [m._name for m in metrics]}
     metrics_dict[part] = []
@@ -86,23 +86,24 @@ def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, logger
         else:
             m_val = m(y_real, y_pred)
         metrics_dict[part].append(m_val)
-        log_dict[f"{part}/{m._name}"] = m_val
-    for logger in loggers:
-        if is_log:
-            logger.log_metrics(log_dict)
+        log_dict[f"{part}/{m._name}{metric_suffix}"] = m_val
+    if loggers is not None:
+        for logger in loggers:
+            if is_log:
+                logger.log_metrics(log_dict)
 
     if is_save:
-        plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=suffix)
+        plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=file_suffix)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
     if is_save:
-        metrics_df.to_excel(f"metrics_{part}{suffix}.xlsx", index=True)
+        metrics_df.to_excel(f"metrics_{part}{file_suffix}.xlsx", index=True)
 
     return metrics_df
 
 
-def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, suffix=''):
+def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, metric_suffix='', file_suffix=''):
     metrics_classes_dict = get_regression_metrics_dict(object)
     metrics_summary = {
         'mean_absolute_error': 'min',
@@ -118,7 +119,7 @@ def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=
     if is_log:
         if 'wandb' in config.logger:
             for m, sum in metrics_summary.items():
-                wandb.define_metric(f"{part}/{m}", summary=sum)
+                wandb.define_metric(f"{part}/{m}{metric_suffix}", summary=sum)
 
     metrics_dict = {'metric': [m._name for m in metrics]}
     metrics_dict[part] = []
@@ -126,15 +127,16 @@ def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=
     for m in metrics:
         m_val = m(y_real, y_pred)
         metrics_dict[part].append(m_val)
-        log_dict[f"{part}/{m._name}"] = m_val
-    for logger in loggers:
-        if is_log:
-            logger.log_metrics(log_dict)
+        log_dict[f"{part}/{m._name}{metric_suffix}"] = m_val
+    if loggers is not None:
+        for logger in loggers:
+            if is_log:
+                logger.log_metrics(log_dict)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict)
     metrics_df.set_index('metric', inplace=True)
     if is_save:
-        metrics_df.to_excel(f"metrics_{part}{suffix}.xlsx", index=True)
+        metrics_df.to_excel(f"metrics_{part}{file_suffix}.xlsx", index=True)
 
     return metrics_df
 

@@ -12,9 +12,6 @@ from pytorch_lightning import (
 import statsmodels.formula.api as smf
 from pytorch_lightning.loggers import LightningLoggerBase
 import plotly.graph_objects as go
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
-from scripts.python.routines.plot.layout import add_layout
 from src.models.tabnet.model import TabNetModel
 from src.models.node.model import NodeModel
 from src.models.tab_transformer.model import TabTransformerModel
@@ -23,12 +20,10 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from tqdm import tqdm
-from experiment.routines import plot_confusion_matrix
 from experiment.regression.shap import explain_shap
 from experiment.regression.lime import explain_lime
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
 from scipy.stats import mannwhitneyu
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
@@ -55,7 +50,8 @@ def process(config: DictConfig) -> Optional[float]:
     if "seed" in config:
         seed_everything(config.seed, workers=True)
 
-    config.logger.wandb["project"] = config.project_name
+    if 'wandb' in config.logger:
+        config.logger.wandb["project"] = config.project_name
 
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -207,6 +203,11 @@ def process(config: DictConfig) -> Optional[float]:
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
+        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=False, metric_suffix='_global')
+        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False, metric_suffix='_global')
+        if is_test:
+            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=False, metric_suffix='_global')
+
         # Make sure everything closed properly
         log.info("Finalizing!")
         utils.finish(
@@ -217,11 +218,6 @@ def process(config: DictConfig) -> Optional[float]:
             callbacks=callbacks,
             logger=loggers,
         )
-
-        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
-        if is_test:
-            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -303,10 +299,10 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=True)
-    metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=True)
+    metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'train', is_log=False, is_save=True)
+    metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True)
     if is_test:
-        metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=True)
+        metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'test', is_log=False, is_save=True)
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn

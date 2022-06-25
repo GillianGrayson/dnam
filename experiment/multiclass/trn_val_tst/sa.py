@@ -10,10 +10,6 @@ from pytorch_lightning.loggers import LightningLoggerBase
 import pandas as pd
 from src.utils import utils
 import xgboost as xgb
-import plotly.graph_objects as go
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
-from scripts.python.routines.plot.layout import add_layout
 from experiment.routines import eval_classification
 from experiment.routines import eval_loss, save_feature_importance
 from typing import List
@@ -24,6 +20,7 @@ from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from experiment.multiclass.shap import explain_shap
 from experiment.multiclass.lime import explain_lime
 from tqdm import tqdm
+from datetime import datetime
 
 
 log = utils.get_logger(__name__)
@@ -36,17 +33,6 @@ def process(config: DictConfig):
 
     if 'wandb' in config.logger:
         config.logger.wandb["project"] = config.project_name
-
-    # Init lightning loggers
-    loggers: List[LightningLoggerBase] = []
-    if "logger" in config:
-        for _, lg_conf in config.logger.items():
-            if "_target_" in lg_conf:
-                log.info(f"Instantiating logger <{lg_conf._target_}>")
-                loggers.append(hydra.utils.instantiate(lg_conf))
-
-    log.info("Logging hyperparameters!")
-    log_hyperparameters(loggers, config)
 
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -78,6 +64,8 @@ def process(config: DictConfig):
         best["optimized_metric"] = 0.0
     cv_progress = {'fold': [], 'optimized_metric': []}
 
+    start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     for fold_idx, (ids_trn, ids_val) in tqdm(enumerate(cv_splitter.split())):
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
@@ -92,6 +80,22 @@ def process(config: DictConfig):
             X_tst = df.loc[df.index[ids_tst], feature_names].values
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
+
+        if 'csv' in config.logger:
+            config.logger.csv["version"] = f"fold_{fold_idx}"
+        if 'wandb' in config.logger:
+            config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
+
+        # Init lightning loggers
+        loggers: List[LightningLoggerBase] = []
+        if "logger" in config:
+            for _, lg_conf in config.logger.items():
+                if "_target_" in lg_conf:
+                    log.info(f"Instantiating logger <{lg_conf._target_}>")
+                    loggers.append(hydra.utils.instantiate(lg_conf))
+
+        log.info("Logging hyperparameters!")
+        log_hyperparameters(loggers, config)
 
         if config.model_type == "xgboost":
             model_params = {
@@ -140,11 +144,6 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.xgboost.eval_metric]
             }
 
-            def predict_func(X):
-                X = xgb.DMatrix(X, feature_names=feature_names)
-                y = model.predict(X)
-                return y
-
             fi = model.get_score(importance_type='weight')
             feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
 
@@ -184,10 +183,6 @@ def process(config: DictConfig):
                 'train/loss': metrics_trn.iloc[:, 1],
                 'val/loss': metrics_val.iloc[:, 1]
             }
-
-            def predict_func(X):
-                y = model.predict(X, prediction_type="Probability")
-                return y
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
 
@@ -240,19 +235,15 @@ def process(config: DictConfig):
                 'val/loss': evals_result['val'][config.lightgbm.metric]
             }
 
-            def predict_func(X):
-                y = model.predict(X, num_iteration=model.best_iteration)
-                return y
-
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
-        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
+        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=False)
+        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=False)
         if is_test:
-            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -273,6 +264,17 @@ def process(config: DictConfig):
                 is_renew = True
             else:
                 is_renew = False
+
+        if 'wandb' in config.logger:
+            wandb.define_metric(f"epoch")
+            wandb.define_metric(f"train/loss")
+            wandb.define_metric(f"val/loss")
+        eval_loss(loss_info, loggers)
+
+        for logger in loggers:
+            logger.save()
+        if 'wandb' in config.logger:
+            wandb.finish()
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
@@ -340,10 +342,10 @@ def process(config: DictConfig):
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -364,17 +366,6 @@ def process(config: DictConfig):
         raise ValueError(f"Model {config.model_type} is not supported")
 
     save_feature_importance(best['feature_importances'], config.num_top_features)
-
-    if 'wandb' in config.logger:
-        wandb.define_metric(f"epoch")
-        wandb.define_metric(f"train/loss")
-        wandb.define_metric(f"val/loss")
-    eval_loss(best['loss_info'], loggers)
-
-    for logger in loggers:
-        logger.save()
-    if 'wandb' in config.logger:
-        wandb.finish()
 
     expl_data = {
         'model': best["model"],

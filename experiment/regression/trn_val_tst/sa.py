@@ -29,6 +29,7 @@ from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from tqdm import tqdm
 from sklearn.linear_model import ElasticNet
 import pickle
+from datetime import datetime
 
 
 log = utils.get_logger(__name__)
@@ -41,17 +42,6 @@ def process(config: DictConfig):
 
     if 'wandb' in config.logger:
         config.logger.wandb["project"] = config.project_name
-
-    # Init lightning loggers
-    loggers: List[LightningLoggerBase] = []
-    if "logger" in config:
-        for _, lg_conf in config.logger.items():
-            if "_target_" in lg_conf:
-                log.info(f"Instantiating logger <{lg_conf._target_}>")
-                loggers.append(hydra.utils.instantiate(lg_conf))
-
-    log.info("Logging hyperparameters!")
-    log_hyperparameters(loggers, config)
 
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -81,6 +71,8 @@ def process(config: DictConfig):
         best["optimized_metric"] = 0.0
     cv_progress = {'fold': [], 'optimized_metric':[]}
 
+    start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
     for fold_idx, (ids_trn, ids_val) in tqdm(enumerate(cv_splitter.split())):
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
@@ -95,6 +87,22 @@ def process(config: DictConfig):
             X_tst = df.loc[df.index[ids_tst], feature_names].values
             y_tst = df.loc[df.index[ids_tst], outcome_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
+
+        if 'csv' in config.logger:
+            config.logger.csv["version"] = f"fold_{fold_idx}"
+        if 'wandb' in config.logger:
+            config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
+
+        # Init lightning loggers
+        loggers: List[LightningLoggerBase] = []
+        if "logger" in config:
+            for _, lg_conf in config.logger.items():
+                if "_target_" in lg_conf:
+                    log.info(f"Instantiating logger <{lg_conf._target_}>")
+                    loggers.append(hydra.utils.instantiate(lg_conf))
+
+        log.info("Logging hyperparameters!")
+        log_hyperparameters(loggers, config)
 
         if config.model_type == "xgboost":
             model_params = {
@@ -239,10 +247,10 @@ def process(config: DictConfig):
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
-        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=False, is_save=False)
+        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=False)
+        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False)
         if is_test:
-            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=False, is_save=False)
+            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -263,6 +271,17 @@ def process(config: DictConfig):
                 is_renew = True
             else:
                 is_renew = False
+
+        if 'wandb' in config.logger:
+            wandb.define_metric(f"epoch")
+            wandb.define_metric(f"train/loss")
+            wandb.define_metric(f"val/loss")
+        eval_loss(loss_info, loggers)
+
+        for logger in loggers:
+            logger.save()
+        if 'wandb' in config.logger:
+            wandb.finish()
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
@@ -324,10 +343,10 @@ def process(config: DictConfig):
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -439,17 +458,6 @@ def process(config: DictConfig):
         )
     )
     save_figure(fig, f"violin")
-
-    if 'wandb' in config.logger:
-        wandb.define_metric(f"epoch")
-        wandb.define_metric(f"train/loss")
-        wandb.define_metric(f"val/loss")
-    eval_loss(best['loss_info'], loggers)
-
-    for logger in loggers:
-        logger.save()
-    if 'wandb' in config.logger:
-        wandb.finish()
 
     expl_data = {
         'model': best["model"],

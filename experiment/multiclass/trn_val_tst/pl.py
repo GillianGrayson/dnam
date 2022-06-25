@@ -14,10 +14,6 @@ from pytorch_lightning import (
 )
 from tqdm import tqdm
 from pytorch_lightning.loggers import LightningLoggerBase
-import plotly.graph_objects as go
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
-from scripts.python.routines.plot.layout import add_layout
 import numpy as np
 from src.utils import utils
 import pandas as pd
@@ -47,7 +43,8 @@ def process(config: DictConfig) -> Optional[float]:
     if "seed" in config:
         seed_everything(config.seed, workers=True)
 
-    config.logger.wandb["project"] = config.project_name
+    if 'wandb' in config.logger:
+        config.logger.wandb["project"] = config.project_name
 
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -209,6 +206,11 @@ def process(config: DictConfig) -> Optional[float]:
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
+        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=False, metric_suffix='_global')
+        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=False, metric_suffix='_global')
+        if is_test:
+            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=False, metric_suffix='_global')
+
         # Make sure everything closed properly
         log.info("Finalizing!")
         utils.finish(
@@ -219,11 +221,6 @@ def process(config: DictConfig) -> Optional[float]:
             callbacks=callbacks,
             logger=loggers,
         )
-
-        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=False)
-        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=False)
-        if is_test:
-            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=False)
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -320,10 +317,10 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=False, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn

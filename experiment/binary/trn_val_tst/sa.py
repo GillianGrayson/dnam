@@ -316,10 +316,10 @@ def process(config: DictConfig):
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values.astype('int32')
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
-    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+    eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'train', is_log=True, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     if is_test:
-        eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, suffix=f"_best_{best['fold']:04d}")
+        eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'test', is_log=True, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
 
     if config.model_type == "xgboost":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
