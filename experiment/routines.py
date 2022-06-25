@@ -1,5 +1,5 @@
 import pandas as pd
-from experiment.metrics import get_classification_metrics_dict, get_regression_metrics_dict
+from experiment.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
 import wandb
@@ -8,6 +8,7 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
+import torch
 
 
 def save_feature_importance(df, num_features):
@@ -55,38 +56,39 @@ def save_feature_importance(df, num_features):
     df.to_excel("feature_importances.xlsx", index=True)
 
 
-def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, metric_suffix='', file_suffix=''):
-    metrics_classes_dict = get_classification_metrics_dict(config.out_dim, object)
-    metrics_summary = {
-        'accuracy_macro': 'max',
-        'accuracy_micro': 'max',
-        'accuracy_weighted': 'max',
-        'f1_score_macro': 'max',
-        'f1_score_micro': 'max',
-        'f1_score_weighted': 'max',
-        'cohen_kappa': 'max',
-        'matthews_corr_coef': 'max',
-    }
-    metrics_summary['auroc_weighted'] = 'max'
-    metrics_summary['auroc_macro'] = 'max'
-
-    metrics = [metrics_classes_dict[m]() for m in metrics_summary]
+def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, file_suffix=''):
+    metrics_pred = get_cls_pred_metrics(config.out_dim)
+    metrics_prob = get_cls_prob_metrics(config.out_dim)
 
     if is_log:
         if 'wandb' in config.logger:
-            for m, sum in metrics_summary.items():
-                wandb.define_metric(f"{part}/{m}{metric_suffix}", summary=sum)
+            for m in metrics_pred:
+                wandb.define_metric(f"{part}/{m}", summary=metrics_pred[m][1])
+            for m in metrics_prob:
+                wandb.define_metric(f"{part}/{m}", summary=metrics_prob[m][1])
 
-    metrics_dict = {'metric': [m._name for m in metrics]}
-    metrics_dict[part] = []
+    metrics_df = pd.DataFrame(index=[m for m in metrics_pred] + [m for m in metrics_prob], columns=[part])
+    metrics_df.index.name = 'metric'
     log_dict = {}
-    for m in metrics:
-        if m._name in ['auroc_weighted', 'auroc_macro']:
-            m_val = m(y_real, y_pred_prob)
-        else:
-            m_val = m(y_real, y_pred)
-        metrics_dict[part].append(m_val)
-        log_dict[f"{part}/{m._name}{metric_suffix}"] = m_val
+    for m in metrics_pred:
+        y_real_torch = torch.from_numpy(y_real)
+        y_pred_torch = torch.from_numpy(y_pred)
+        m_val = float(metrics_pred[m][0](y_pred_torch, y_real_torch).numpy())
+        metrics_pred[m][0].reset()
+        metrics_df.at[m, part] = m_val
+        log_dict[f"{part}/{m}"] = m_val
+    for m in metrics_prob:
+        y_real_torch = torch.from_numpy(y_real)
+        y_pred_prob_torch = torch.from_numpy(y_pred_prob)
+        m_val = 0
+        try:
+            m_val = float(metrics_prob[m][0](y_pred_prob_torch, y_real_torch).numpy())
+        except ValueError:
+            pass
+        metrics_prob[m][0].reset()
+        metrics_df.at[m, part] = m_val
+        log_dict[f"{part}/{m}"] = m_val
+
     if loggers is not None:
         for logger in loggers:
             if is_log:
@@ -94,47 +96,35 @@ def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, logger
 
     if is_save:
         plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=file_suffix)
-
-    metrics_df = pd.DataFrame.from_dict(metrics_dict)
-    metrics_df.set_index('metric', inplace=True)
-    if is_save:
         metrics_df.to_excel(f"metrics_{part}{file_suffix}.xlsx", index=True)
 
     return metrics_df
 
 
-def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, metric_suffix='', file_suffix=''):
-    metrics_classes_dict = get_regression_metrics_dict(object)
-    metrics_summary = {
-        'mean_absolute_error': 'min',
-        'mean_absolute_percentage_error': 'min',
-        'mean_squared_error': 'min',
-        'pearson_corr_coef': 'max',
-        'r2_score': 'max',
-        'spearman_corr_coef': 'max',
-    }
-
-    metrics = [metrics_classes_dict[m]() for m in metrics_summary]
+def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=True, file_suffix=''):
+    metrics = get_reg_metrics()
 
     if is_log:
         if 'wandb' in config.logger:
-            for m, sum in metrics_summary.items():
-                wandb.define_metric(f"{part}/{m}{metric_suffix}", summary=sum)
+            for m in metrics:
+                wandb.define_metric(f"{part}/{m}", summary=metrics[m][1])
 
-    metrics_dict = {'metric': [m._name for m in metrics]}
-    metrics_dict[part] = []
+    metrics_df = pd.DataFrame(index=[m for m in metrics], columns=[part])
+    metrics_df.index.name = 'metric'
     log_dict = {}
     for m in metrics:
-        m_val = m(y_real, y_pred)
-        metrics_dict[part].append(m_val)
-        log_dict[f"{part}/{m._name}{metric_suffix}"] = m_val
+        y_real_torch = torch.from_numpy(y_real)
+        y_pred_torch = torch.from_numpy(y_pred)
+        m_val = float(metrics[m][0](y_pred_torch, y_real_torch).numpy())
+        metrics[m][0].reset()
+        metrics_df.at[m, part] = m_val
+        log_dict[f"{part}/{m}"] = m_val
+
     if loggers is not None:
         for logger in loggers:
             if is_log:
                 logger.log_metrics(log_dict)
 
-    metrics_df = pd.DataFrame.from_dict(metrics_dict)
-    metrics_df.set_index('metric', inplace=True)
     if is_save:
         metrics_df.to_excel(f"metrics_{part}{file_suffix}.xlsx", index=True)
 

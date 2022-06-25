@@ -16,7 +16,7 @@ cv_is_split: True
 cv_n_splits: 5
 cv_n_repeats: 1
 
-optimized_metric: "f1_weighted"
+optimized_metric: "f1_score_weighted"
 optimized_part: "val"
 direction: "max"
 
@@ -35,7 +35,7 @@ work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: True
+is_shap: False
 shap_explainer: Tree # Tree Kernel Deep
 shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
