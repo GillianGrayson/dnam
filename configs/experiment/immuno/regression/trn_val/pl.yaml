@@ -50,6 +50,7 @@ num_examples: 1
 
 # specify here default training configuration
 defaults:
+  - _self_
   - override /datamodule: null
   - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
   - override /model: null

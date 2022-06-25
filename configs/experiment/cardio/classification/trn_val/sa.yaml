@@ -49,6 +49,7 @@ num_examples: 1
 
 # specify here default training configuration
 defaults:
+  - _self_
   - override /trainer: null # choose trainer from 'configs/trainer/'
   - override /model: null
   - override /datamodule: null

@@ -30,19 +30,19 @@ test_after_training: True
 max_epochs: 10000
 patience: 300
 
-base_dir: "C:/YandexDisk/EEG/experiments/${data_type}"
+base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: False
-shap_explainer: Kernel # Tree Kernel Deep
-shap_bkgrd: trn # trn all tree_path_dependent
+is_shap: True
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
 # LIME weights
 is_lime: False
 lime_bkgrd: trn # trn all
-lime_num_features: all # 10 all
+lime_num_features: 20 # 10 all
 lime_save_weights: True
 
 # Plot params
@@ -51,6 +51,7 @@ num_examples: 1
 
 # specify here default training configuration
 defaults:
+  - _self_
   - override /trainer: null # choose trainer from 'configs/trainer/'
   - override /model: null
   - override /datamodule: null
@@ -66,7 +67,7 @@ datamodule:
   cat_features_fn: ""
   cat_encoding: ""
   classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
-  trn_val_fn: "${data_dir}/data.xlsx"
+  trn_val_fn: "${data_dir}/data_govn.xlsx"
   outcome: ${outcome}
   split_feature: subject
   batch_size: 64
