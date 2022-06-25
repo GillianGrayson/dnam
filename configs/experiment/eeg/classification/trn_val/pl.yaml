@@ -17,7 +17,7 @@ cv_is_split: True
 cv_n_splits: 5
 cv_n_repeats: 1
 
-optimized_metric: "f1_weighted"
+optimized_metric: "f1_score_weighted"
 optimized_part: "val"
 direction: "max"
 
@@ -146,7 +146,7 @@ tab_transformer:
 
 callbacks:
   model_checkpoint:
-    monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
+    monitor: "val/${optimized_metric}_pl" # name of the logged metric which determines when model is improving
     mode: ${direction} # can be "max" or "min"
     save_top_k: 1 # save k best models (determined by above metric)
     save_last: False # additionaly always save model from last epoch
@@ -156,7 +156,7 @@ callbacks:
     auto_insert_metric_name: False
 
   early_stopping:
-    monitor: "val/${optimized_metric}" # name of the logged metric which determines when model is improving
+    monitor: "val/${optimized_metric}_pl" # name of the logged metric which determines when model is improving
     mode: ${direction} # can be "max" or "min"
     patience: ${patience} # how many epochs of not improving until training stops
     min_delta: 0 # minimum change in the monitored metric needed to qualify as an improvement

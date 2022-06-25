@@ -1,14 +1,11 @@
 from typing import Any, List
-from torch import nn
 from torchmetrics import MetricCollection, Accuracy, F1Score, Precision, Recall, CohenKappa, MatthewsCorrCoef, AUROC
 from torchmetrics import CosineSimilarity, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, PearsonCorrCoef, R2Score, SpearmanCorrCoef
 import wandb
-from torchmetrics import MaxMetric
-from typing import Dict
 import pytorch_lightning as pl
 import torch
-from pytorch_tabnet.tab_network import TabNet
-from pytorch_tabnet.utils import create_explain_matrix
+from experiment.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
+
 
 
 class BaseModel(pl.LightningModule):
@@ -45,48 +42,12 @@ class BaseModel(pl.LightningModule):
             self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
             if self.output_dim < 2:
                 raise ValueError(f"Classification with {self.output_dim} classes")
-            self.metrics_dict = {
-                'accuracy_macro': Accuracy(num_classes=self.output_dim, average='macro'),
-                'accuracy_micro': Accuracy(num_classes=self.output_dim, average='micro'),
-                'accuracy_weighted': Accuracy(num_classes=self.output_dim, average='weighted'),
-                'f1_macro': F1Score(num_classes=self.output_dim, average='macro'),
-                'f1_micro': F1Score(num_classes=self.output_dim, average='micro'),
-                'f1_weighted': F1Score(num_classes=self.output_dim, average='weighted'),
-                'precision_macro': Precision(num_classes=self.output_dim, average='macro'),
-                'precision_micro': Precision(num_classes=self.output_dim, average='micro'),
-                'precision_weighted': Precision(num_classes=self.output_dim, average='weighted'),
-                'recall_macro': Recall(num_classes=self.output_dim, average='macro'),
-                'recall_micro': Recall(num_classes=self.output_dim, average='micro'),
-                'recall_weighted': Recall(num_classes=self.output_dim, average='weighted'),
-                'cohen_kappa': CohenKappa(num_classes=self.output_dim),
-                'matthews_corr_coef': MatthewsCorrCoef(num_classes=self.output_dim),
-            }
-            self.metrics_summary = {
-                'accuracy_macro': 'max',
-                'accuracy_micro': 'max',
-                'accuracy_weighted': 'max',
-                'f1_macro': 'max',
-                'f1_micro': 'max',
-                'f1_weighted': 'max',
-                'precision_macro': 'max',
-                'precision_micro': 'max',
-                'precision_weighted': 'max',
-                'recall_macro': 'max',
-                'recall_micro': 'max',
-                'recall_weighted': 'max',
-                'cohen_kappa': 'max',
-                'matthews_corr_coef': 'max',
-            }
-            self.metrics_prob_dict = {
-                'auroc_macro': AUROC(num_classes=self.output_dim, average='macro'),
-                'auroc_micro': AUROC(num_classes=self.output_dim, average='micro'),
-                'auroc_weighted': AUROC(num_classes=self.output_dim, average='weighted'),
-            }
-            self.metrics_prob_summary = {
-                'auroc_macro': 'max',
-                'auroc_micro': 'max',
-                'auroc_weighted': 'max',
-            }
+            self.metrics = get_cls_pred_metrics(self.output_dim)
+            self.metrics = {f'{k}_pl': v for k, v in self.metrics.items()}
+            self.metrics_dict = {k:v[0] for k,v in self.metrics.items()}
+            self.metrics_prob = get_cls_prob_metrics(self.output_dim)
+            self.metrics_prob = {f'{k}_pl': v for k, v in self.metrics_prob.items()}
+            self.metrics_prob_dict =  {k:v[0] for k,v in self.metrics_prob.items()}
         elif self.task == "regression":
             if self.loss_type == "MSE":
                 self.loss_fn = torch.nn.MSELoss(reduction='mean')
@@ -94,26 +55,11 @@ class BaseModel(pl.LightningModule):
                 self.loss_fn = torch.nn.L1Loss(reduction='mean')
             else:
                 raise ValueError("Unsupported loss_type")
-            self.metrics_dict = {
-                'cosine_similarity': CosineSimilarity(),
-                'mean_absolute_error': MeanAbsoluteError(),
-                'mean_absolute_percentage_error': MeanAbsolutePercentageError(),
-                'mean_squared_error': MeanSquaredError(),
-                'pearson_corr_coef': PearsonCorrCoef(),
-                'r2_score': R2Score(),
-                'spearman_corr_coef': SpearmanCorrCoef(),
-            }
-            self.metrics_summary = {
-                'cosine_similarity': 'min',
-                'mean_absolute_error': 'min',
-                'mean_absolute_percentage_error': 'min',
-                'mean_squared_error': 'min',
-                'pearson_corr_coef': 'max',
-                'r2_score': 'max',
-                'spearman_corr_coef': 'max'
-            }
+
+            self.metrics = get_reg_metrics()
+            self.metrics = {f'{k}_pl': v for k, v in self.metrics.items()}
+            self.metrics_dict = {k: v[0] for k, v in self.metrics.items()}
             self.metrics_prob_dict = {}
-            self.metrics_prob_summary = {}
 
         self.metrics_train = MetricCollection(self.metrics_dict)
         self.metrics_train_prob = MetricCollection(self.metrics_prob_dict)
@@ -130,10 +76,10 @@ class BaseModel(pl.LightningModule):
 
     def on_fit_start(self) -> None:
         for stage_type in ['train', 'val', 'test']:
-            for m, sum in self.metrics_summary.items():
-                wandb.define_metric(f"{stage_type}/{m}", summary=sum)
-            for m, sum in self.metrics_prob_summary.items():
-                wandb.define_metric(f"{stage_type}/{m}", summary=sum)
+            for m in self.metrics:
+                wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics[m][1])
+            for m in self.metrics_prob:
+                wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
             wandb.define_metric(f"{stage_type}/loss", summary='min')
 
     def step(self, batch: Any, stage:str):

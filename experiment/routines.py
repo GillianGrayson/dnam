@@ -61,9 +61,9 @@ def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, logger
         'accuracy_macro': 'max',
         'accuracy_micro': 'max',
         'accuracy_weighted': 'max',
-        'f1_macro': 'max',
-        'f1_micro': 'max',
-        'f1_weighted': 'max',
+        'f1_score_macro': 'max',
+        'f1_score_micro': 'max',
+        'f1_score_weighted': 'max',
         'cohen_kappa': 'max',
         'matthews_corr_coef': 'max',
     }
