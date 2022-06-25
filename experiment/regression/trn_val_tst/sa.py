@@ -69,7 +69,8 @@ def process(config: DictConfig):
         best["optimized_metric"] = np.Inf
     elif config.direction == "max":
         best["optimized_metric"] = 0.0
-    cv_progress = {'fold': [], 'optimized_metric':[]}
+
+    cv_progress = pd.DataFrame(columns=['fold', 'optimized_metric'])
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -248,9 +249,15 @@ def process(config: DictConfig):
             raise ValueError(f"Model {config.model_type} is not supported")
 
         metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=False)
+        for m in metrics_trn.index.values:
+            cv_progress.at[fold_idx, f"train_{m}"] = metrics_trn.at[m, 'train']
         metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False)
+        for m in metrics_val.index.values:
+            cv_progress.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
         if is_test:
             metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'test', is_log=True, is_save=False)
+            for m in metrics_tst.index.values:
+                cv_progress.at[fold_idx, f"test_{m}"] = metrics_tst.at[m, 'test']
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -319,13 +326,11 @@ def process(config: DictConfig):
                 best['ids_tst'] = ids_tst
                 df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
 
-        cv_progress['fold'].append(fold_idx)
-        cv_progress['optimized_metric'].append(metrics_main.at[config.optimized_metric, config.optimized_part])
+        cv_progress.at[fold_idx, 'fold'] = fold_idx
+        cv_progress.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
 
-    cv_progress_df = pd.DataFrame(cv_progress)
-    cv_progress_df.set_index('fold', inplace=True)
-    cv_progress_df.to_excel(f"cv_progress.xlsx", index=True)
-    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress['fold']]]
+    cv_progress.to_excel(f"cv_progress.xlsx", index=False)
+    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:, 'fold'].values]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
     predictions = df.loc[:, [f"fold_{best['fold']:04d}", outcome_name, "Estimation"]]
     predictions.to_excel(f"predictions.xlsx", index=True)
