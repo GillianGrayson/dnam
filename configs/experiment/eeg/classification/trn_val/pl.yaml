@@ -31,7 +31,7 @@ test_after_training: True
 max_epochs: 1000
 patience: 50
 
-base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
+base_dir: "C:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -64,14 +64,14 @@ defaults:
 datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "multiclass"
-  features_fn: "${data_dir}/features_test.xlsx"
+  features_fn: "${data_dir}/features_freq.xlsx"
   cat_features_fn: ""
   cat_encoding: ""
   classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
-  trn_val_fn: "${data_dir}/data_govn.xlsx"
+  trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
   split_feature: subject
-  batch_size: 32
+  batch_size: 64
   num_workers: 0
   pin_memory: False
   seed: ${seed}
