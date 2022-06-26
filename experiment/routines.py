@@ -200,65 +200,68 @@ def plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=''):
         save_figure(fig, f"confusion_matrix_{part}{suffix}")
 
 
-def eval_loss(loss_info, loggers):
+def eval_loss(loss_info, loggers, is_log=True, is_save=True, file_suffix=''):
     for epoch_id, epoch in enumerate(loss_info['epoch']):
         log_dict = {
             'epoch': loss_info['epoch'][epoch_id],
             'train/loss': loss_info['train/loss'][epoch_id],
             'val/loss': loss_info['val/loss'][epoch_id]
         }
-        for logger in loggers:
-            logger.log_metrics(log_dict)
+        if loggers is not None:
+            for logger in loggers:
+                if is_log:
+                    logger.log_metrics(log_dict)
 
-    loss_df = pd.DataFrame(loss_info)
-    loss_df.set_index('epoch', inplace=True)
-    loss_df.to_excel(f"loss.xlsx", index=True)
+    if is_save:
+        loss_df = pd.DataFrame(loss_info)
+        loss_df.set_index('epoch', inplace=True)
+        loss_df.to_excel(f"loss{file_suffix}.xlsx", index=True)
 
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=loss_info['epoch'],
-            y=loss_info['train/loss'],
-            showlegend=True,
-            name="Train",
-            mode="lines",
-            marker=dict(
-                size=8,
-                opacity=0.7,
-                line=dict(
-                    width=1
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=loss_info['epoch'],
+                y=loss_info['train/loss'],
+                showlegend=True,
+                name="Train",
+                mode="lines",
+                marker=dict(
+                    size=8,
+                    opacity=0.7,
+                    line=dict(
+                        width=1
+                    )
                 )
             )
         )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=loss_info['epoch'],
-            y=loss_info['val/loss'],
-            showlegend=True,
-            name="Val",
-            mode="lines",
-            marker=dict(
-                size=8,
-                opacity=0.7,
-                line=dict(
-                    width=1
+        fig.add_trace(
+            go.Scatter(
+                x=loss_info['epoch'],
+                y=loss_info['val/loss'],
+                showlegend=True,
+                name="Val",
+                mode="lines",
+                marker=dict(
+                    size=8,
+                    opacity=0.7,
+                    line=dict(
+                        width=1
+                    )
                 )
             )
         )
-    )
-    add_layout(fig, "Epoch", 'Error', "")
-    fig.update_layout({'colorway': ['blue', 'red']})
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=90,
-            r=20,
-            b=75,
-            t=45,
-            pad=0
+        add_layout(fig, "Epoch", 'Error', "")
+        fig.update_layout({'colorway': ['blue', 'red']})
+        fig.update_layout(legend_font_size=20)
+        fig.update_layout(
+            margin=go.layout.Margin(
+                l=90,
+                r=20,
+                b=75,
+                t=45,
+                pad=0
+            )
         )
-    )
-    fig.update_yaxes(autorange=False)
-    fig.update_layout(yaxis_range=[0, max(loss_info['train/loss'] + loss_info['val/loss']) + 0.1])
-    save_figure(fig, f"loss")
+        fig.update_yaxes(autorange=False)
+        fig.update_layout(yaxis_range=[0, max(loss_info['train/loss'] + loss_info['val/loss']) + 0.1])
+        save_figure(fig, f"loss{file_suffix}")

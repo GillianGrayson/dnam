@@ -259,6 +259,17 @@ def process(config: DictConfig):
             for m in metrics_tst.index.values:
                 cv_progress.at[fold_idx, f"test_{m}"] = metrics_tst.at[m, 'test']
 
+        if 'wandb' in config.logger:
+            wandb.define_metric(f"epoch")
+            wandb.define_metric(f"train/loss")
+            wandb.define_metric(f"val/loss")
+        eval_loss(loss_info, loggers, is_log=True, is_save=False)
+
+        for logger in loggers:
+            logger.save()
+        if 'wandb' in config.logger:
+            wandb.finish()
+
         if config.optimized_part == "train":
             metrics_main = metrics_trn
         elif config.optimized_part == "val":
@@ -278,17 +289,6 @@ def process(config: DictConfig):
                 is_renew = True
             else:
                 is_renew = False
-
-        if 'wandb' in config.logger:
-            wandb.define_metric(f"epoch")
-            wandb.define_metric(f"train/loss")
-            wandb.define_metric(f"val/loss")
-        eval_loss(loss_info, loggers)
-
-        for logger in loggers:
-            logger.save()
-        if 'wandb' in config.logger:
-            wandb.finish()
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
@@ -352,6 +352,8 @@ def process(config: DictConfig):
     metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     if is_test:
         metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+
+    eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn

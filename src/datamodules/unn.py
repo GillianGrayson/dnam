@@ -326,7 +326,7 @@ class UNNDataModuleNoTest(LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(
-            dataset=self.dataset_trn,
+            dataset=self.dataset_tst,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,

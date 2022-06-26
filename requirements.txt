@@ -37,9 +37,9 @@ impyute>=0.0.8          # imputation methods
 # --------- plot --------- #
 plotly>=5.7.0
 matplotlib>=3.5.2
-kaleido>=0.2.1
 seaborn>=0.11.2
 UpSetPlot>=0.6.1
+kaleido==0.1.0post1
 
 # --------- XAI --------- #
 shap==0.39.0            # SHAP values
