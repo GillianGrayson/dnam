@@ -53,6 +53,7 @@ lightgbm>=3.3.2
 statsmodels>=0.13.1
 scikit-learn>=1.0.2
 einops>=0.4.1
+numpy>=1.22.3
 
 # --------- utils --------- #
 tqdm>=4.63.1
