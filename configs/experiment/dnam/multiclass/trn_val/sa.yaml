@@ -35,6 +35,7 @@ work_dir: "${base_dir}/${data_type}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
 is_shap: True
+is_shap_save: False
 shap_explainer: Tree
 
 # Plot params

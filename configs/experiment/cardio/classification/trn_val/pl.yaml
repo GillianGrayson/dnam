@@ -35,6 +35,7 @@ data_dir: "${base_dir}"
 
 # SHAP values
 is_shap: True
+is_shap_save: False
 shap_explainer: Kernel # Tree Kernel Deep
 shap_bkgrd: trn # trn all tree_path_dependent
 
