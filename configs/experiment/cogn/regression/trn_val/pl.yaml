@@ -34,6 +34,7 @@ work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 is_shap: False
+is_shap_save: False
 shap_explainer: Kernel
 
 # Plot params

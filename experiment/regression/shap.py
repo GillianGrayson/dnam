@@ -1,6 +1,6 @@
 import shap
 import numpy as np
-import copy
+import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 import torch
@@ -117,6 +117,11 @@ def explain_shap(config, expl_data):
                 expected_value = explainer.expected_value
             else:
                 raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
+
+            if config.is_shap_save:
+                df_shap = pd.DataFrame(index=indexes, columns=feature_names, data=shap_values)
+                df_shap.index.name = 'index'
+                df_shap.to_excel(f"shap/{part}/shap.xlsx", index=True)
 
             shap.summary_plot(
                 shap_values=shap_values,

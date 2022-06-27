@@ -1,3 +1,4 @@
+import pandas as pd
 import shap
 import numpy as np
 import copy
@@ -220,6 +221,11 @@ def explain_shap(config, expl_data):
             else:
                 raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
+            if config.is_shap_save:
+                for cl_id, cl in enumerate(expl_data['class_names']):
+                    df_shap = pd.DataFrame(index=indexes,  columns=feature_names, data=shap_values[cl_id])
+                    df_shap.index.name = 'index'
+                    df_shap.to_excel(f"shap/{part}/shap_{cl}.xlsx", index=True)
 
             shap.summary_plot(
                 shap_values=shap_values,
