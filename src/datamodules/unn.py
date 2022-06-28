@@ -55,7 +55,8 @@ class UNNDataModuleNoTest(LightningDataModule):
             classes_fn: str = "",
             trn_val_fn: str = "",
             outcome: str = "",
-            split_feature = None,
+            split_feature = None, # top level feature
+            split_column = None, # feature with "train", "val", "test"
             trn_val_split: Tuple[float, float] = (0.8, 0.2),
             batch_size: int = 64,
             num_workers: int = 0,
@@ -76,6 +77,7 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.trn_val_fn = trn_val_fn
         self.outcome = outcome
         self.split_feature = split_feature
+        self.split_column = split_column
         self.trn_val_split = trn_val_split
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -169,6 +171,9 @@ class UNNDataModuleNoTest(LightningDataModule):
             else:
                 self.output = self.trn_val.loc[:, [self.outcome, f'{self.outcome}_origin', self.split_feature]]
 
+        if self.split_column is not None:
+            self.output[self.split_column] = self.trn_val.loc[:, self.split_column].values
+
         if not list(self.data.index.values) == list(self.output.index.values):
             raise ValueError(f"Error! Indexes have different order")
 
@@ -195,29 +200,34 @@ class UNNDataModuleNoTest(LightningDataModule):
         log.info(f"tst_count: {len(self.dataset_tst)}")
 
     def perform_split(self):
-        assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
-        if self.task in ['binary', 'multiclass']:
-            self.ids_trn, self.ids_val = train_test_split(
-                self.ids_trn_val,
-                test_size=self.trn_val_split[1],
-                stratify=self.dataset.ys[self.ids_trn_val],
-                random_state=self.seed
-            )
-        elif self.task == 'regression':
-            ptp = np.ptp(self.dataset.ys[self.ids_trn_val])
-            num_bins = 3
-            bins = np.linspace(np.min(self.dataset.ys[self.ids_trn_val]) - 0.1 * ptp, np.max(self.dataset.ys[self.ids_trn_val]) + 0.1 * ptp, num_bins + 1)
-            binned = np.digitize(self.dataset.ys[self.ids_trn_val], bins) - 1
-            unique, counts = np.unique(binned, return_counts=True)
-            occ = dict(zip(unique, counts))
-            self.ids_trn, self.ids_val = train_test_split(
-                self.ids_trn_val,
-                test_size=self.trn_val_split[1],
-                stratify=binned,
-                random_state=self.seed
-            )
+        if self.split_column is None:
+            assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
+            if self.task in ['binary', 'multiclass']:
+                self.ids_trn, self.ids_val = train_test_split(
+                    self.ids_trn_val,
+                    test_size=self.trn_val_split[1],
+                    stratify=self.dataset.ys[self.ids_trn_val],
+                    random_state=self.seed
+                )
+            elif self.task == 'regression':
+                ptp = np.ptp(self.dataset.ys[self.ids_trn_val])
+                num_bins = 3
+                bins = np.linspace(np.min(self.dataset.ys[self.ids_trn_val]) - 0.1 * ptp, np.max(self.dataset.ys[self.ids_trn_val]) + 0.1 * ptp, num_bins + 1)
+                binned = np.digitize(self.dataset.ys[self.ids_trn_val], bins) - 1
+                unique, counts = np.unique(binned, return_counts=True)
+                occ = dict(zip(unique, counts))
+                self.ids_trn, self.ids_val = train_test_split(
+                    self.ids_trn_val,
+                    test_size=self.trn_val_split[1],
+                    stratify=binned,
+                    random_state=self.seed
+                )
+        else:
+            self.ids_trn = self.ids_trn_val[self.output[self.split_column] == 'train']
+            self.ids_val = self.ids_trn_val[self.output[self.split_column] == 'val']
 
         self.ids_tst = None
+
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
         self.dataset_tst = Subset(self.dataset, [])
