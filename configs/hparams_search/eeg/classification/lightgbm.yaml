@@ -1,0 +1,50 @@
+# @package _global_
+
+# example hyperparameter optimization of some experiment with Optuna:
+# python run.py --multirun hparams_search=fcmlp experiment=example_simple
+# python run.py --multirun hparams_search=fcmlp experiment=example_simple hydra.sweeper.n_trials=30
+# python run.py --multirun hparams_search=fcmlp experiment=example_simple logger=wandb
+
+defaults:
+  - override /hydra/sweeper: optuna
+
+# choose metric which will be optimized by Optuna
+# make sure this is the correct name of some metric logged in lightning module!
+optimized_metric: "f1_score_weighted"
+
+
+# here we define Optuna hyperparameter search
+# it optimizes for value returned from function with @hydra.main decorator
+# docs: https://hydra.cc/docs/next/plugins/optuna_sweeper
+hydra:
+  sweeper:
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+
+    # storage URL to persist optimization results
+    # for example, you can use SQLite if you set 'sqlite:///example.db'
+    storage: null
+
+    # name of the study to persist optimization results
+    study_name: null
+
+    # number of parallel workers
+    n_jobs: 1
+
+    # 'minimize' or 'maximize' the objective
+    direction: maximize
+
+    # number of experiments that will be executed
+    n_trials: 20
+
+    # choose Optuna hyperparameter sampler
+    # learn more here: https://optuna.readthedocs.io/en/stable/reference/samplers.html
+    sampler:
+      _target_: optuna.samplers.GridSampler
+
+    # define range of hyperparameters
+    search_space:
+      lightgbm.learning_rate:
+        type: categorical
+        choices: [0.05, 0.01]
+
+
