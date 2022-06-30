@@ -147,13 +147,14 @@ def log_hyperparameters(
         p.numel() for p in model.parameters() if not p.requires_grad
     )
 
-    # send hparams to all loggers
-    trainer.logger.log_hyperparams(hparams)
+    if trainer.logger is not None:
+        # send hparams to all loggers
+        trainer.logger.log_hyperparams(hparams)
 
-    # disable logging any more hyperparameters for all loggers
-    # this is just a trick to prevent trainer from logging hparams of model,
-    # since we already did that above
-    trainer.logger.log_hyperparams = empty
+        # disable logging any more hyperparameters for all loggers
+        # this is just a trick to prevent trainer from logging hparams of model,
+        # since we already did that above
+        trainer.logger.log_hyperparams = empty
 
 
 def finish(

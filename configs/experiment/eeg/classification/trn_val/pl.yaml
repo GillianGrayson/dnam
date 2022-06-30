@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: 1st_day
-model_type: node # node tab_transformer tabnet
+model_type: tabnet # node tab_transformer tabnet
 outcome: class_simp
 
 experiment_type: quasi
@@ -69,7 +69,7 @@ datamodule:
   cat_features_fn: ""
   cat_encoding: ""
   classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
-  trn_val_fn: "${data_dir}/data.xlsx"
+  trn_val_fn: "${data_dir}/data.pkl"
   outcome: ${outcome}
   split_feature: subject
   split_column: split

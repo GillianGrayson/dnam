@@ -51,4 +51,4 @@ hydra:
     params:
       catboost.learning_rate: choice(0.1, 0.01, 0.001)
       catboost.depth: choice(4, 5, 6)
-      catboost.min_data_in_leaf: range(2, 20, 2)
+      catboost.min_data_in_leaf: range(1, 20, 2)
