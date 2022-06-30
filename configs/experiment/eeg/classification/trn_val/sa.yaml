@@ -2,9 +2,9 @@
 
 data_type: 1st_day
 model_type: lightgbm # xgboost catboost lightgbm
-outcome: "class_simp"
+outcome: class_simp
 
-experiment_type: real
+experiment_type: quasi
 
 out_dim: 2
 
@@ -12,7 +12,7 @@ project_name: ${data_type}_${experiment_type}_trn_val_${model_type}
 
 seed: 42
 
-cv_is_split: True
+cv_is_split: False
 cv_n_splits: 5
 cv_n_repeats: 10
 
@@ -36,7 +36,7 @@ data_dir: "${base_dir}"
 
 # SHAP values
 is_shap: False
-is_shap_save: False
+is_shap_save: True
 shap_explainer: Tree # Tree Kernel Deep
 shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
@@ -48,7 +48,7 @@ lime_save_weights: True
 
 # Plot params
 num_top_features: 10
-num_examples: 1
+num_examples: 5
 
 # specify here default training configuration
 defaults:
@@ -68,9 +68,10 @@ datamodule:
   cat_features_fn: ""
   cat_encoding: ""
   classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
-  trn_val_fn: "${data_dir}/data.xlsx"
+  trn_val_fn: "${data_dir}/data.pkl"
   outcome: ${outcome}
   split_feature: subject
+  split_column: split
   batch_size: 64
   num_workers: 0
   pin_memory: False
@@ -112,12 +113,12 @@ lightgbm:
   output_dim: ${out_dim}
   objective: 'multiclass'
   boosting: 'gbdt'
-  learning_rate: 0.005
+  learning_rate: 0.1
   num_leaves: 31
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 7
-  feature_fraction: 0.9
+  min_data_in_leaf: 1
+  feature_fraction: 0.8
   bagging_fraction: 0.8
   bagging_freq: 5
   verbose: -1

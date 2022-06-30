@@ -1,21 +1,21 @@
 # @package _global_
 
 data_type: 1st_day
-model_type: tabnet # node tab_transformer tabnet
-outcome: "class_simp"
+model_type: node # node tab_transformer tabnet
+outcome: class_simp
 
-experiment_type: real
+experiment_type: quasi
 
 in_dim: 1 # Will be corrected
 out_dim: 2
 
 project_name: ${data_type}_${experiment_type}_trn_val_${model_type}
 
-seed: 101
+seed: 42
 
-cv_is_split: True
+cv_is_split: False
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 2
 
 optimized_metric: "f1_score_weighted"
 optimized_part: "val"
@@ -28,8 +28,8 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 1000
-patience: 50
+max_epochs: 5000
+patience: 100
 
 base_dir: "C:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
@@ -72,6 +72,7 @@ datamodule:
   trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
   split_feature: subject
+  split_column: split
   batch_size: 64
   num_workers: 0
   pin_memory: False
@@ -97,7 +98,7 @@ tabnet:
   loss_type: "CrossEntropyLoss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.01
+  optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
   scheduler_step_size: 50
   scheduler_gamma: 0.9

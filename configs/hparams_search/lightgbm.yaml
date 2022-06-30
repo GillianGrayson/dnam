@@ -25,7 +25,7 @@ hydra:
     direction: maximize
 
     # number of experiments that will be executed
-    n_trials: 20
+    n_trials: 50
 
     # choose Optuna hyperparameter sampler
     # learn more here: https://optuna.readthedocs.io/en/stable/reference/samplers.html
