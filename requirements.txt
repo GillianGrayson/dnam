@@ -11,7 +11,7 @@ hydra-optuna-sweeper>=1.1.0
 omegaconf>=2.1.1
 
 # --------- loggers --------- #
-wandb>=0.12.0
+wandb==0.11.2
 
 # --------- linters --------- #
 pre-commit      # hooks for applying linters on commit
