@@ -344,7 +344,7 @@ def explain_shap(config, expl_data):
                         )
                     )
                     fig.update_layout({'colorway': ['red']})
-                    fig.update_yaxes(zeroline=True, zerolinewidth=2, zerolinecolor='black')
+                    fig.update_yaxes(zeroline=True, zerolinewidth=1, zerolinecolor='grey')
                     save_figure(fig, f"shap/{part}/features/{cl}/{feat_id}_{feat}_scatter")
 
                 fig = go.Figure()
