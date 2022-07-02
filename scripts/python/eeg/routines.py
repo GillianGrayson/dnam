@@ -68,7 +68,7 @@ def get_32_electrodes_groups(scale_type):
     return groups
 
 
-def get_32_electrodes_cooedinates():
+def get_32_electrodes_coordinates():
     coordinates = {
         'Cz': (1.0, 1.0),
         'C3': (0.65, 1.0),
@@ -110,7 +110,7 @@ def get_32_electrodes_cooedinates():
 def plot_32_electrodes_scatter(df, column, label, scale_type, path):
 
     groups = get_32_electrodes_groups(scale_type)
-    coordinates = get_32_electrodes_cooedinates()
+    coordinates = get_32_electrodes_coordinates()
 
     n_rows = 5
     n_cols = 2
@@ -238,40 +238,75 @@ def plot_32_electrodes_scatter(df, column, label, scale_type, path):
         )
 
         if not is_the_same_colors:
-            fig.add_trace(
-                go.Scatter(
-                    x=xs,
-                    y=ys,
-                    showlegend=False,
-                    mode='markers+text',
-                    marker=dict(
-                        size=37,
-                        opacity=1,
-                        line=dict(
-                            width=1
+            if scale_type == "min2max":
+                fig.add_trace(
+                    go.Scatter(
+                        x=xs,
+                        y=ys,
+                        showlegend=False,
+                        mode='markers+text',
+                        marker=dict(
+                            size=37,
+                            opacity=1,
+                            line=dict(
+                                width=1
+                            ),
+                            color=colors,
+                            colorscale=groups[g][1],
+                            showscale=True,
+                            colorbar=dict(
+                                title=dict(text="", font=dict(size=20)), tickfont=dict(size=20),
+                                x=colorbar_xs[c_id],
+                                y=colorbar_ys[r_id],
+                                len=0.13
+                            )
                         ),
-                        color=colors,
-                        colorscale=groups[g][1],
-                        showscale=True,
-                        colorbar=dict(
-                            title=dict(text="", font=dict(size=20)), tickfont=dict(size=20),
-                            x=colorbar_xs[c_id],
-                            y=colorbar_ys[r_id],
-                            len=0.13
-                        )
+                        text=elecs,
+                        textposition="bottom center",
+                        textfont=dict(
+                            family="arial",
+                            size=18,
+                            color="Black"
+                        ),
                     ),
-                    text=elecs,
-                    textposition="bottom center",
-                    textfont=dict(
-                        family="arial",
-                        size=18,
-                        color="Black"
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
+            else:
+                fig.add_trace(
+                    go.Scatter(
+                        x=xs,
+                        y=ys,
+                        showlegend=False,
+                        mode='markers+text',
+                        marker=dict(
+                            cmid=0,
+                            size=37,
+                            opacity=1,
+                            line=dict(
+                                width=1
+                            ),
+                            color=colors,
+                            colorscale=groups[g][1],
+                            showscale=True,
+                            colorbar=dict(
+                                title=dict(text="", font=dict(size=20)), tickfont=dict(size=20),
+                                x=colorbar_xs[c_id],
+                                y=colorbar_ys[r_id],
+                                len=0.13
+                            )
+                        ),
+                        text=elecs,
+                        textposition="bottom center",
+                        textfont=dict(
+                            family="arial",
+                            size=18,
+                            color="Black"
+                        ),
                     ),
-                ),
-                row=r_id + 1,
-                col=c_id + 1
-            )
-
+                    row=r_id + 1,
+                    col=c_id + 1
+                )
         else:
             fig.add_trace(
                 go.Scatter(
