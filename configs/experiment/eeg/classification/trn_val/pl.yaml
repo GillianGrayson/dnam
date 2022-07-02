@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: 1st_day
-model_type: tabnet # node tab_transformer tabnet
+model_type: node # node tab_transformer tabnet
 outcome: class_simp
 
-experiment_type: quasi
+experiment_type: im
 
 in_dim: 1 # Will be corrected
 out_dim: 2

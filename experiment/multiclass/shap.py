@@ -39,9 +39,10 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
                     values=shap_values[cl_id][m_id],
                     base_values=base_values[cl_id],
                     data=features[m_id],
-                    feature_names=feature_names
+                    feature_names=feature_names,
                 ),
-                show=False
+                show=False,
+                max_display=config.num_top_features,
             )
             fig = plt.gcf()
             fig.savefig(f"{path_curr}/waterfall_{cl}.pdf", bbox_inches='tight')
@@ -66,7 +67,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
                 features=features[m_id],
                 feature_names=feature_names,
                 show=False,
-                matplotlib=True
+                matplotlib=True,
             )
             fig = plt.gcf()
             fig.savefig(f"{path_curr}/force_{cl}.pdf", bbox_inches='tight')
@@ -89,7 +90,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
                         data=features[c_id],
                         feature_names=feature_names
                     ),
-                    show=False
+                    show=False,
+                    max_display=config.num_top_features
                 )
                 fig = plt.gcf()
                 fig.savefig(f"{path_curr}/waterfall_{cl}.pdf", bbox_inches='tight')
@@ -114,7 +116,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, f
                     features=features[c_id],
                     feature_names=feature_names,
                     show=False,
-                    matplotlib=True
+                    matplotlib=True,
                 )
                 fig = plt.gcf()
                 fig.savefig(f"{path_curr}/force_{cl}.pdf", bbox_inches='tight')
@@ -231,7 +233,7 @@ def explain_shap(config, expl_data):
                 shap_values=shap_values,
                 features=X,
                 feature_names=feature_names,
-                # max_display=config.num_top_features,
+                max_display=config.num_top_features,
                 class_names=class_names,
                 class_inds=list(range(len(class_names))),
                 show=False,
@@ -247,7 +249,7 @@ def explain_shap(config, expl_data):
                     shap_values=shap_values[cl_id],
                     features=X,
                     feature_names=feature_names,
-                    # max_display=config.num_top_features,
+                    max_display=config.num_top_features,
                     show=False,
                     plot_type="bar"
                 )
@@ -259,7 +261,7 @@ def explain_shap(config, expl_data):
                     shap_values=shap_values[cl_id],
                     features=X,
                     feature_names=feature_names,
-                    # max_display=config.num_top_features,
+                    max_display=config.num_top_features,
                     plot_type="violin",
                     show=False,
                 )
@@ -276,7 +278,7 @@ def explain_shap(config, expl_data):
                 shap.plots.heatmap(
                     explanation,
                     show=False,
-                    # max_display=config.num_top_features,
+                    max_display=config.num_top_features,
                     instance_order=explanation.sum(1)
                 )
                 plt.savefig(f"shap/{part}/global/{cl}/heatmap.png", bbox_inches='tight')

@@ -1,10 +1,10 @@
 # @package _global_
 
 data_type: 1st_day
-model_type: lightgbm # xgboost catboost lightgbm
+model_type: xgboost # xgboost catboost lightgbm
 outcome: class_simp
 
-experiment_type: quasi
+experiment_type: real
 
 out_dim: 2
 
@@ -35,7 +35,7 @@ work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: False
+is_shap: True
 is_shap_save: True
 shap_explainer: Tree # Tree Kernel Deep
 shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
@@ -47,8 +47,8 @@ lime_num_features: 20 # 10 all
 lime_save_weights: True
 
 # Plot params
-num_top_features: 10
-num_examples: 5
+num_top_features: 30
+num_examples: 10
 
 # specify here default training configuration
 defaults:
@@ -68,7 +68,7 @@ datamodule:
   cat_features_fn: ""
   cat_encoding: ""
   classes_fn: "${data_dir}/classes/${experiment_type}.xlsx"
-  trn_val_fn: "${data_dir}/data.pkl"
+  trn_val_fn: "${data_dir}/data.xlsx"
   outcome: ${outcome}
   split_feature: subject
   split_column: split
@@ -84,9 +84,9 @@ datamodule:
 xgboost:
   output_dim: ${out_dim}
   booster: 'gbtree'
-  learning_rate: 0.05
-  max_depth: 5
-  gamma: 0
+  learning_rate: 0.3
+  max_depth: 7
+  gamma: 1.0
   sampling_method: 'uniform'
   subsample: 1
   objective: 'multi:softprob'
@@ -118,7 +118,7 @@ lightgbm:
   device: 'cpu'
   max_depth: -1
   min_data_in_leaf: 1
-  feature_fraction: 0.8
+  feature_fraction: 0.9
   bagging_fraction: 0.8
   bagging_freq: 5
   verbose: -1
