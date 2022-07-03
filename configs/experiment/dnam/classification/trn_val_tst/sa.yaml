@@ -7,7 +7,10 @@ outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-project_name: ${disease}_${data_type}_trn_val_tst_${model_type}
+in_dim: 100
+out_dim: 2
+
+project_name: ${disease}_${data_type}_trn_val_tst_${tst_dataset}_${model_type}
 
 seed: 69
 
@@ -29,23 +32,29 @@ test_after_training: True
 max_epochs: 2000
 patience: 100
 
-in_dim: 100
-out_dim: 2
-
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
 work_dir: "${base_dir}/${data_type}/models/${project_name}"
 data_dir: "${base_dir}/${data_type}"
 
-is_shap: True
+# SHAP values
+is_shap: False
 is_shap_save: False
-shap_explainer: Tree
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
+
+# LIME weights
+is_lime: False
+lime_bkgrd: trn # trn all
+lime_num_features: 20 # 10 all
+lime_save_weights: True
 
 # Plot params
-num_top_features: 5
+num_top_features: 10
 num_examples: 5
 
 # specify here default training configuration
 defaults:
+  - _self_
   - override /trainer: null # choose trainer from 'configs/trainer/'
   - override /model: null
   - override /datamodule: null

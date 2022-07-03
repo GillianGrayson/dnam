@@ -320,6 +320,8 @@ class DNAmDataModuleSeparate(LightningDataModule):
         self.weighted_sampler = weighted_sampler
         self.imputation = imputation
 
+        self.split_feature = None
+
         self.dataloaders_evaluate = False
 
         self.dataset_trn: Optional[Dataset] = None
@@ -395,6 +397,9 @@ class DNAmDataModuleSeparate(LightningDataModule):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
         self.dataset_tst = Subset(self.dataset, self.ids_tst)
+        log.info(f"trn_count: {len(self.dataset_trn)}")
+        log.info(f"val_count: {len(self.dataset_val)}")
+        log.info(f"tst_count: {len(self.dataset_tst)}")
 
     def perform_split(self):
         assert abs(1.0 - sum(self.trn_val_split)) < 1.0e-8, "Sum of trn_val_split must be 1"
@@ -481,6 +486,9 @@ class DNAmDataModuleSeparate(LightningDataModule):
 
     def get_trn_val_y(self):
         return self.dataset.ys[self.ids_trn_val]
+
+    def get_trn_val_split_feature(self):
+        return None
 
     def train_dataloader(self):
         if self.dataloaders_evaluate:
@@ -586,6 +594,8 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
         self.weighted_sampler = weighted_sampler
         self.imputation = imputation
 
+        self.split_feature = None
+
         self.dataloaders_evaluate = False
 
         self.dataset_trn: Optional[Dataset] = None
@@ -663,6 +673,10 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
         self.dataset_val = Subset(self.dataset, self.ids_val)
         self.dataset_tst = Subset(self.dataset, [])
 
+        log.info(f"trn_count: {len(self.dataset_trn)}")
+        log.info(f"val_count: {len(self.dataset_val)}")
+        log.info(f"tst_count: {len(self.dataset_tst)}")
+
     def perform_split(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
         self.dataset_val = Subset(self.dataset, self.ids_val)
@@ -722,6 +736,9 @@ class DNAmDataModuleTrainValNoSplit(LightningDataModule):
 
     def get_trn_val_y(self):
         return self.dataset.ys[self.ids_trn_val]
+
+    def get_trn_val_split_feature(self):
+        return None
 
     def train_dataloader(self):
         if self.dataloaders_evaluate:
