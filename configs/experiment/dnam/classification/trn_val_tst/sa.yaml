@@ -16,7 +16,7 @@ seed: 101
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 2
+cv_n_repeats: 3
 
 optimized_metric: "accuracy_weighted"
 optimized_part: "val"
