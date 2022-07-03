@@ -16,10 +16,10 @@ seed: 69
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 2
+cv_n_repeats: 1
 
 optimized_metric: "accuracy_weighted"
-optimized_part: "test"
+optimized_part: "val"
 direction: "max"
 
 is_shuffle: True
