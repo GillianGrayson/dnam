@@ -88,7 +88,7 @@ xgboost:
   sampling_method: 'uniform'
   subsample: 1
   objective: 'multi:softprob'
-  verbosity: 1
+  verbosity: 0
   eval_metric: 'mlogloss'
   max_epochs: ${max_epochs}
   patience: ${patience}
@@ -102,7 +102,7 @@ catboost:
   min_data_in_leaf: 4
   max_leaves: 31
   task_type: 'CPU'
-  verbose: 1
+  verbose: 0
   max_epochs: ${max_epochs}
   patience: ${patience}
 
@@ -119,7 +119,7 @@ lightgbm:
   feature_fraction: 0.9
   bagging_fraction: 0.8
   bagging_freq: 5
-  verbose: 0
+  verbose: -1
   metric: 'multi_logloss'
   max_epochs: ${max_epochs}
   patience: ${patience}
