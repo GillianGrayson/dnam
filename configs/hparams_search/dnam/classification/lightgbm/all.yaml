@@ -31,7 +31,7 @@ hydra:
     direction: maximize
 
     # total number of runs that will be executed
-    n_trials: 10
+    n_trials: 50
 
     # choose Optuna hyperparameter sampler
     # docs: https://optuna.readthedocs.io/en/stable/reference/samplers.html
@@ -42,15 +42,15 @@ hydra:
       prior_weight: 1.0
       consider_magic_clip: true
       consider_endpoints: false
-      n_startup_trials: 5
-      n_ei_candidates: 5
+      n_startup_trials: 10
+      n_ei_candidates: 10
       multivariate: false
       warn_independent_sampling: true
 
     # define range of hyperparameters
     params:
-      lightgbm.learning_rate: choice(0.5, 0.1, 0.01, 0.001)
+      lightgbm.learning_rate: choice(0.3, 0.1, 0.05, 0.01, 0.005, 0.001)
       lightgbm.num_leaves: choice(31)
-      lightgbm.min_data_in_leaf: range(1, 40, 5)
-      lightgbm.feature_fraction: choice(0.8, 0.9)
-      lightgbm.bagging_fraction: choice(0.7, 0.8)
+      lightgbm.min_data_in_leaf: choice(1, 5, 10, 15, 20, 25, 30, 35, 40)
+      lightgbm.feature_fraction: choice(0.9)
+      lightgbm.bagging_fraction: choice(0.8)
