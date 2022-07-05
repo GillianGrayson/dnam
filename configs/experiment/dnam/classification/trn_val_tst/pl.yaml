@@ -7,19 +7,20 @@ outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-in_dim: 43019
+in_dim: 1000
 out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_val_tst_${tst_dataset}_${model_type}
 
-seed: 101
+seed: 240
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 2
+cv_n_repeats: 5
 
 optimized_metric: "accuracy_weighted"
-optimized_part: "val"
+optimized_mean: "cv_mean_val_test"
+optimized_part: "test"
 direction: "max"
 
 is_shuffle: True
@@ -67,7 +68,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleSeparate
   task: "binary"
-  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  features_fn: "${data_dir}/cpgs/${model_type}/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
   tst_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"

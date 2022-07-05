@@ -452,5 +452,9 @@ def process(config: DictConfig):
         explain_shap(config, expl_data)
 
     optimized_metric = config.get("optimized_metric")
+    optimized_mean = config.get("optimized_mean")
     if optimized_metric:
-        return metrics_main.at[optimized_metric, config.optimized_part]
+        if optimized_mean == "":
+            return metrics_main.at[optimized_metric, config.optimized_part]
+        else:
+            return metrics_main.at[f"{optimized_metric}_{optimized_mean}", config.optimized_part]
