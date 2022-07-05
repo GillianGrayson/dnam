@@ -43,15 +43,10 @@ hydra:
       consider_magic_clip: true
       consider_endpoints: false
       n_startup_trials: 10
-      n_ei_candidates: 10
+      n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
 
     # define range of hyperparameters
     params:
       seed: choice(42, 1337, 1234, 777, 555, 4400, 7, 13, 99, 101)
-      lightgbm.learning_rate: choice(0.01)
-      lightgbm.num_leaves: choice(31)
-      lightgbm.min_data_in_leaf: choice(20)
-      lightgbm.feature_fraction: choice(0.9)
-      lightgbm.bagging_fraction: choice(0.8)

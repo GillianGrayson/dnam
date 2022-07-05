@@ -7,7 +7,7 @@ outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-in_dim: 43019
+in_dim: 1000
 out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_val_tst_${tst_dataset}_${model_type}
@@ -19,7 +19,7 @@ cv_n_splits: 5
 cv_n_repeats: 1
 
 optimized_metric: "accuracy_weighted"
-optimized_part: "val"
+optimized_part: "test"
 direction: "max"
 
 is_shuffle: True
@@ -66,7 +66,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleSeparate
   task: "binary"
-  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  features_fn: "${data_dir}/cpgs/${model_type}/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
   tst_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
@@ -112,13 +112,13 @@ lightgbm:
   output_dim: ${out_dim}
   objective: 'multiclass'
   boosting: 'gbdt'
-  learning_rate: 0.01
+  learning_rate: 0.04
   num_leaves: 31
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 20
-  feature_fraction: 0.9
-  bagging_fraction: 0.8
+  min_data_in_leaf: 3
+  feature_fraction: 0.8
+  bagging_fraction: 0.7
   bagging_freq: 5
   verbose: -1
   metric: 'multi_logloss'

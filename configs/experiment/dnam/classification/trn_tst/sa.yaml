@@ -7,7 +7,7 @@ outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-in_dim: 43019
+in_dim: 1000
 out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_tst_${tst_dataset}_${model_type}
@@ -66,7 +66,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleTrainValNoSplit
   task: "binary"
-  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
+  features_fn: "${data_dir}/cpgs/${model_type}/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_fn: "${data_dir}/data_trn_val.pkl"
   val_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
