@@ -123,3 +123,12 @@ lightgbm:
   metric: 'multi_logloss'
   max_epochs: ${max_epochs}
   patience: ${patience}
+
+logistic_regression:
+  penalty: "elasticnet"
+  l1_ratio: 0.5
+  C: 1.0
+  multi_class: "multinomial"
+  max_iter: 100
+  tol: 1e-4
+  verbose: 0

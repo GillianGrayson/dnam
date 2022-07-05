@@ -323,9 +323,35 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
     metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_trn_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_trn.index.values], columns=['train'])
+    for metric in metrics_trn.index.values:
+        metrics_trn_cv_mean.at[f"{metric}_cv_mean", 'train'] = cv_progress[f"train_{metric}"].mean()
+    metrics_trn = pd.concat([metrics_trn, metrics_trn_cv_mean])
+    metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True)
+
     metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_val.index.values], columns=['val'])
+    for metric in metrics_val.index.values:
+        metrics_val_cv_mean.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
+    metrics_val = pd.concat([metrics_val, metrics_val_cv_mean])
+    metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+
     if is_test:
         metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_tst.index.values], columns=['test'])
+        for metric in metrics_tst.index.values:
+            metrics_tst_cv_mean.at[f"{metric}_cv_mean", 'test'] = cv_progress[f"test_{metric}"].mean()
+        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv_mean])
+
+        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_test" for x in metrics_tst.index.values], columns=['val', 'test'])
+        for metric in metrics_tst.index.values:
+            val_test_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst.at[f"{metric}_cv_mean", 'test'])
+            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'val'] = val_test_value
+            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'test'] = val_test_value
+        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean.loc[:, 'val']])
+        metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, 'test']])
+        metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+        metrics_tst.to_excel(f"metrics_test_best_{best['fold']:04d}.xlsx", index=True)
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn

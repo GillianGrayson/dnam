@@ -21,6 +21,7 @@ from experiment.multiclass.shap import explain_shap
 from experiment.multiclass.lime import explain_lime
 from tqdm import tqdm
 from datetime import datetime
+from sklearn.linear_model import LogisticRegression
 
 
 log = utils.get_logger(__name__)
@@ -238,6 +239,37 @@ def process(config: DictConfig):
 
             feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
+        elif config.model_type == "logistic_regression":
+            model = LogisticRegression(
+                penalty=config.logistic_regression.penalty,
+                l1_ratio=config.logistic_regression.l1_ratio,
+                C=config.logistic_regression.C,
+                multi_class=config.logistic_regression.multi_class,
+                max_iter=config.logistic_regression.max_iter,
+                tol=config.logistic_regression.tol,
+                verbose=config.logistic_regression.verbose,
+            ).fit(X_trn, y_trn)
+
+            y_trn_pred_prob = model.predict_proba(X_trn)
+            y_val_pred_prob = model.predict_proba(X_val)
+            y_trn_pred_raw = model.predict_proba(X_trn)
+            y_val_pred_raw = model.predict_proba(X_val)
+            y_trn_pred = model.predict(X_trn)
+            y_val_pred = model.predict(X_val)
+            if is_test:
+                y_tst_pred_prob = model.predict_proba(X_tst)
+                y_tst_pred_raw = model.predict_proba(X_tst)
+                y_tst_pred = model.predict(X_tst)
+
+            loss_info = {
+                'epoch': [0],
+                'train/loss': [0],
+                'val/loss': [0]
+            }
+
+            feature_importances = pd.DataFrame.from_dict(
+                {'feature': ['Intercept'] + feature_names, 'importance': [model.intercept_] + list(model.coef_)})
+
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
@@ -323,7 +355,7 @@ def process(config: DictConfig):
                     df.loc[df.index[ids_tst], f"pred_raw_{cl_id}"] = y_tst_pred_raw[:, cl_id]
 
         cv_progress.at[fold_idx, 'fold'] = fold_idx
-        cv_progress.at[fold_idx,'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
+        cv_progress.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
 
     cv_progress.to_excel(f"cv_progress.xlsx", index=False)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:,'fold'].values]]
@@ -348,9 +380,35 @@ def process(config: DictConfig):
         y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
     metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_trn_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_trn.index.values], columns=['train'])
+    for metric in metrics_trn.index.values:
+        metrics_trn_cv_mean.at[f"{metric}_cv_mean", 'train'] = cv_progress[f"train_{metric}"].mean()
+    metrics_trn = pd.concat([metrics_trn, metrics_trn_cv_mean])
+    metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True)
+
     metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_val.index.values], columns=['val'])
+    for metric in metrics_val.index.values:
+        metrics_val_cv_mean.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
+    metrics_val = pd.concat([metrics_val, metrics_val_cv_mean])
+    metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+
     if is_test:
         metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_tst.index.values], columns=['test'])
+        for metric in metrics_tst.index.values:
+            metrics_tst_cv_mean.at[f"{metric}_cv_mean", 'test'] = cv_progress[f"test_{metric}"].mean()
+        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv_mean])
+
+        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_test" for x in metrics_tst.index.values], columns=['val', 'test'])
+        for metric in metrics_tst.index.values:
+            val_test_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst.at[f"{metric}_cv_mean", 'test'])
+            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'val'] = val_test_value
+            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'test'] = val_test_value
+        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean.loc[:, 'val']])
+        metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, 'test']])
+        metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+        metrics_tst.to_excel(f"metrics_test_best_{best['fold']:04d}.xlsx", index=True)
 
     eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
 
