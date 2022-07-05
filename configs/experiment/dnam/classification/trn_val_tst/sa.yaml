@@ -12,11 +12,11 @@ out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_val_tst_${tst_dataset}_${model_type}
 
-seed: 240
+seed: 800
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 1
 
 optimized_metric: "accuracy_weighted"
 optimized_mean: "cv_mean_val_test"
