@@ -1,7 +1,7 @@
 # @package _global_
 
 disease: Parkinson
-data_type: non_harmonized
+data_type: harmonized
 model_type: lightgbm
 outcome: "Status"
 
@@ -12,14 +12,14 @@ out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_tst_${tst_dataset}_${model_type}
 
-seed: 101
+seed: 500
 
 cv_is_split: False
 cv_n_splits: 5
 cv_n_repeats: 5
 
 optimized_metric: "accuracy_weighted"
-optimized_mean: "cv_mean_val_test"
+optimized_mean: ""
 optimized_part: "val"
 direction: "max"
 

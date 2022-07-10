@@ -1,18 +1,18 @@
 # @package _global_
 
 disease: Parkinson
-data_type: non_harmonized
+data_type: harmonized
 model_type: lightgbm
 outcome: "Status"
 
 tst_dataset: "GSE72774"
 
-in_dim: 1000
+in_dim: 50911
 out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_val_tst_${tst_dataset}_${model_type}
 
-seed: 800
+seed: 500
 
 cv_is_split: True
 cv_n_splits: 5
@@ -67,7 +67,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleSeparate
   task: "binary"
-  features_fn: "${data_dir}/cpgs/${model_type}/${in_dim}.xlsx"
+  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_val_fn: "${data_dir}/data_trn_val.pkl"
   tst_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
@@ -113,11 +113,11 @@ lightgbm:
   output_dim: ${out_dim}
   objective: 'multiclass'
   boosting: 'gbdt'
-  learning_rate: 0.04
+  learning_rate: 0.0075
   num_leaves: 31
   device: 'cpu'
   max_depth: -1
-  min_data_in_leaf: 3
+  min_data_in_leaf: 8
   feature_fraction: 0.8
   bagging_fraction: 0.7
   bagging_freq: 5

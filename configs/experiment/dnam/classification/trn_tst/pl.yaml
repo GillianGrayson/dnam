@@ -19,7 +19,7 @@ cv_n_splits: 5
 cv_n_repeats: 5
 
 optimized_metric: "accuracy_weighted"
-optimized_mean: "cv_mean_val_test"
+optimized_mean: ""
 optimized_part: "val"
 direction: "max"
 
