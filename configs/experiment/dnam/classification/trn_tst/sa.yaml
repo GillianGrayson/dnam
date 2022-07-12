@@ -1,13 +1,13 @@
 # @package _global_
 
-disease: Parkinson
-data_type: harmonized
-model_type: lightgbm
+disease: Schizophrenia # Parkinson
+data_type: harmonized # non_harmonized
+model_type: logistic_regression
 outcome: "Status"
 
-tst_dataset: "GSE72774"
+tst_dataset: GSE152027 # GSE72774
 
-in_dim: 1000
+in_dim: 110137 # 35145 43019 50911
 out_dim: 2
 
 project_name: ${disease}_${data_type}_trn_tst_${tst_dataset}_${model_type}
@@ -67,7 +67,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.dnam.DNAmDataModuleTrainValNoSplit
   task: "binary"
-  features_fn: "${data_dir}/cpgs/${model_type}/${in_dim}.xlsx"
+  features_fn: "${data_dir}/cpgs/${in_dim}.xlsx"
   classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
   trn_fn: "${data_dir}/data_trn_val.pkl"
   val_fn: "${data_dir}/data_tst_${tst_dataset}.pkl"
@@ -130,6 +130,7 @@ logistic_regression:
   l1_ratio: 0.5
   C: 1.0
   multi_class: "multinomial"
+  solver: "saga"
   max_iter: 100
   tol: 1e-4
   verbose: 0

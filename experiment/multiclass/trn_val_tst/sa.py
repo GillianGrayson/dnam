@@ -22,6 +22,7 @@ from experiment.multiclass.lime import explain_lime
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.linear_model import LogisticRegression
+import pickle
 
 
 log = utils.get_logger(__name__)
@@ -245,6 +246,7 @@ def process(config: DictConfig):
                 l1_ratio=config.logistic_regression.l1_ratio,
                 C=config.logistic_regression.C,
                 multi_class=config.logistic_regression.multi_class,
+                solver=config.logistic_regression.solver,
                 max_iter=config.logistic_regression.max_iter,
                 tol=config.logistic_regression.tol,
                 verbose=config.logistic_regression.verbose,
@@ -268,7 +270,11 @@ def process(config: DictConfig):
             }
 
             feature_importances = pd.DataFrame.from_dict(
-                {'feature': ['Intercept'] + feature_names, 'importance': [model.intercept_] + list(model.coef_)})
+                {
+                    'feature': ['Intercept'] + feature_names,
+                    'importance': [model.intercept_] + list(model.coef_.ravel())
+                }
+            )
 
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
@@ -332,6 +338,10 @@ def process(config: DictConfig):
             elif config.model_type == "lightgbm":
                 def predict_func(X):
                     y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
+                    return y
+            elif config.model_type == "logistic_regression":
+                def predict_func(X):
+                    y = best["model"].predict_proba(X)
                     return y
             else:
                 raise ValueError(f"Model {config.model_type} is not supported")
@@ -428,6 +438,8 @@ def process(config: DictConfig):
         best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
     elif config.model_type == "lightgbm":
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
+    elif config.model_type == "logistic_regression":
+        pickle.dump(best["model"], open(f"logistic_regression_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     else:
         raise ValueError(f"Model {config.model_type} is not supported")
 
