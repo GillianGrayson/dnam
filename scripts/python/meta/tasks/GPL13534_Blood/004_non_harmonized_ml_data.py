@@ -28,12 +28,11 @@ dataset_statuses = {
     'GSE145361': ['Control', 'Parkinson'],
     'GSE111629': ['Control', 'Parkinson'],
     'GSE72774': ['Control', 'Parkinson'],
-    'GSE87571': ['Control'],
 }
 datasets_trn_val = ['GSE145361', 'GSE111629']
-datasets_tst = ['GSE72774', 'GSE87571']
+datasets_tst = ['GSE72774']
 
-task_name = f"GPL13534_Blood/{disease}"
+task_name = f"to_delete_checking_Parkinson_with_preprocessed_not_idat/{disease}"
 path_wd = f"{path}/meta/tasks/{task_name}"
 pathlib.Path(f"{path_wd}/non_harmonized/cpgs/figs").mkdir(parents=True, exist_ok=True)
 

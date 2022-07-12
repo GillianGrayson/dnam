@@ -32,8 +32,9 @@ betas = betas.loc[:, ~betas.columns.isin(forbidden_cpgs)]
 
 pheno, betas = get_pheno_betas_with_common_subjects(pheno, betas)
 if list(pheno.index.values) == list(betas.index.values):
-    print("Change index")
-    pheno.set_index('geo_accession', inplace=True)
+    if 'geo_accession' in pheno:
+        print("Change index")
+        pheno.set_index('geo_accession', inplace=True)
     pheno.index.name = "subject_id"
     betas.set_index(pheno.index, inplace=True)
     betas.index.name = "subject_id"

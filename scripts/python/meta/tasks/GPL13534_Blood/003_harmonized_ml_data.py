@@ -36,12 +36,11 @@ dataset_statuses = {
     'GSE145361': ['Control', 'Parkinson'],
     'GSE111629': ['Control', 'Parkinson'],
     'GSE72774': ['Control', 'Parkinson'],
-    'GSE87571': ['Control'],
 }
 datasets_trn_val = ['GSE145361', 'GSE111629']
-datasets_tst = ['GSE72774', 'GSE87571']
+datasets_tst = ['GSE72774']
 
-task_name = f"GPL13534_Blood/{disease}"
+task_name = f"to_delete_checking_Parkinson_with_preprocessed_not_idat/{disease}"
 path_wd = f"{path}/meta/tasks/{task_name}"
 pathlib.Path(f"{path_wd}/harmonized/cpgs/figs").mkdir(parents=True, exist_ok=True)
 pathlib.Path(f"{path_wd}/harmonized/cpgs/diffs").mkdir(parents=True, exist_ok=True)
@@ -61,6 +60,9 @@ for d_id, dataset in enumerate(datasets_trn_val):
     df_i = pd.merge(pheno_i, mvals_i, left_index=True, right_index=True)
     pheno_i = df_i.loc[:, pheno_cols]
     mvals_i = df_i.loc[:, mvals_cols]
+
+    print(f"pheno_i shape: {pheno_i.shape}")
+    print(f"mvals_i shape: {mvals_i.shape}")
 
     pheno_trn_val = pheno_trn_val.append(pheno_i, verify_integrity=True)
 

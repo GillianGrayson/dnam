@@ -32,14 +32,13 @@ dataset_statuses = {
     'GSE145361': ['Control', 'Parkinson'],
     'GSE111629': ['Control', 'Parkinson'],
     'GSE72774': ['Control', 'Parkinson'],
-    'GSE87571': ['Control'],
 }
 datasets_trn_val = ['GSE145361', 'GSE111629']
-datasets_tst = ['GSE72774', 'GSE87571']
+datasets_tst = ['GSE72774']
 
 alpha = 1e-9
 
-task_name = f"GPL13534_Blood/{disease}"
+task_name = f"to_delete_checking_Parkinson_with_preprocessed_not_idat/{disease}"
 path_wd = f"{path}/meta/tasks/{task_name}"
 pathlib.Path(f"{path_wd}/origin/cpgs/figs").mkdir(parents=True, exist_ok=True)
 
@@ -59,7 +58,10 @@ for d_id, dataset in enumerate(datasets_trn_val):
     pheno = filter_pheno(dataset, pheno, continuous_vars, categorical_vars)
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
     betas = betas_drop_na(betas)
+    print(f"pheno shape: {pheno.shape}")
+    print(f"betas shape: {betas.shape}")
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
+    print(f"df shape: {df.shape}")
 
     pheno = df.loc[:, [status_col]]
     status_dict_inverse = dict((x.column, x.label) for x in status_passed_fields)
@@ -92,6 +94,8 @@ for dataset in datasets_trn_val:
     print(dataset)
     pheno_i = df_trn_val.loc[df_trn_val['Dataset'] == dataset, feats]
     betas_i = df_trn_val.loc[df_trn_val['Dataset'] == dataset, cpgs]
+    print(f"pheno_i shape: {pheno_i.shape}")
+    print(f"betas_i shape: {betas_i.shape}")
     mvals_i = logit2(betas_i, alpha)
     pheno_i.to_pickle(f"{path_wd}/origin/pheno_trn_val_{dataset}.pkl")
     pheno_i.to_excel(f"{path_wd}/origin/pheno_trn_val_{dataset}.xlsx", index=True)
@@ -119,6 +123,8 @@ for d_id, dataset in enumerate(datasets_tst):
     betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
     betas = betas_drop_na(betas)
     betas = betas.astype('float32')
+    print(f"Number of subjects in {dataset}: {pheno.shape[0]}")
+    print(f"Number of CpGs in {dataset}: {betas.shape[1]}")
     df = pd.merge(pheno, betas, left_index=True, right_index=True)
 
     pheno = df.loc[:, [status_col]]
