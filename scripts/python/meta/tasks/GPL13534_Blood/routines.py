@@ -10,7 +10,7 @@ import plotly.express as px
 
 
 def perform_test_for_controls(datasets, manifest, df, cpgs, path, y_label, n_plot=20):
-    cpgs_metrics_dict = {'CpG': cpgs}
+    cpgs_metrics_dict = {'features': cpgs}
     cpgs_metrics_dict['pval'] = []
     for cpg_id, cpg in enumerate(tqdm(cpgs)):
         vals = {}
@@ -29,7 +29,7 @@ def perform_test_for_controls(datasets, manifest, df, cpgs, path, y_label, n_plo
     _, pvals_corr, _, _ = multipletests(cpgs_metrics_dict['pval'], 0.05, method='bonferroni')
     cpgs_metrics_dict['pval_bonferroni'] = pvals_corr
     cpgs_metrics_df = pd.DataFrame(cpgs_metrics_dict)
-    cpgs_metrics_df.set_index('CpG', inplace=True)
+    cpgs_metrics_df.set_index('features', inplace=True)
     cpgs_metrics_df.sort_values(['pval_fdr_bh'], ascending=[False], inplace=True)
 
     cpgs_to_plot_df = cpgs_metrics_df.head(n_plot)
