@@ -12,48 +12,49 @@ import torch
 
 
 def save_feature_importance(df, num_features):
-    df.sort_values(['importance'], ascending=[False], inplace=True)
-    df['importance'] = df['importance'] / df['importance'].sum()
-    fig = go.Figure()
-    ys = df['feature'][0:num_features][::-1]
-    xs = df['importance'][0:num_features][::-1]
-    fig.add_trace(
-        go.Bar(
-            x=xs,
-            y=list(range(len(ys))),
-            orientation='h',
-            marker=dict(color='red', opacity=0.9)
+    if df is not None:
+        df.sort_values(['importance'], ascending=[False], inplace=True)
+        df['importance'] = df['importance'] / df['importance'].sum()
+        fig = go.Figure()
+        ys = df['feature'][0:num_features][::-1]
+        xs = df['importance'][0:num_features][::-1]
+        fig.add_trace(
+            go.Bar(
+                x=xs,
+                y=list(range(len(ys))),
+                orientation='h',
+                marker=dict(color='red', opacity=0.9)
+            )
         )
-    )
-    add_layout(fig, "Feature importance", "", "")
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(showlegend=False)
-    fig.update_layout(
-        yaxis=dict(
-            tickmode='array',
-            tickvals=list(range(len(xs))),
-            ticktext=ys
+        add_layout(fig, "Feature importance", "", "")
+        fig.update_layout(legend_font_size=20)
+        fig.update_layout(showlegend=False)
+        fig.update_layout(
+            yaxis=dict(
+                tickmode='array',
+                tickvals=list(range(len(xs))),
+                ticktext=ys
+            )
         )
-    )
-    fig.update_yaxes(autorange=False)
-    fig.update_layout(yaxis_range=[-0.5, len(xs) - 0.5])
-    fig.update_yaxes(tickfont_size=24)
-    fig.update_xaxes(tickfont_size=24)
-    fig.update_layout(
-        autosize=False,
-        width=800,
-        height=800,
-        margin=go.layout.Margin(
-            l=350,
-            r=20,
-            b=100,
-            t=40,
-            pad=0
+        fig.update_yaxes(autorange=False)
+        fig.update_layout(yaxis_range=[-0.5, len(xs) - 0.5])
+        fig.update_yaxes(tickfont_size=24)
+        fig.update_xaxes(tickfont_size=24)
+        fig.update_layout(
+            autosize=False,
+            width=800,
+            height=800,
+            margin=go.layout.Margin(
+                l=350,
+                r=20,
+                b=100,
+                t=40,
+                pad=0
+            )
         )
-    )
-    save_figure(fig, f"feature_importances")
-    df.set_index('feature', inplace=True)
-    df.to_excel("feature_importances.xlsx", index=True)
+        save_figure(fig, f"feature_importances")
+        df.set_index('feature', inplace=True)
+        df.to_excel("feature_importances.xlsx", index=True)
 
 
 def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, file_suffix=''):

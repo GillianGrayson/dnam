@@ -22,6 +22,7 @@ from experiment.multiclass.lime import explain_lime
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.linear_model import LogisticRegression
+from sklearn import svm
 import pickle
 
 
@@ -276,6 +277,35 @@ def process(config: DictConfig):
                 }
             )
 
+        elif config.model_type == "svm":
+            model = svm.SVC(
+                C=config.svm.C,
+                kernel=config.svm.kernel,
+                decision_function_shape=config.svm.decision_function_shape,
+                max_iter=config.svm.max_iter,
+                tol=config.svm.tol,
+                verbose=config.svm.verbose,
+            ).fit(X_trn, y_trn)
+
+            y_trn_pred_prob = model.predict_proba(X_trn)
+            y_val_pred_prob = model.predict_proba(X_val)
+            y_trn_pred_raw = model.predict_proba(X_trn)
+            y_val_pred_raw = model.predict_proba(X_val)
+            y_trn_pred = model.predict(X_trn)
+            y_val_pred = model.predict(X_val)
+            if is_test:
+                y_tst_pred_prob = model.predict_proba(X_tst)
+                y_tst_pred_raw = model.predict_proba(X_tst)
+                y_tst_pred = model.predict(X_tst)
+
+            loss_info = {
+                'epoch': [0],
+                'train/loss': [0],
+                'val/loss': [0]
+            }
+
+            feature_importances = None
+
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
@@ -340,6 +370,10 @@ def process(config: DictConfig):
                     y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
                     return y
             elif config.model_type == "logistic_regression":
+                def predict_func(X):
+                    y = best["model"].predict_proba(X)
+                    return y
+            elif config.model_type == "svm":
                 def predict_func(X):
                     y = best["model"].predict_proba(X)
                     return y
@@ -440,6 +474,8 @@ def process(config: DictConfig):
         best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
     elif config.model_type == "logistic_regression":
         pickle.dump(best["model"], open(f"logistic_regression_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+    elif config.model_type == "svm":
+        pickle.dump(best["model"], open(f"svm_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     else:
         raise ValueError(f"Model {config.model_type} is not supported")
 
