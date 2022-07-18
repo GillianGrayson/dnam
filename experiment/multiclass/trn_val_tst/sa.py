@@ -285,6 +285,7 @@ def process(config: DictConfig):
                 max_iter=config.svm.max_iter,
                 tol=config.svm.tol,
                 verbose=config.svm.verbose,
+                probability=True
             ).fit(X_trn, y_trn)
 
             y_trn_pred_prob = model.predict_proba(X_trn)
