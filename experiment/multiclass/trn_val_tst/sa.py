@@ -426,25 +426,28 @@ def process(config: DictConfig):
 
     metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
-    metrics_trn_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names], columns=['train'])
+    metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['train'])
     for metric in metrics_names:
-        metrics_trn_cv_mean.at[f"{metric}_cv_mean", 'train'] = cv_progress[f"train_{metric}"].mean()
-    metrics_trn = pd.concat([metrics_trn, metrics_trn_cv_mean])
+        metrics_trn_cv.at[f"{metric}_cv_mean", 'train'] = cv_progress[f"train_{metric}"].mean()
+        metrics_trn_cv.at[f"{metric}_cv_std", 'train'] = cv_progress[f"train_{metric}"].std()
+    metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
     metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True)
 
     metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
-    metrics_val_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names], columns=['val'])
+    metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
-        metrics_val_cv_mean.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
-    metrics_val = pd.concat([metrics_val, metrics_val_cv_mean])
+        metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
+        metrics_val_cv.at[f"{metric}_cv_std", 'val'] = cv_progress[f"val_{metric}"].std()
+    metrics_val = pd.concat([metrics_val, metrics_val_cv])
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
 
     if is_test:
         metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
-        metrics_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names], columns=['test'])
+        metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['test'])
         for metric in metrics_names:
-            metrics_tst_cv_mean.at[f"{metric}_cv_mean", 'test'] = cv_progress[f"test_{metric}"].mean()
-        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv_mean])
+            metrics_tst_cv.at[f"{metric}_cv_mean", 'test'] = cv_progress[f"test_{metric}"].mean()
+            metrics_tst_cv.at[f"{metric}_cv_std", 'test'] = cv_progress[f"test_{metric}"].std()
+        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
 
         metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_test" for x in metrics_names], columns=['val', 'test'])
         for metric in metrics_names:

@@ -6,7 +6,7 @@ outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
 
-seed: 101
+seed: 1337
 
 in_dim: 1
 out_dim: 1

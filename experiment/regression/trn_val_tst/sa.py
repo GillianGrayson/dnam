@@ -349,9 +349,39 @@ def process(config: DictConfig):
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
     metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_names = metrics_trn.index.values
+    metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['train'])
+    for metric in metrics_names:
+        metrics_trn_cv.at[f"{metric}_cv_mean", 'train'] = cv_progress[f"train_{metric}"].mean()
+        metrics_trn_cv.at[f"{metric}_cv_std", 'train'] = cv_progress[f"train_{metric}"].std()
+    metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
+    metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True)
+
     metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
+    for metric in metrics_names:
+        metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
+        metrics_val_cv.at[f"{metric}_cv_std", 'val'] = cv_progress[f"val_{metric}"].std()
+    metrics_val = pd.concat([metrics_val, metrics_val_cv])
+    metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+
     if is_test:
         metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['test'])
+        for metric in metrics_names:
+            metrics_tst_cv.at[f"{metric}_cv_mean", 'test'] = cv_progress[f"test_{metric}"].mean()
+            metrics_tst_cv.at[f"{metric}_cv_std", 'test'] = cv_progress[f"test_{metric}"].std()
+        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
+
+        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_test" for x in metrics_names], columns=['val', 'test'])
+        for metric in metrics_names:
+            val_test_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst.at[f"{metric}_cv_mean", 'test'])
+            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'val'] = val_test_value
+            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'test'] = val_test_value
+        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean.loc[:, ['val']]])
+        metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, ['test']]])
+        metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+        metrics_tst.to_excel(f"metrics_test_best_{best['fold']:04d}.xlsx", index=True)
 
     eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
 
@@ -484,5 +514,9 @@ def process(config: DictConfig):
         explain_shap(config, expl_data)
 
     optimized_metric = config.get("optimized_metric")
+    optimized_mean = config.get("optimized_mean")
     if optimized_metric:
-        return metrics_main.at[optimized_metric, config.optimized_part]
+        if optimized_mean == "":
+            return metrics_main.at[optimized_metric, config.optimized_part]
+        else:
+            return metrics_main.at[f"{optimized_metric}_{optimized_mean}", config.optimized_part]
