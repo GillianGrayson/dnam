@@ -10,7 +10,7 @@ seed: 1337
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 5
+cv_n_repeats: 10
 
 optimized_metric: "mean_absolute_error"
 optimized_mean: "cv_mean"

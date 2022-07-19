@@ -75,12 +75,13 @@ class BaseModel(pl.LightningModule):
         pass
 
     def on_fit_start(self) -> None:
-        for stage_type in ['train', 'val', 'test']:
-            for m in self.metrics:
-                wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics[m][1])
-            for m in self.metrics_prob:
-                wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
-            wandb.define_metric(f"{stage_type}/loss", summary='min')
+        if wandb.run is not None:
+            for stage_type in ['train', 'val', 'test']:
+                for m in self.metrics:
+                    wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics[m][1])
+                for m in self.metrics_prob:
+                    wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
+                wandb.define_metric(f"{stage_type}/loss", summary='min')
 
     def step(self, batch: Any, stage:str):
         x, y, ind = batch

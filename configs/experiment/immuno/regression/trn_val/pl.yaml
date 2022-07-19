@@ -16,6 +16,7 @@ cv_n_splits: 5
 cv_n_repeats: 1
 
 optimized_metric: "mean_absolute_error"
+optimized_mean: "cv_mean"
 optimized_part: "val"
 direction: "min"
 
