@@ -63,7 +63,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/262_imp(fast_knn)_replace(quarter).xlsx"
+  trn_val_fn: "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
