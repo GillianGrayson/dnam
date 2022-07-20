@@ -304,7 +304,7 @@ def process(config: DictConfig) -> Optional[float]:
         y_tst = df.loc[df.index[datamodule.ids_tst], outcome_name].values
         y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
 
-    metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'train', is_log=False, is_save=True)
+    metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'train', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
     metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['train'])
     for metric in metrics_names:
@@ -313,7 +313,7 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
     metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True)
 
-    metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True)
+    metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
         metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
@@ -322,7 +322,7 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
 
     if is_test:
-        metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'test', is_log=False, is_save=True)
+        metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
         metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['test'])
         for metric in metrics_names:
             metrics_tst_cv.at[f"{metric}_cv_mean", 'test'] = cv_progress[f"test_{metric}"].mean()
