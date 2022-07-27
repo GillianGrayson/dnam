@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: tabnet # tabnet node
+model_type: widedeep_tab_mlp # tabnet node widedeep_tab_mlp
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -141,6 +141,29 @@ tab_transformer:
   num_special_tokens: 0
   attn_dropout: 0.0
   ff_dropout: 0.0
+
+widedeep_tab_mlp:
+  _target_: src.models.widedeep.tab_mlp.TabMLPModel
+  task: "regression"
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.01
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.9
+  cont_norm_layer: 'batchnorm'
+  embed_continuous: False
+  cont_embed_dim: 32
+  cont_embed_dropout: 0.1
+  use_cont_bias: True
+  mlp_hidden_dims: [200, 100, 1]
+  mlp_activation: 'relu'
+  mlp_dropout: 0.1
+  mlp_batchnorm: False
+  mlp_batchnorm_last: False
+  mlp_linear_first: False
+  features: None
 
 callbacks:
   model_checkpoint:
