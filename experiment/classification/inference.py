@@ -17,7 +17,7 @@ from typing import List
 import wandb
 from catboost import CatBoost
 import xgboost as xgb
-from experiment.multiclass.shap import explain_shap
+from experiment.classification.shap import explain_shap
 
 
 log = utils.get_logger(__name__)

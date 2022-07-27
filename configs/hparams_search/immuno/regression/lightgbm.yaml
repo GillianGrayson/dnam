@@ -9,7 +9,7 @@ defaults:
 # choose metric which will be optimized by Optuna
 # make sure this is the correct name of some metric logged in lightning module!
 optimized_metric: "mean_absolute_error"
-optimized_mean: "cv_mean"
+optimized_mean: "cv_mean" # "cv_mean_val_test"
 
 # here we define Optuna hyperparameter search
 # it optimizes for value returned from function with @hydra.main decorator
@@ -32,7 +32,7 @@ hydra:
     direction: minimize
 
     # total number of runs that will be executed
-    n_trials: 100
+    n_trials: 200
 
     # choose Optuna hyperparameter sampler
     # docs: https://optuna.readthedocs.io/en/stable/reference/samplers.html
@@ -50,8 +50,8 @@ hydra:
 
     # define range of hyperparameters
     params:
-      lightgbm.learning_rate: tag(log, interval(0.0001, 0.5))
+      lightgbm.learning_rate: tag(log, interval(0.0005, 0.5))
       lightgbm.num_leaves: choice(31)
-      lightgbm.min_data_in_leaf: int(range(1, 45, step=1))
-      lightgbm.feature_fraction: choice(0.6, 0.7, 0.8, 0.9)
-      lightgbm.bagging_fraction: choice(0.6, 0.7, 0.8, 0.9)
+      lightgbm.min_data_in_leaf: int(range(1, 50, step=1))
+      lightgbm.feature_fraction: interval(0.6, 1.0)
+      lightgbm.bagging_fraction: interval(0.6, 1.0)

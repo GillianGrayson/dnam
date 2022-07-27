@@ -17,8 +17,8 @@ from catboost import CatBoost
 import lightgbm as lgb
 import wandb
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
-from experiment.multiclass.shap import explain_shap
-from experiment.multiclass.lime import explain_lime
+from experiment.classification.shap import explain_shap
+from experiment.classification.lime import explain_lime
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.linear_model import LogisticRegression

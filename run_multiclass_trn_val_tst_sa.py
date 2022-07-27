@@ -13,7 +13,7 @@ def main(config: DictConfig):
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.utils import utils
-    from experiment.multiclass.trn_val_tst.sa import process
+    from experiment.classification.trn_val_tst.sa import process
     import torch
 
     print("Started run_multiclass_trn_val_tst_sa")

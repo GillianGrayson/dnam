@@ -18,8 +18,8 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
-from experiment.multiclass.shap import explain_shap
-from experiment.multiclass.lime import explain_lime
+from experiment.classification.shap import explain_shap
+from experiment.classification.lime import explain_lime
 from datetime import datetime
 from experiment.routines import eval_classification, save_feature_importance
 from pathlib import Path
