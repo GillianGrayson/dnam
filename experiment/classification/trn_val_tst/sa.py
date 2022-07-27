@@ -431,7 +431,7 @@ def process(config: DictConfig):
         metrics_trn_cv.at[f"{metric}_cv_mean", 'train'] = cv_progress[f"train_{metric}"].mean()
         metrics_trn_cv.at[f"{metric}_cv_std", 'train'] = cv_progress[f"train_{metric}"].std()
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
-    metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True)
+    metrics_trn.to_excel(f"metrics_train_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
@@ -439,7 +439,7 @@ def process(config: DictConfig):
         metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
         metrics_val_cv.at[f"{metric}_cv_std", 'val'] = cv_progress[f"val_{metric}"].std()
     metrics_val = pd.concat([metrics_val, metrics_val_cv])
-    metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
+    metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     if is_test:
         metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'test', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
@@ -456,8 +456,8 @@ def process(config: DictConfig):
             metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'test'] = val_test_value
         metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean.loc[:, ['val']]])
         metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, ['test']]])
-        metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True)
-        metrics_tst.to_excel(f"metrics_test_best_{best['fold']:04d}.xlsx", index=True)
+        metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
+        metrics_tst.to_excel(f"metrics_test_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
 
