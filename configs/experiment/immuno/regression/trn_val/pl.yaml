@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: node # tabnet node
+model_type: tabnet # tabnet node
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -13,7 +13,7 @@ out_dim: 1
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 5
 
 optimized_metric: "mean_absolute_error"
 optimized_mean: "cv_mean"
@@ -66,7 +66,7 @@ datamodule:
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
   classes_fn: ""
-  trn_val_fn: "${data_dir}/262_imp(fast_knn)_replace(quarter).xlsx"
+  trn_val_fn: "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
   outcome: ${outcome}
   batch_size: 64
   trn_val_split: [0.80, 0.20]
