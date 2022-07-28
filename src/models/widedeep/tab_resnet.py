@@ -1,11 +1,10 @@
 from typing import Any, List
 import torch
-from pytorch_tabnet.tab_network import TabNet
 from src.models.base import BaseModel
-from pytorch_widedeep.models import TabMlp
+from pytorch_widedeep.models import TabResnet
 
 
-class TabMLPModel(BaseModel):
+class TabResnetModel(BaseModel):
 
     def __init__(
             self,
@@ -30,7 +29,10 @@ class TabMLPModel(BaseModel):
             cont_embed_dropout=0.1,
             use_cont_bias=True,
             cont_embed_activation=None,
-            mlp_hidden_dims=(200, 100),
+            blocks_dims=None,
+            blocks_dropout=0.1,
+            simplify_blocks=False,
+            mlp_hidden_dims=None,
             mlp_activation='relu',
             mlp_dropout=0.1,
             mlp_batchnorm=False,
@@ -49,11 +51,11 @@ class TabMLPModel(BaseModel):
             scheduler_step_size=scheduler_step_size,
             scheduler_gamma=scheduler_gamma,
         )
-        self.save_hyperparameters(ignore=['column_idx', 'cat_embed_input', 'continuous_cols'])
+        self.save_hyperparameters(logger=False)
         self._build_network()
 
     def _build_network(self):
-        self.model = TabMlp(
+        self.model = TabResnet(
             column_idx=self.hparams.column_idx,
             cat_embed_input=self.hparams.cat_embed_input,
             cat_embed_dropout=self.hparams.cat_embed_dropout,
@@ -66,6 +68,9 @@ class TabMLPModel(BaseModel):
             cont_embed_dropout=self.hparams.cont_embed_dropout,
             use_cont_bias=self.hparams.use_cont_bias,
             cont_embed_activation=self.hparams.cont_embed_activation,
+            blocks_dims=self.hparams.blocks_dims,
+            blocks_dropout=self.hparams.blocks_dropout,
+            simplify_blocks=self.hparams.simplify_blocks,
             mlp_hidden_dims=self.hparams.mlp_hidden_dims,
             mlp_activation=self.hparams.mlp_activation,
             mlp_dropout=self.hparams.mlp_dropout,

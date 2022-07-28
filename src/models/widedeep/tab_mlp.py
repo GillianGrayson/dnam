@@ -1,6 +1,5 @@
 from typing import Any, List
 import torch
-from pytorch_tabnet.tab_network import TabNet
 from src.models.base import BaseModel
 from pytorch_widedeep.models import TabMlp
 

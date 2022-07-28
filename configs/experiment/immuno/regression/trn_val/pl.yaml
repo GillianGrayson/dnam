@@ -1,7 +1,7 @@
 # @package _global_
 
 data_type: immuno
-model_type: widedeep_tab_mlp # tabnet node widedeep_tab_mlp
+model_type: widedeep_tab_resnet # tabnet node widedeep_tab_mlp widedeep_tab_resnet
 outcome: "Age"
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -87,7 +87,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 0 #10
+  progress_bar_refresh_rate: 10 #10
   resume_from_checkpoint: null
 
 model:
@@ -170,6 +170,38 @@ widedeep_tab_mlp:
   use_cont_bias: True
   cont_embed_activation: null
   mlp_hidden_dims: [200, 100, 1]
+  mlp_activation: 'relu'
+  mlp_dropout: 0.1
+  mlp_batchnorm: False
+  mlp_batchnorm_last: False
+  mlp_linear_first: False
+
+widedeep_tab_resnet:
+  _target_: src.models.widedeep.tab_resnet.TabResnetModel
+  task: "regression"
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.1
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.9
+  column_idx: null
+  cat_embed_input: null
+  cat_embed_dropout: 0.1
+  use_cat_bias: False
+  cat_embed_activation: null
+  continuous_cols: null
+  cont_norm_layer: 'batchnorm'
+  embed_continuous: False
+  cont_embed_dim: 32
+  cont_embed_dropout: 0.1
+  use_cont_bias: True
+  cont_embed_activation: null
+  blocks_dims: [200, 100, 100, 1]
+  blocks_dropout: 0.1
+  simplify_blocks: False
+  mlp_hidden_dims: null
   mlp_activation: 'relu'
   mlp_dropout: 0.1
   mlp_batchnorm: False

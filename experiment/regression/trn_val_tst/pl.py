@@ -16,6 +16,7 @@ from src.models.tabnet.model import TabNetModel
 from src.models.node.model import NodeModel
 from src.models.tab_transformer.model import TabTransformerModel
 from src.models.widedeep.tab_mlp import TabMLPModel
+from src.models.widedeep.tab_resnet import TabResnetModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 import numpy as np
 from src.utils import utils
@@ -120,6 +121,12 @@ def process(config: DictConfig) -> Optional[float]:
             config.model.column_idx = widedeep['column_idx']
             config.model.cat_embed_input = widedeep['cat_embed_input']
             config.model.continuous_cols = widedeep['continuous_cols']
+        elif config.model_type == "widedeep_tab_resnet":
+            config.model = config["widedeep_tab_resnet"]
+            widedeep = datamodule.get_widedeep()
+            config.model.column_idx = widedeep['column_idx']
+            config.model.cat_embed_input = widedeep['cat_embed_input']
+            config.model.continuous_cols = widedeep['continuous_cols']
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -210,6 +217,8 @@ def process(config: DictConfig) -> Optional[float]:
             feature_importances = None
         elif config.model_type == "widedeep_tab_mlp":
             feature_importances = None
+        elif config.model_type == "widedeep_tab_resnet":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -272,6 +281,10 @@ def process(config: DictConfig) -> Optional[float]:
                     model.freeze()
                 elif config.model_type == "widedeep_tab_mlp":
                     model = TabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "widedeep_tab_resnet":
+                    model = TabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 else:
