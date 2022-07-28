@@ -49,7 +49,7 @@ class TabMLPModel(BaseModel):
             scheduler_step_size=scheduler_step_size,
             scheduler_gamma=scheduler_gamma,
         )
-        self.save_hyperparameters(logger=False)
+        self.save_hyperparameters(ignore=['column_idx', 'cat_embed_input', 'continuous_cols'])
         self._build_network()
 
     def _build_network(self):

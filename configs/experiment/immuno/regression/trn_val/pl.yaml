@@ -65,9 +65,14 @@ datamodule:
   _target_: src.datamodules.unn.UNNDataModuleNoTest
   task: "regression"
   features_fn: "${data_dir}/features.xlsx"
+  cat_features_fn: null
+  cat_encoding: null
+  cat_embed_dim: 32
   classes_fn: ""
   trn_val_fn: "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
   outcome: ${outcome}
+  split_feature: null
+  split_column: null
   batch_size: 64
   trn_val_split: [0.80, 0.20]
   num_workers: 0
@@ -82,7 +87,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 10 #10
+  progress_bar_refresh_rate: 0 #10
   resume_from_checkpoint: null
 
 model:
@@ -152,18 +157,24 @@ widedeep_tab_mlp:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.9
+  column_idx: null
+  cat_embed_input: null
+  cat_embed_dropout: 0.1
+  use_cat_bias: False
+  cat_embed_activation: null
+  continuous_cols: null
   cont_norm_layer: 'batchnorm'
   embed_continuous: False
   cont_embed_dim: 32
   cont_embed_dropout: 0.1
   use_cont_bias: True
+  cont_embed_activation: null
   mlp_hidden_dims: [200, 100, 1]
   mlp_activation: 'relu'
   mlp_dropout: 0.1
   mlp_batchnorm: False
   mlp_batchnorm_last: False
   mlp_linear_first: False
-  features: None
 
 callbacks:
   model_checkpoint:

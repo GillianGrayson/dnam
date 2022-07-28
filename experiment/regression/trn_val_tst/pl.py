@@ -116,7 +116,10 @@ def process(config: DictConfig) -> Optional[float]:
             config.model.num_continuous = len(con_features_ids)
         elif config.model_type == "widedeep_tab_mlp":
             config.model = config["widedeep_tab_mlp"]
-            config.model.features = list(feature_names)
+            widedeep = datamodule.get_widedeep()
+            config.model.column_idx = widedeep['column_idx']
+            config.model.cat_embed_input = widedeep['cat_embed_input']
+            config.model.continuous_cols = widedeep['continuous_cols']
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 

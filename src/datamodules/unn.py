@@ -52,6 +52,7 @@ class UNNDataModuleNoTest(LightningDataModule):
             features_fn: str = "",
             cat_features_fn: str = None,
             cat_encoding: str = "label",
+            cat_embed_dim: int = 32,
             classes_fn: str = "",
             trn_val_fn: str = "",
             outcome: str = "",
@@ -73,6 +74,7 @@ class UNNDataModuleNoTest(LightningDataModule):
         self.features_fn = features_fn
         self.cat_features_fn = cat_features_fn
         self.cat_encoding = cat_encoding
+        self.cat_embed_dim = cat_embed_dim
         self.classes_fn = classes_fn
         self.trn_val_fn = trn_val_fn
         self.outcome = outcome
@@ -117,7 +119,16 @@ class UNNDataModuleNoTest(LightningDataModule):
 
         self.data = self.trn_val.loc[:, self.features_names]
 
+        self.widedeep = {
+            'column_idx': {feat_name: feat_id for feat_id, feat_name in enumerate(self.features_names)},
+        }
+
         if len(self.cat_features_names) > 0:
+
+            self.widedeep['cat_embed_input'] = []
+            for f in self.cat_features_names:
+                self.widedeep['cat_embed_input'].append((f, len(self.data[f].astype('category').cat.codes), self.cat_embed_dim))
+
             if self.cat_encoding == "label":
                 self.categories = []
                 for f in self.cat_features_names:
@@ -131,9 +142,13 @@ class UNNDataModuleNoTest(LightningDataModule):
                 self.data = self.data.join(one_hot)
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.cat_encoding}")
+        else:
+            self.widedeep['cat_embed_input'] = None
 
         self.con_features_ids = sorted([self.data.columns.get_loc(c) for c in self.con_features_names if c in self.data])
         self.cat_features_ids = sorted([self.data.columns.get_loc(c) for c in self.cat_features_names if c in self.data])
+
+        self.widedeep['continuous_cols'] = list(self.features_names[self.con_features_ids])
 
         is_nans = self.data.isnull().values.any()
         if is_nans:
@@ -349,6 +364,9 @@ class UNNDataModuleNoTest(LightningDataModule):
     def get_con_cat_feature_ids(self):
         return self.con_features_ids, self.cat_features_ids
 
+    def get_widedeep(self):
+        return self.widedeep
+
     def get_outcome_name(self):
         return self.outcome
 
@@ -368,6 +386,7 @@ class UNNDataModuleInference(LightningDataModule):
             features_fn: str = "",
             cat_features_fn: str = None,
             cat_encoding: str = "label",
+            cat_embed_dim: int = 32,
             classes_fn: str = "",
             trn_val_fn: str = "",
             inference_fn: str = "",
@@ -387,6 +406,7 @@ class UNNDataModuleInference(LightningDataModule):
         self.features_fn = features_fn
         self.cat_features_fn = cat_features_fn
         self.cat_encoding = cat_encoding
+        self.cat_embed_dim = cat_embed_dim
         self.classes_fn = classes_fn
         self.trn_val_fn = trn_val_fn
         self.inference_fn = inference_fn
@@ -437,7 +457,16 @@ class UNNDataModuleInference(LightningDataModule):
         self.data_all = pd.concat([self.inference.loc[:, self.features_names], self.trn_val.loc[train_val_only_indexes, self.features_names]])
         self.data_all = self.data_all.astype('float32')
 
+        self.widedeep = {
+            'column_idx': {feat_name: feat_id for feat_id, feat_name in enumerate(self.features_names)},
+        }
+
         if len(self.cat_features_names) > 0:
+
+            self.widedeep['cat_embed_input'] = []
+            for f in self.cat_features_names:
+                self.widedeep['cat_embed_input'].append((f, len(self.data_all[f].astype('category').cat.codes), self.cat_embed_dim))
+
             if self.cat_encoding == "label":
                 self.categories = []
                 for f in self.cat_features_names:
@@ -451,9 +480,13 @@ class UNNDataModuleInference(LightningDataModule):
                 self.data_all = self.data_all.join(one_hot)
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.cat_encoding}")
+        else:
+            self.widedeep['cat_embed_input'] = None
 
         self.con_features_ids = sorted([self.data_all.columns.get_loc(c) for c in self.con_features_names if c in self.data_all])
         self.cat_features_ids = sorted([self.data_all.columns.get_loc(c) for c in self.cat_features_names if c in self.data_all])
+
+        self.widedeep['continuous_cols'] = list(self.features_names[self.con_features_ids])
 
         is_nans = self.data_all.isnull().values.any()
         if is_nans:
@@ -516,6 +549,9 @@ class UNNDataModuleInference(LightningDataModule):
 
     def get_con_cat_feature_ids(self):
         return self.con_features_ids, self.cat_features_ids
+
+    def get_widedeep(self):
+        return self.widedeep
 
     def get_outcome_name(self):
         return self.outcome
