@@ -62,7 +62,7 @@ def process(config: DictConfig) -> Optional[float]:
     target_name = datamodule.get_target()
     df = datamodule.get_data()
     ids_tst = datamodule.ids_tst
-    if ids_tst is not None:
+    if len(ids_tst) > 0:
         is_tst = True
     else:
         is_tst = False
@@ -94,6 +94,7 @@ def process(config: DictConfig) -> Optional[float]:
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         if is_tst:
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "tst"
+
 
         config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
 
@@ -266,6 +267,7 @@ def process(config: DictConfig) -> Optional[float]:
         cv_progress.at[fold_idx, 'fold'] = fold_idx
         cv_progress.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
 
+    df = df.astype({"Estimation": 'float32'})
     cv_progress.to_excel(f"cv_progress.xlsx", index=False)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:, 'fold'].values]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)

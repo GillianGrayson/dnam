@@ -31,7 +31,7 @@ class TabularDataset(Dataset):
         self.X_con = data.loc[:, self.feats_con].values
         self.X_cat = data.loc[:, self.feats_cat].values
         self.num_samples = data.shape[0]
-        self.y = data.loc[:, [target]].values
+        self.y = data.loc[:, target].values
 
     def __getitem__(self, idx: int):
         item = {
@@ -40,7 +40,7 @@ class TabularDataset(Dataset):
             "categorical": self.X_cat[idx],
             "index": idx
         }
-        item["all"] = np.concatenate((item["continuous"], item["categorical"]), dim=1)
+        item["all"] = np.concatenate((item["continuous"], item["categorical"]), axis=0)
         return item
 
     def __len__(self):
@@ -128,7 +128,7 @@ class TabularDataModule(LightningDataModule):
         elif self.task == 'regression':
             self.data_all = self.data_all.astype({self.target: 'float32'})
 
-        self.widedeep = {}
+        self.widedeep = {'cat_embed_input': None}
         if len(self.feats_cat) > 0:
             if self.feats_cat_encoding == "label": # pytorch doesn't work with strings
                 self.widedeep['cat_embed_input'] = []
@@ -137,7 +137,6 @@ class TabularDataModule(LightningDataModule):
                     self.data_all[f] = self.data_all[f].astype('category').cat.codes
                     self.widedeep['cat_embed_input'].append((f, len(self.data_all[f].astype('category').cat.codes), self.feats_cat_embed_dim))
             elif self.feats_cat_encoding == "one_hot":
-                self.widedeep['cat_embed_input'] = None
                 one_hot = pd.get_dummies(self.data_all.loc[:, self.feats_cat])
                 self.data_all = self.data_all.join(one_hot)
                 self.feats_con += one_hot.columns.values
@@ -281,7 +280,7 @@ class TabularDataModule(LightningDataModule):
         columns = ['ids', self.target]
         if self.split_top_feat is not None:
             columns.append(self.split_top_feat)
-        cross_validation_df = self.data_all.loc[self.data_all.index[self.ids_trn_val], columns].values
+        cross_validation_df = self.data_all.loc[self.data_all.index[self.ids_trn_val], columns]
         return cross_validation_df
 
     def train_dataloader(self):
