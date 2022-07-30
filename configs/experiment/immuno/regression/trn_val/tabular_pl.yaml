@@ -2,7 +2,7 @@
 
 task: regression
 data_type: immuno
-model_type: pytorch_tabular_tabnet # tabnet node widedeep_tab_mlp widedeep_tab_resnet pytorch_tabular_autoint
+model_type: pytorch_tabular_node # tabnet node widedeep_tab_mlp widedeep_tab_resnet pytorch_tabular_autoint pytorch_tabular_tabnet pytorch_tabular_node
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -171,7 +171,7 @@ pytorch_tabular_autoint:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.5
+  optimizer_lr: 0.0005
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
@@ -213,6 +213,33 @@ pytorch_tabular_tabnet:
   n_shared: 2
   virtual_batch_size: 128
   mask_type: "sparsemax"
+  
+pytorch_tabular_node:
+  _target_: src.models.tabular.pytorch_tabular.node.PTNODEModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.2
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  continuous_cols: null
+  categorical_cols: null
+  num_layers: 1
+  num_trees: 2048
+  additional_tree_output_dim: 3
+  depth: 6
+  choice_function: entmax15
+  bin_function: entmoid15
+  max_features: null
+  input_dropout: 0.0
+  initialize_response: normal
+  initialize_selection_logits: uniform
+  threshold_init_beta: 1.0
+  threshold_init_cutoff: 1.0
+  embed_categorical: False
+  embedding_dropout: 0.0
 
 callbacks:
   model_checkpoint:
