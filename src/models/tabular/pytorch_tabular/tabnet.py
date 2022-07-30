@@ -1,10 +1,10 @@
 from typing import Any, List, Dict
 import torch
 from src.models.tabular.base import BaseModel
-from pytorch_widedeep.models import TabMlp
+from pytorch_tabular.models.tabnet.tabnet_model import TabNetModel
+from omegaconf import DictConfig
 
-
-class WDTabMLPModel(BaseModel):
+class PTTabNetModel(BaseModel):
 
     def __init__(
             self,
@@ -17,24 +17,16 @@ class WDTabMLPModel(BaseModel):
             scheduler_step_size,
             scheduler_gamma,
 
-            column_idx=None,
-            cat_embed_input=None,
-            cat_embed_dropout=0.1,
-            use_cat_bias=False,
-            cat_embed_activation=None,
-            continuous_cols=None,
-            cont_norm_layer='batchnorm',
-            embed_continuous=False,
-            cont_embed_dim=32,
-            cont_embed_dropout=0.1,
-            use_cont_bias=True,
-            cont_embed_activation=None,
-            mlp_hidden_dims=(200, 100),
-            mlp_activation='relu',
-            mlp_dropout=0.1,
-            mlp_batchnorm=False,
-            mlp_batchnorm_last=False,
-            mlp_linear_first=False,
+            continuous_cols,
+            categorical_cols,
+            n_d=8,
+            n_a=8,
+            n_steps=3,
+            gamma=1.3,
+            n_independent=2,
+            n_shared=2,
+            virtual_batch_size=128,
+            mask_type="sparsemax",
 
             **kwargs
     ):
@@ -52,30 +44,35 @@ class WDTabMLPModel(BaseModel):
         self._build_network()
 
     def _build_network(self):
-        self.model = TabMlp(
-            column_idx=self.hparams.column_idx,
-            cat_embed_input=self.hparams.cat_embed_input,
-            cat_embed_dropout=self.hparams.cat_embed_dropout,
-            use_cat_bias=self.hparams.use_cat_bias,
-            cat_embed_activation=self.hparams.cat_embed_activation,
-            continuous_cols=self.hparams.continuous_cols,
-            cont_norm_layer=self.hparams.cont_norm_layer,
-            embed_continuous=self.hparams.embed_continuous,
-            cont_embed_dim=self.hparams.cont_embed_dim,
-            cont_embed_dropout=self.hparams.cont_embed_dropout,
-            use_cont_bias=self.hparams.use_cont_bias,
-            cont_embed_activation=self.hparams.cont_embed_activation,
-            mlp_hidden_dims=self.hparams.mlp_hidden_dims,
-            mlp_activation=self.hparams.mlp_activation,
-            mlp_dropout=self.hparams.mlp_dropout,
-            mlp_batchnorm=self.hparams.mlp_batchnorm,
-            mlp_batchnorm_last=self.hparams.mlp_batchnorm_last,
-            mlp_linear_first=self.hparams.mlp_linear_first
+        config = DictConfig(
+            {
+                'task': self.hparams.task,
+                'loss': self.hparams.loss_type,
+                'metrics': [],
+                'metrics_params': [],
+                'target_range': None,
+                'output_dim': self.hparams.output_dim,
+                'embedding_dims': [],
+                'continuous_cols': self.hparams.continuous_cols,
+                'categorical_cols': self.hparams.categorical_cols,
+                'continuous_dim': len(self.hparams.continuous_cols),
+                'categorical_dim': len(self.hparams.categorical_cols),
+                'n_d': self.hparams.n_d,
+                'n_a': self.hparams.n_a,
+                'n_steps': self.hparams.n_steps,
+                'gamma': self.hparams.gamma,
+                'n_independent': self.hparams.n_independent,
+                'n_shared': self.hparams.n_shared,
+                'virtual_batch_size': self.hparams.virtual_batch_size,
+                'mask_type': self.hparams.mask_type,
+            }
+        )
+        self.model = TabNetModel(
+            config=config
         )
 
     def forward(self, batch: Dict):
-        x = batch["all"]
-        x = self.model(x)
+        x = self.model(batch)['logits']
         if self.produce_probabilities:
             return torch.softmax(x, dim=1)
         else:

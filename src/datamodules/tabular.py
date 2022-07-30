@@ -36,11 +36,11 @@ class TabularDataset(Dataset):
     def __getitem__(self, idx: int):
         item = {
             "target": self.y[idx],
-            "continuous": self.X_con[idx],
-            "categorical": self.X_cat[idx],
+            "continuous": self.X_con[idx] if self.feats_con else torch.Tensor(),
+            "categorical": self.X_cat[idx] if self.feats_cat else torch.Tensor(),
             "index": idx
         }
-        item["all"] = np.concatenate((item["continuous"], item["categorical"]), axis=0)
+        item["all"] = np.concatenate((item["continuous"], item["categorical"]), axis=0, dtype=np.float32)
         return item
 
     def __len__(self):

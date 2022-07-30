@@ -11,8 +11,10 @@ from pytorch_lightning import (
 import statsmodels.formula.api as smf
 from pytorch_lightning.loggers import LightningLoggerBase
 import plotly.graph_objects as go
-from src.models.tabular.widedeep.tab_mlp import TabMLPModel
-from src.models.tabular.widedeep.tab_resnet import TabResnetModel
+from src.models.tabular.widedeep.tab_mlp import WDTabMLPModel
+from src.models.tabular.widedeep.tab_resnet import WDTabResnetModel
+from src.models.tabular.pytorch_tabular.autoint import PTAutoIntModel
+from src.models.tabular.pytorch_tabular.tabnet import PTTabNetModel
 from src.datamodules.cross_validation_tabular import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -115,6 +117,14 @@ def process(config: DictConfig) -> Optional[float]:
             config.model.column_idx = widedeep['column_idx']
             config.model.cat_embed_input = widedeep['cat_embed_input']
             config.model.continuous_cols = widedeep['continuous_cols']
+        elif config.model_type == "pytorch_tabular_autoint":
+            config.model = config["pytorch_tabular_autoint"]
+            config.model.continuous_cols = feature_names['con']
+            config.model.categorical_cols = feature_names['cat']
+        elif config.model_type == "pytorch_tabular_tabnet":
+            config.model = config["pytorch_tabular_tabnet"]
+            config.model.continuous_cols = feature_names['con']
+            config.model.categorical_cols = feature_names['cat']
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -187,6 +197,10 @@ def process(config: DictConfig) -> Optional[float]:
             feature_importances = None
         elif config.model_type == "widedeep_tab_resnet":
             feature_importances = None
+        elif config.model_type == "pytorch_tabular_autoint":
+            feature_importances = None
+        elif config.model_type == "pytorch_tabular_tabnet":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -236,11 +250,19 @@ def process(config: DictConfig) -> Optional[float]:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
                 if config.model_type == "widedeep_tab_mlp":
-                    model = TabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model = WDTabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 elif config.model_type == "widedeep_tab_resnet":
-                    model = TabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model = WDTabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "pytorch_tabular_autoint":
+                    model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "pytorch_tabular_tabnet":
+                    model = PTTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 else:

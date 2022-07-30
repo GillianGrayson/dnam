@@ -4,7 +4,7 @@ from src.models.tabular.base import BaseModel
 from pytorch_widedeep.models import TabResnet
 
 
-class TabResnetModel(BaseModel):
+class WDTabResnetModel(BaseModel):
 
     def __init__(
             self,
