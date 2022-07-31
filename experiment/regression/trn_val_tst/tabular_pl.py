@@ -108,6 +108,7 @@ def process(config: DictConfig) -> Optional[float]:
 
         # Init lightning model
         widedeep = datamodule.get_widedeep()
+        embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
         if config.model_type == "widedeep_tab_mlp":
             config.model = config["widedeep_tab_mlp"]
             config.model.column_idx = widedeep['column_idx']
@@ -122,14 +123,17 @@ def process(config: DictConfig) -> Optional[float]:
             config.model = config["pytorch_tabular_autoint"]
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
+            config.model.embedding_dims = embedding_dims
         elif config.model_type == "pytorch_tabular_tabnet":
             config.model = config["pytorch_tabular_tabnet"]
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
+            config.model.embedding_dims = embedding_dims
         elif config.model_type == "pytorch_tabular_node":
             config.model = config["pytorch_tabular_node"]
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
+            config.model.embedding_dims = embedding_dims
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
