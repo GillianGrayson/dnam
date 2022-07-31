@@ -10,13 +10,14 @@ data_type: immuno
 # widedeep_ft_transformer
 # widedeep_saint
 # widedeep_tab_fastformer
+# widedeep_tab_perceiver
 # pytorch_tabular_autoint
 # pytorch_tabular_tabnet
 # pytorch_tabular_node
 # pytorch_tabular_category_embedding
 # pytorch_tabular_ft_transformer
 # pytorch_tabular_tab_transformer
-model_type: widedeep_tab_fastformer
+model_type: widedeep_tab_perceiver
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -373,6 +374,51 @@ widedeep_tab_fastformer:
   share_qv_weights: False,
   share_weights: False,
   transformer_activation: "relu"
+  mlp_hidden_dims:
+    - 100
+    - ${out_dim}
+  mlp_activation: "relu"
+  mlp_dropout: 0.1
+  mlp_batchnorm: False
+  mlp_batchnorm_last: False
+  mlp_linear_first: True
+
+widedeep_tab_perceiver:
+  _target_: src.models.tabular.widedeep.tab_perceiver.WDTabPerceiverModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  column_idx: null
+  cat_embed_input: null
+  cat_embed_dropout: 0.1
+  use_cat_bias: False
+  cat_embed_activation: null
+  full_embed_dropout: False
+  shared_embed: False
+  add_shared_embed: False
+  frac_shared_embed: 0.25
+  continuous_cols: null
+  cont_norm_layer: null
+  cont_embed_dropout: 0.1
+  use_cont_bias: True
+  cont_embed_activation: null
+  embed_dim: ${embed_dim}
+  n_cross_attns: 1
+  n_cross_attn_heads:  4
+  n_latents: 16
+  latent_dim: 128
+  n_latent_heads: 4
+  n_latent_blocks: 4
+  n_perceiver_blocks: 4
+  share_weights: False
+  attn_dropout: 0.1
+  ff_dropout: 0.1
+  transformer_activation: "geglu"
   mlp_hidden_dims:
     - 100
     - ${out_dim}
