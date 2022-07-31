@@ -16,6 +16,7 @@ from src.models.tabular.widedeep.tab_resnet import WDTabResnetModel
 from src.models.tabular.pytorch_tabular.autoint import PTAutoIntModel
 from src.models.tabular.pytorch_tabular.tabnet import PTTabNetModel
 from src.models.tabular.pytorch_tabular.node import PTNODEModel
+from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
 from src.datamodules.cross_validation_tabular import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -123,7 +124,6 @@ def process(config: DictConfig) -> Optional[float]:
             config.model = config["pytorch_tabular_autoint"]
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
-            config.model.embedding_dims = embedding_dims
         elif config.model_type == "pytorch_tabular_tabnet":
             config.model = config["pytorch_tabular_tabnet"]
             config.model.continuous_cols = feature_names['con']
@@ -131,6 +131,11 @@ def process(config: DictConfig) -> Optional[float]:
             config.model.embedding_dims = embedding_dims
         elif config.model_type == "pytorch_tabular_node":
             config.model = config["pytorch_tabular_node"]
+            config.model.continuous_cols = feature_names['con']
+            config.model.categorical_cols = feature_names['cat']
+            config.model.embedding_dims = embedding_dims
+        elif config.model_type == "pytorch_tabular_category_embedding":
+            config.model = config["pytorch_tabular_category_embedding"]
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
             config.model.embedding_dims = embedding_dims
@@ -212,6 +217,8 @@ def process(config: DictConfig) -> Optional[float]:
             feature_importances = None
         elif config.model_type == "pytorch_tabular_node":
             feature_importances = None
+        elif config.model_type == "pytorch_tabular_category_embedding":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -278,6 +285,10 @@ def process(config: DictConfig) -> Optional[float]:
                     model.freeze()
                 elif config.model_type == "pytorch_tabular_node":
                     model = PTNODEModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "pytorch_tabular_category_embedding":
+                    model = PTCategoryEmbeddingModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 else:

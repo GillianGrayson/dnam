@@ -17,6 +17,7 @@ class PTNODEModel(BaseModel):
             scheduler_step_size,
             scheduler_gamma,
 
+            embedding_dims,
             continuous_cols,
             categorical_cols,
             num_layers=1,

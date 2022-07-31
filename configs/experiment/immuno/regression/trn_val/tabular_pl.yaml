@@ -2,7 +2,7 @@
 
 task: regression
 data_type: immuno
-model_type: pytorch_tabular_node # tabnet node widedeep_tab_mlp widedeep_tab_resnet pytorch_tabular_autoint pytorch_tabular_tabnet pytorch_tabular_node
+model_type: pytorch_tabular_category_embedding # tabnet node widedeep_tab_mlp widedeep_tab_resnet pytorch_tabular_autoint pytorch_tabular_tabnet pytorch_tabular_node pytorch_tabular_category_embedding
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -113,7 +113,7 @@ widedeep_tab_mlp:
   use_cat_bias: False
   cat_embed_activation: null
   continuous_cols: null
-  cont_norm_layer: 'batchnorm'
+  cont_norm_layer: "batchnorm"
   embed_continuous: False
   cont_embed_dim: 32
   cont_embed_dropout: 0.1
@@ -145,7 +145,7 @@ widedeep_tab_resnet:
   use_cat_bias: False
   cat_embed_activation: null
   continuous_cols: null
-  cont_norm_layer: 'batchnorm'
+  cont_norm_layer: "batchnorm"
   embed_continuous: False
   cont_embed_dim: 32
   cont_embed_dropout: 0.1
@@ -203,6 +203,7 @@ pytorch_tabular_tabnet:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
+  embedding_dims: null
   continuous_cols: null
   categorical_cols: null
   n_d: 8
@@ -224,22 +225,44 @@ pytorch_tabular_node:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
+  embedding_dims: null
   continuous_cols: null
   categorical_cols: null
   num_layers: 1
   num_trees: 2048
   additional_tree_output_dim: 3
   depth: 6
-  choice_function: entmax15
-  bin_function: entmoid15
+  choice_function: "entmax15"
+  bin_function: "entmoid15"
   max_features: null
   input_dropout: 0.0
-  initialize_response: normal
-  initialize_selection_logits: uniform
+  initialize_response: "normal"
+  initialize_selection_logits: "uniform"
   threshold_init_beta: 1.0
   threshold_init_cutoff: 1.0
   embed_categorical: False
   embedding_dropout: 0.0
+
+pytorch_tabular_category_embedding:
+  _target_: src.models.tabular.pytorch_tabular.category_embedding.PTCategoryEmbeddingModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.05
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  embedding_dims: null
+  continuous_cols: null
+  categorical_cols: null
+  layers: "128-64-32"
+  batch_norm_continuous_input: True
+  activation: "ReLU"
+  embedding_dropout: 0.5
+  dropout: 0.5
+  use_batch_norm: False
+  initialization: "kaiming"
 
 callbacks:
   model_checkpoint:

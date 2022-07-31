@@ -1,10 +1,10 @@
 from typing import Any, List, Dict
 import torch
 from src.models.tabular.base import BaseModel
-from pytorch_tabular.models.tabnet.tabnet_model import TabNetModel
+from pytorch_tabular.models.category_embedding.category_embedding_model import CategoryEmbeddingModel
 from omegaconf import DictConfig
 
-class PTTabNetModel(BaseModel):
+class PTCategoryEmbeddingModel(BaseModel):
 
     def __init__(
             self,
@@ -20,14 +20,13 @@ class PTTabNetModel(BaseModel):
             embedding_dims,
             continuous_cols,
             categorical_cols,
-            n_d=8,
-            n_a=8,
-            n_steps=3,
-            gamma=1.3,
-            n_independent=2,
-            n_shared=2,
-            virtual_batch_size=128,
-            mask_type="sparsemax",
+            layers="128-64-32",
+            batch_norm_continuous_input=True,
+            activation="ReLU",
+            embedding_dropout=0.5,
+            dropout=0.5,
+            use_batch_norm=False,
+            initialization="kaiming",
 
             **kwargs
     ):
@@ -58,17 +57,16 @@ class PTTabNetModel(BaseModel):
                 'categorical_cols': self.hparams.categorical_cols,
                 'continuous_dim': len(self.hparams.continuous_cols),
                 'categorical_dim': len(self.hparams.categorical_cols),
-                'n_d': self.hparams.n_d,
-                'n_a': self.hparams.n_a,
-                'n_steps': self.hparams.n_steps,
-                'gamma': self.hparams.gamma,
-                'n_independent': self.hparams.n_independent,
-                'n_shared': self.hparams.n_shared,
-                'virtual_batch_size': self.hparams.virtual_batch_size,
-                'mask_type': self.hparams.mask_type,
+                'layers': self.hparams.layers,
+                'batch_norm_continuous_input': self.hparams.batch_norm_continuous_input,
+                'activation': self.hparams.activation,
+                'embedding_dropout': self.hparams.embedding_dropout,
+                'dropout': self.hparams.dropout,
+                'use_batch_norm': self.hparams.use_batch_norm,
+                'initialization': self.hparams.initialization
             }
         )
-        self.model = TabNetModel(
+        self.model = CategoryEmbeddingModel(
             config=config
         )
 
