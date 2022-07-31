@@ -1,10 +1,10 @@
 from typing import Any, List, Dict
 import torch
 from src.models.tabular.base import BaseModel
-from pytorch_tabular.models.ft_transformer.ft_transformer import FTTransformerModel
+from pytorch_tabular.models.tab_transformer.tab_transformer import TabTransformerModel
 from omegaconf import DictConfig
 
-class PTFTTransformerModel(BaseModel):
+class PTTabTransformerModel(BaseModel):
 
     def __init__(
             self,
@@ -21,13 +21,10 @@ class PTFTTransformerModel(BaseModel):
             continuous_cols,
             categorical_cols,
             input_embed_dim=32,
-            embedding_initialization="kaiming_uniform",
-            embedding_bias=True,
             embedding_dropout=0.1,
             share_embedding=False,
             share_embedding_strategy="fraction",
             shared_embedding_fraction=0.25,
-            attn_feature_importance=True,
             num_heads=8,
             num_attn_blocks=6,
             transformer_head_dim=None,
@@ -73,13 +70,10 @@ class PTFTTransformerModel(BaseModel):
                 'continuous_dim': len(self.hparams.continuous_cols),
                 'categorical_dim': len(self.hparams.categorical_cols),
                 'input_embed_dim': self.hparams.input_embed_dim,
-                'embedding_initialization': self.hparams.embedding_initialization,
-                'embedding_bias': self.hparams.embedding_bias,
                 'embedding_dropout': self.hparams.embedding_dropout,
                 'share_embedding': self.hparams.share_embedding,
                 'share_embedding_strategy': self.hparams.share_embedding_strategy,
                 'shared_embedding_fraction': self.hparams.shared_embedding_fraction,
-                'attn_feature_importance': self.hparams.attn_feature_importance,
                 'num_heads': self.hparams.num_heads,
                 'num_attn_blocks': self.hparams.num_attn_blocks,
                 'transformer_head_dim': self.hparams.transformer_head_dim,
@@ -96,7 +90,7 @@ class PTFTTransformerModel(BaseModel):
                 'out_ff_initialization': self.hparams.out_ff_initialization,
             }
         )
-        self.model = FTTransformerModel(
+        self.model = TabTransformerModel(
             config=config
         )
 

@@ -17,7 +17,8 @@ from src.models.tabular.pytorch_tabular.autoint import PTAutoIntModel
 from src.models.tabular.pytorch_tabular.tabnet import PTTabNetModel
 from src.models.tabular.pytorch_tabular.node import PTNODEModel
 from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
-from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModelModel
+from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModel
+from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
 from src.datamodules.cross_validation_tabular import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -145,6 +146,11 @@ def process(config: DictConfig) -> Optional[float]:
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
             config.model.embedding_dims = embedding_dims
+        elif config.model_type == "pytorch_tabular_tab_transformer":
+            config.model = config["pytorch_tabular_tab_transformer"]
+            config.model.continuous_cols = feature_names['con']
+            config.model.categorical_cols = feature_names['cat']
+            config.model.embedding_dims = embedding_dims
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -227,6 +233,8 @@ def process(config: DictConfig) -> Optional[float]:
             feature_importances = None
         elif config.model_type == "pytorch_tabular_ft_transformer":
             feature_importances = None
+        elif config.model_type == "pytorch_tabular_tab_transformer":
+            feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
 
@@ -300,7 +308,11 @@ def process(config: DictConfig) -> Optional[float]:
                     model.eval()
                     model.freeze()
                 elif config.model_type == "pytorch_tabular_ft_transformer":
-                    model = PTFTTransformerModelModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "pytorch_tabular_tab_transformer":
+                    model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 else:
