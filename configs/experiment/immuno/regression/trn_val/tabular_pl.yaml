@@ -7,13 +7,14 @@ data_type: immuno
 # widedeep_tab_resnet
 # widedeep_tab_net
 # widedeep_tab_transformer
+# widedeep_ft_transformer
 # pytorch_tabular_autoint
 # pytorch_tabular_tabnet
 # pytorch_tabular_node
 # pytorch_tabular_category_embedding
 # pytorch_tabular_ft_transformer
 # pytorch_tabular_tab_transformer
-model_type: widedeep_tab_transformer
+model_type: widedeep_ft_transformer
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -211,12 +212,12 @@ widedeep_tab_net:
   mask_type: "sparsemax"
 
 widedeep_tab_transformer:
-  _target_: src.models.tabular.widedeep.tab_net.WDTabNetModel
+  _target_: src.models.tabular.widedeep.tab_transformer.WDTabTransformerModel
   task: ${task}
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.01
+  optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
@@ -231,7 +232,7 @@ widedeep_tab_transformer:
   frac_shared_embed: 0.25
   continuous_cols: null
   cont_norm_layer: null
-  embed_continuous: False
+  embed_continuous: True
   cont_embed_dropout: 0.1
   use_cont_bias: True
   cont_embed_activation: null
@@ -242,7 +243,54 @@ widedeep_tab_transformer:
   attn_dropout: 0.2
   ff_dropout: 0.1
   transformer_activation: "gelu"
-  mlp_hidden_dims: null
+  mlp_hidden_dims:
+    - 200
+    - 100
+    - ${out_dim}
+  mlp_activation: "relu"
+  mlp_dropout: 0.1
+  mlp_batchnorm: False
+  mlp_batchnorm_last: False
+  mlp_linear_first: True
+
+widedeep_ft_transformer:
+  _target_: src.models.tabular.widedeep.ft_transformer.WDFTTransformerModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.0005
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  column_idx: null
+  cat_embed_input: null
+  cat_embed_dropout: 0.1
+  use_cat_bias: False
+  cat_embed_activation: null
+  full_embed_dropout: False
+  shared_embed: False
+  add_shared_embed: False
+  frac_shared_embed: 0.25
+  continuous_cols: null
+  cont_norm_layer: null
+  cont_embed_dropout: 0.1
+  use_cont_bias: True
+  cont_embed_activation: null
+  embed_dim: 64
+  kv_compression_factor: 0.5
+  kv_sharing: False
+  use_qkv_bias: False
+  n_heads: 8
+  n_blocks: 4
+  attn_dropout: 0.2
+  ff_dropout: 0.1
+  transformer_activation: "reglu"
+  ff_factor: 1.33
+  mlp_hidden_dims:
+    - 200
+    - 100
+    - ${out_dim}
   mlp_activation: "relu"
   mlp_dropout: 0.1
   mlp_batchnorm: False
