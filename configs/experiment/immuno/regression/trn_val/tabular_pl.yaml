@@ -11,7 +11,7 @@ data_type: immuno
 # pytorch_tabular_category_embedding
 # pytorch_tabular_ft_transformer
 # pytorch_tabular_tab_transformer
-model_type: pytorch_tabular_tab_transformer
+model_type: widedeep_tab_resnet
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -184,6 +184,7 @@ pytorch_tabular_autoint:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
+  embedding_dims: null
   continuous_cols: null
   categorical_cols: null
   attn_embed_dim: 32

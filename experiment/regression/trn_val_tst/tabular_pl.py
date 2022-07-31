@@ -110,44 +110,14 @@ def process(config: DictConfig) -> Optional[float]:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
 
         # Init lightning model
+        config.model = config[config.model_type]
         widedeep = datamodule.get_widedeep()
         embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
-        if config.model_type == "widedeep_tab_mlp":
-            config.model = config["widedeep_tab_mlp"]
+        if config.model_type.startswith('widedeep'):
             config.model.column_idx = widedeep['column_idx']
             config.model.cat_embed_input = widedeep['cat_embed_input']
             config.model.continuous_cols = widedeep['continuous_cols']
-        elif config.model_type == "widedeep_tab_resnet":
-            config.model = config["widedeep_tab_resnet"]
-            config.model.column_idx = widedeep['column_idx']
-            config.model.cat_embed_input = widedeep['cat_embed_input']
-            config.model.continuous_cols = widedeep['continuous_cols']
-        elif config.model_type == "pytorch_tabular_autoint":
-            config.model = config["pytorch_tabular_autoint"]
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
-        elif config.model_type == "pytorch_tabular_tabnet":
-            config.model = config["pytorch_tabular_tabnet"]
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
-            config.model.embedding_dims = embedding_dims
-        elif config.model_type == "pytorch_tabular_node":
-            config.model = config["pytorch_tabular_node"]
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
-            config.model.embedding_dims = embedding_dims
-        elif config.model_type == "pytorch_tabular_category_embedding":
-            config.model = config["pytorch_tabular_category_embedding"]
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
-            config.model.embedding_dims = embedding_dims
-        elif config.model_type == "pytorch_tabular_ft_transformer":
-            config.model = config["pytorch_tabular_ft_transformer"]
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
-            config.model.embedding_dims = embedding_dims
-        elif config.model_type == "pytorch_tabular_tab_transformer":
-            config.model = config["pytorch_tabular_tab_transformer"]
+        elif config.model_type.startswith('pytorch_tabular'):
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
             config.model.embedding_dims = embedding_dims
@@ -219,21 +189,7 @@ def process(config: DictConfig) -> Optional[float]:
         if is_tst:
             y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
 
-        if config.model_type == "widedeep_tab_mlp":
-            feature_importances = None
-        elif config.model_type == "widedeep_tab_resnet":
-            feature_importances = None
-        elif config.model_type == "pytorch_tabular_autoint":
-            feature_importances = None
-        elif config.model_type == "pytorch_tabular_tabnet":
-            feature_importances = None
-        elif config.model_type == "pytorch_tabular_node":
-            feature_importances = None
-        elif config.model_type == "pytorch_tabular_category_embedding":
-            feature_importances = None
-        elif config.model_type == "pytorch_tabular_ft_transformer":
-            feature_importances = None
-        elif config.model_type == "pytorch_tabular_tab_transformer":
+        if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
             feature_importances = None
         else:
             raise ValueError(f"Unsupported model: {config.model_type}")
@@ -285,38 +241,25 @@ def process(config: DictConfig) -> Optional[float]:
             if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
                 if config.model_type == "widedeep_tab_mlp":
                     model = WDTabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "widedeep_tab_resnet":
                     model = WDTabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "pytorch_tabular_autoint":
                     model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "pytorch_tabular_tabnet":
                     model = PTTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "pytorch_tabular_node":
                     model = PTNODEModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "pytorch_tabular_category_embedding":
                     model = PTCategoryEmbeddingModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "pytorch_tabular_ft_transformer":
                     model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 elif config.model_type == "pytorch_tabular_tab_transformer":
                     model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    model.eval()
-                    model.freeze()
                 else:
                     raise ValueError(f"Unsupported model: {config.model_type}")
+                if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
+                    model.eval()
+                    model.freeze()
             best["model"] = model
             best["trainer"] = trainer
 

@@ -17,6 +17,7 @@ class PTAutoIntModel(BaseModel):
             scheduler_step_size,
             scheduler_gamma,
 
+            embedding_dims,
             continuous_cols,
             categorical_cols,
             attn_embed_dim=32,
@@ -59,6 +60,7 @@ class PTAutoIntModel(BaseModel):
                 'metrics_params': [],
                 'target_range': None,
                 'output_dim': self.hparams.output_dim,
+                'embedding_dims': self.hparams.embedding_dims,
                 'continuous_cols': self.hparams.continuous_cols,
                 'categorical_cols': self.hparams.categorical_cols,
                 'continuous_dim': len(self.hparams.continuous_cols),
