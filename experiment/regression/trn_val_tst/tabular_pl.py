@@ -17,6 +17,7 @@ from src.models.tabular.widedeep.tab_net import WDTabNetModel
 from src.models.tabular.widedeep.tab_transformer import WDTabTransformerModel
 from src.models.tabular.widedeep.ft_transformer import WDFTTransformerModel
 from src.models.tabular.widedeep.saint import WDSAINTModel
+from src.models.tabular.widedeep.tab_fastformer  import WDTabFastFormerModel
 from src.models.tabular.pytorch_tabular.autoint import PTAutoIntModel
 from src.models.tabular.pytorch_tabular.tabnet import PTTabNetModel
 from src.models.tabular.pytorch_tabular.node import PTNODEModel
@@ -255,6 +256,8 @@ def process(config: DictConfig) -> Optional[float]:
                     model = WDFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 elif config.model_type == "widedeep_saint":
                     model = WDSAINTModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                elif config.model_type == "widedeep_tab_fastformer":
+                    model = WDTabFastFormerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 elif config.model_type == "pytorch_tabular_autoint":
                     model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 elif config.model_type == "pytorch_tabular_tabnet":
