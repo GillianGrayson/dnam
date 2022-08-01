@@ -11,6 +11,10 @@ from pytorch_lightning import (
 import statsmodels.formula.api as smf
 from pytorch_lightning.loggers import LightningLoggerBase
 import plotly.graph_objects as go
+import xgboost as xgb
+from catboost import CatBoost
+import lightgbm
+from sklearn.linear_model import ElasticNet
 from src.models.tabular.widedeep.tab_mlp import WDTabMLPModel
 from src.models.tabular.widedeep.tab_resnet import WDTabResnetModel
 from src.models.tabular.widedeep.tab_net import WDTabNetModel
@@ -38,9 +42,10 @@ from scripts.python.routines.plot.save import save_figure
 from scipy.stats import mannwhitneyu
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression, save_feature_importance
+from experiment.routines import eval_regression, eval_loss, save_feature_importance
 from datetime import datetime
 from pathlib import Path
+import wandb
 
 
 log = utils.get_logger(__name__)
@@ -102,43 +107,48 @@ def process(config: DictConfig) -> Optional[float]:
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
+        X_trn = df.loc[df.index[ids_trn], feature_names['all']].values
+        y_trn = df.loc[df.index[ids_trn], target_name].values
         df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "trn"
+        X_val = df.loc[df.index[ids_val], feature_names['all']].values
+        y_val = df.loc[df.index[ids_val], target_name].values
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         if is_tst:
+            X_tst = df.loc[df.index[ids_tst], feature_names['all']].values
+            y_tst = df.loc[df.index[ids_tst], target_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "tst"
-
-        config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
 
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
         if 'wandb' in config.logger:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
 
-        # Init lightning model
-        config.model = config[config.model_type]
-        widedeep = datamodule.get_widedeep()
-        embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
-        if config.model_type.startswith('widedeep'):
-            config.model.column_idx = widedeep['column_idx']
-            config.model.cat_embed_input = widedeep['cat_embed_input']
-            config.model.continuous_cols = widedeep['continuous_cols']
-        elif config.model_type.startswith('pytorch_tabular'):
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
-            config.model.embedding_dims = embedding_dims
-        else:
-            raise ValueError(f"Unsupported model: {config.model_type}")
+        if config.model_framework == "pytorch":
+            # Init lightning model
+            config.model = config[config.model_type]
+            widedeep = datamodule.get_widedeep()
+            embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
+            if config.model_type.startswith('widedeep'):
+                config.model.column_idx = widedeep['column_idx']
+                config.model.cat_embed_input = widedeep['cat_embed_input']
+                config.model.continuous_cols = widedeep['continuous_cols']
+            elif config.model_type.startswith('pytorch_tabular'):
+                config.model.continuous_cols = feature_names['con']
+                config.model.categorical_cols = feature_names['cat']
+                config.model.embedding_dims = embedding_dims
+            else:
+                raise ValueError(f"Unsupported model: {config.model_type}")
+            log.info(f"Instantiating model <{config.model._target_}>")
+            model = hydra.utils.instantiate(config.model)
 
-        log.info(f"Instantiating model <{config.model._target_}>")
-        model: LightningModule = hydra.utils.instantiate(config.model)
-
-        # Init lightning callbacks
-        callbacks: List[Callback] = []
-        if "callbacks" in config:
-            for _, cb_conf in config.callbacks.items():
-                if "_target_" in cb_conf:
-                    log.info(f"Instantiating callback <{cb_conf._target_}>")
-                    callbacks.append(hydra.utils.instantiate(cb_conf))
+            # Init lightning callbacks
+            config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
+            callbacks: List[Callback] = []
+            if "callbacks" in config:
+                for _, cb_conf in config.callbacks.items():
+                    if "_target_" in cb_conf:
+                        log.info(f"Instantiating callback <{cb_conf._target_}>")
+                        callbacks.append(hydra.utils.instantiate(cb_conf))
 
         # Init lightning loggers
         loggers: List[LightningLoggerBase] = []
@@ -148,56 +158,215 @@ def process(config: DictConfig) -> Optional[float]:
                     log.info(f"Instantiating logger <{lg_conf._target_}>")
                     loggers.append(hydra.utils.instantiate(lg_conf))
 
-        # Init lightning trainer
-        log.info(f"Instantiating trainer <{config.trainer._target_}>")
-        trainer: Trainer = hydra.utils.instantiate(
-            config.trainer, callbacks=callbacks, logger=loggers, _convert_="partial"
-        )
-
-        # Send some parameters from config to all lightning loggers
-        log.info("Logging hyperparameters!")
-        utils.log_hyperparameters(
-            config=config,
-            model=model,
-            datamodule=datamodule,
-            trainer=trainer,
-            callbacks=callbacks,
-            logger=loggers,
-        )
+        if config.model_framework == "pytorch":
+            # Init lightning trainer
+            log.info(f"Instantiating trainer <{config.trainer._target_}>")
+            trainer: Trainer = hydra.utils.instantiate(
+                config.trainer, callbacks=callbacks, logger=loggers, _convert_="partial"
+            )
+            log.info("Logging hyperparameters!")
+            utils.log_hyperparameters_pytorch(
+                config=config,
+                model=model,
+                datamodule=datamodule,
+                trainer=trainer,
+                callbacks=callbacks,
+                logger=loggers,
+            )
+        elif config.model_framework == "stand_alone":
+            log.info("Logging hyperparameters!")
+            utils.log_hyperparameters_stand_alone(
+                config=config,
+                logger=loggers,
+            )
+        else:
+            raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
         # Train the model
-        log.info("Starting training!")
-        trainer.fit(model=model, datamodule=datamodule)
+        if config.model_framework == "pytorch":
+            log.info("Starting training!")
+            trainer.fit(model=model, datamodule=datamodule)
 
-        # Evaluate model on test set, using the best model achieved during training
-        if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
-            log.info("Starting testing!")
-            test_dataloader = datamodule.test_dataloader()
-            if test_dataloader is not None and len(test_dataloader) > 0:
-                trainer.test(model, test_dataloader, ckpt_path="best")
+            # Evaluate model on test set, using the best model achieved during training
+            if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
+                log.info("Starting testing!")
+                test_dataloader = datamodule.test_dataloader()
+                if test_dataloader is not None and len(test_dataloader) > 0:
+                    trainer.test(model, test_dataloader, ckpt_path="best")
+                else:
+                    log.info("Test data is empty!")
+
+            datamodule.dataloaders_evaluate = True
+            trn_dataloader = datamodule.train_dataloader()
+            val_dataloader = datamodule.val_dataloader()
+            tst_dataloader = datamodule.test_dataloader()
+            datamodule.dataloaders_evaluate = False
+
+            y_trn = df.loc[df.index[ids_trn], target_name].values
+            y_val = df.loc[df.index[ids_val], target_name].values
+            if is_tst:
+                y_tst = df.loc[df.index[ids_tst], target_name].values
+
+            y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+            y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+            if is_tst:
+                y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+
+            if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
+                feature_importances = None
             else:
-                log.info("Test data is empty!")
+                raise ValueError(f"Unsupported model: {config.model_type}")
 
-        datamodule.dataloaders_evaluate = True
-        trn_dataloader = datamodule.train_dataloader()
-        val_dataloader = datamodule.val_dataloader()
-        tst_dataloader = datamodule.test_dataloader()
-        datamodule.dataloaders_evaluate = False
+        elif config.model_framework == "stand_alone":
+            if config.model_type == "xgboost":
+                model_params = {
+                    'booster': config.xgboost.booster,
+                    'eta': config.xgboost.learning_rate,
+                    'max_depth': config.xgboost.max_depth,
+                    'gamma': config.xgboost.gamma,
+                    'sampling_method': config.xgboost.sampling_method,
+                    'subsample': config.xgboost.subsample,
+                    'objective': config.xgboost.objective,
+                    'verbosity': config.xgboost.verbosity,
+                    'eval_metric': config.xgboost.eval_metric,
+                }
 
-        y_trn = df.loc[df.index[ids_trn], target_name].values
-        y_val = df.loc[df.index[ids_val], target_name].values
-        if is_tst:
-            y_tst = df.loc[df.index[ids_tst], target_name].values
+                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=feature_names['all'])
+                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names['all'])
+                if is_tst:
+                    dmat_tst = xgb.DMatrix(X_tst, y_tst, feature_names=feature_names['all'])
 
-        y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
-        y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
-        if is_tst:
-            y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+                evals_result = {}
+                model = xgb.train(
+                    params=model_params,
+                    dtrain=dmat_trn,
+                    evals=[(dmat_trn, "train"), (dmat_val, "val")],
+                    num_boost_round=config.max_epochs,
+                    early_stopping_rounds=config.patience,
+                    evals_result=evals_result,
+                    verbose_eval=False
+                )
 
-        if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
-            feature_importances = None
+                y_trn_pred = model.predict(dmat_trn)
+                y_val_pred = model.predict(dmat_val)
+                if is_tst:
+                    y_tst_pred = model.predict(dmat_tst)
+
+                loss_info = {
+                    'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
+                    'train/loss': evals_result['train'][config.xgboost.eval_metric],
+                    'val/loss': evals_result['val'][config.xgboost.eval_metric]
+                }
+
+                fi = model.get_score(importance_type='weight')
+                feature_importances = pd.DataFrame.from_dict(
+                    {'feature': list(fi.keys()), 'importance': list(fi.values())})
+
+            elif config.model_type == "catboost":
+                model_params = {
+                    'loss_function': config.catboost.loss_function,
+                    'learning_rate': config.catboost.learning_rate,
+                    'depth': config.catboost.depth,
+                    'min_data_in_leaf': config.catboost.min_data_in_leaf,
+                    'max_leaves': config.catboost.max_leaves,
+                    'task_type': config.catboost.task_type,
+                    'verbose': config.catboost.verbose,
+                    'iterations': config.catboost.max_epochs,
+                    'early_stopping_rounds': config.catboost.patience
+                }
+
+                model = CatBoost(params=model_params)
+                model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
+                model.set_feature_names(feature_names['all'])
+
+                y_trn_pred = model.predict(X_trn).astype('float32')
+                y_val_pred = model.predict(X_val).astype('float32')
+                if is_tst:
+                    y_tst_pred = model.predict(X_tst).astype('float32')
+
+                metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
+                metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
+                loss_info = {
+                    'epoch': metrics_train.iloc[:, 0],
+                    'train/loss': metrics_train.iloc[:, 1],
+                    'val/loss': metrics_val.iloc[:, 1]
+                }
+
+                feature_importances = pd.DataFrame.from_dict(
+                    {'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
+
+            elif config.model_type == "lightgbm":
+                model_params = {
+                    'objective': config.lightgbm.objective,
+                    'boosting': config.lightgbm.boosting,
+                    'learning_rate': config.lightgbm.learning_rate,
+                    'num_leaves': config.lightgbm.num_leaves,
+                    'device': config.lightgbm.device,
+                    'max_depth': config.lightgbm.max_depth,
+                    'min_data_in_leaf': config.lightgbm.min_data_in_leaf,
+                    'feature_fraction': config.lightgbm.feature_fraction,
+                    'bagging_fraction': config.lightgbm.bagging_fraction,
+                    'bagging_freq': config.lightgbm.bagging_freq,
+                    'verbose': config.lightgbm.verbose,
+                    'metric': config.lightgbm.metric
+                }
+
+                ds_trn = lightgbm.Dataset(X_trn, label=y_trn, feature_name=feature_names['all'])
+                ds_val = lightgbm.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=feature_names['all'])
+
+                evals_result = {}
+                model = lightgbm.train(
+                    params=model_params,
+                    train_set=ds_trn,
+                    num_boost_round=config.max_epochs,
+                    valid_sets=[ds_val, ds_trn],
+                    valid_names=['val', 'train'],
+                    evals_result=evals_result,
+                    early_stopping_rounds=config.patience,
+                    verbose_eval=False
+                )
+
+                y_trn_pred = model.predict(X_trn, num_iteration=model.best_iteration).astype('float32')
+                y_val_pred = model.predict(X_val, num_iteration=model.best_iteration).astype('float32')
+                if is_tst:
+                    y_tst_pred = model.predict(X_tst, num_iteration=model.best_iteration).astype('float32')
+
+                loss_info = {
+                    'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
+                    'train/loss': evals_result['train'][config.lightgbm.metric],
+                    'val/loss': evals_result['val'][config.lightgbm.metric]
+                }
+
+                feature_importances = pd.DataFrame.from_dict(
+                    {'feature': model.feature_name(), 'importance': list(model.feature_importance())})
+
+            elif config.model_type == "elastic_net":
+                model = ElasticNet(
+                    alpha=config.elastic_net.alpha,
+                    l1_ratio=config.elastic_net.l1_ratio,
+                    max_iter=config.elastic_net.max_iter,
+                    tol=config.elastic_net.tol,
+                ).fit(X_trn, y_trn)
+
+                y_trn_pred = model.predict(X_trn).astype('float32')
+                y_val_pred = model.predict(X_val).astype('float32')
+                if is_tst:
+                    y_tst_pred = model.predict(X_tst).astype('float32')
+
+                loss_info = {
+                    'epoch': [0],
+                    'train/loss': [0],
+                    'val/loss': [0]
+                }
+
+                feature_importances = pd.DataFrame.from_dict(
+                    {'feature': ['Intercept'] + feature_names['all'], 'importance': [model.intercept_] + list(model.coef_)})
+
+            else:
+                raise ValueError(f"Model {config.model_type} is not supported")
+
         else:
-            raise ValueError(f"Unsupported model: {config.model_type}")
+            raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
         metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'trn', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
@@ -211,15 +380,28 @@ def process(config: DictConfig) -> Optional[float]:
                 cv_progress.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
 
         # Make sure everything closed properly
-        log.info("Finalizing!")
-        utils.finish(
-            config=config,
-            model=model,
-            datamodule=datamodule,
-            trainer=trainer,
-            callbacks=callbacks,
-            logger=loggers,
-        )
+        if config.model_framework == "pytorch":
+            log.info("Finalizing!")
+            utils.finish(
+                config=config,
+                model=model,
+                datamodule=datamodule,
+                trainer=trainer,
+                callbacks=callbacks,
+                logger=loggers,
+            )
+        elif config.model_framework == "stand_alone":
+            if 'wandb' in config.logger:
+                wandb.define_metric(f"epoch")
+                wandb.define_metric(f"train/loss")
+                wandb.define_metric(f"val/loss")
+            eval_loss(loss_info, loggers, is_log=True, is_save=False)
+            for logger in loggers:
+                logger.save()
+            if 'wandb' in config.logger:
+                wandb.finish()
+        else:
+            raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
         if config.optimized_part == "trn":
             metrics_main = metrics_trn
@@ -243,48 +425,78 @@ def process(config: DictConfig) -> Optional[float]:
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
-            if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
-                if config.model_type == "widedeep_tab_mlp":
-                    model = WDTabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_tab_resnet":
-                    model = WDTabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_tab_net":
-                    model = WDTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_tab_transformer":
-                    model = WDTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_ft_transformer":
-                    model = WDFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_saint":
-                    model = WDSAINTModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_tab_fastformer":
-                    model = WDTabFastFormerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "widedeep_tab_perceiver":
-                    model = WDTabPerceiverModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "pytorch_tabular_autoint":
-                    model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "pytorch_tabular_tabnet":
-                    model = PTTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "pytorch_tabular_node":
-                    model = PTNODEModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "pytorch_tabular_category_embedding":
-                    model = PTCategoryEmbeddingModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "pytorch_tabular_ft_transformer":
-                    model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                elif config.model_type == "pytorch_tabular_tab_transformer":
-                    model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                else:
-                    raise ValueError(f"Unsupported model: {config.model_type}")
-                if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
-                    model.eval()
-                    model.freeze()
-            best["model"] = model
-            best["trainer"] = trainer
+            if config.model_framework == "pytorch":
+                if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
+                    if config.model_type == "widedeep_tab_mlp":
+                        model = WDTabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_tab_resnet":
+                        model = WDTabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_tab_net":
+                        model = WDTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_tab_transformer":
+                        model = WDTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_ft_transformer":
+                        model = WDFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_saint":
+                        model = WDSAINTModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_tab_fastformer":
+                        model = WDTabFastFormerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "widedeep_tab_perceiver":
+                        model = WDTabPerceiverModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "pytorch_tabular_autoint":
+                        model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "pytorch_tabular_tabnet":
+                        model = PTTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "pytorch_tabular_node":
+                        model = PTNODEModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "pytorch_tabular_category_embedding":
+                        model = PTCategoryEmbeddingModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "pytorch_tabular_ft_transformer":
+                        model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "pytorch_tabular_tab_transformer":
+                        model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    else:
+                        raise ValueError(f"Unsupported model: {config.model_type}")
+                    if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
+                        model.eval()
+                        model.freeze()
+                best["model"] = model
 
-            def predict_func(X):
-                X = np.float32(X)
-                X = torch.from_numpy(X)
-                tmp = best["model"](X)
-                return tmp.cpu().detach().numpy()
+                def predict_func(X):
+                    batch = {
+                        'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
+                        'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
+                        'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                    }
+                    tmp = best["model"](batch)
+                    return tmp.cpu().detach().numpy()
+
+            elif config.model_framework == "stand_alone":
+                best["model"] = model
+                best['loss_info'] = loss_info
+
+                if config.model_type == "xgboost":
+                    def predict_func(X):
+                        X = xgb.DMatrix(X, feature_names=feature_names['all'])
+                        y = best["model"].predict(X)
+                        return y
+                elif config.model_type == "catboost":
+                    def predict_func(X):
+                        y = best["model"].predict(X)
+                        return y
+                elif config.model_type == "lightgbm":
+                    def predict_func(X):
+                        y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
+                        return y
+                elif config.model_type == "elastic_net":
+                    def predict_func(X):
+                        y = best["model"].predict(X)
+                        return y
+                else:
+                    raise ValueError(f"Model {config.model_type} is not supported")
+
+            else:
+                raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
             best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
@@ -354,6 +566,9 @@ def process(config: DictConfig) -> Optional[float]:
         metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
         metrics_tst.to_excel(f"metrics_tst_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
+    elif config.model_framework == "stand_alone":
+        eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
+
     if config.optimized_part == "trn":
         metrics_main = metrics_trn
     elif config.optimized_part == "val":
@@ -363,8 +578,7 @@ def process(config: DictConfig) -> Optional[float]:
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
-    if best['feature_importances'] is not None:
-        save_feature_importance(best['feature_importances'], config.num_top_features)
+    save_feature_importance(best['feature_importances'], config.num_top_features)
 
     formula = f"Estimation ~ {target_name}"
     model_linear = smf.ols(formula=formula, data=df.loc[df.index[datamodule.ids_trn], :]).fit()
@@ -381,15 +595,7 @@ def process(config: DictConfig) -> Optional[float]:
     add_layout(fig, target_name, f"Estimation", f"")
     fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
     fig.update_layout(legend_font_size=20)
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=90,
-            r=20,
-            b=80,
-            t=65,
-            pad=0
-        )
-    )
+    fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
     save_figure(fig, f"scatter")
 
     dist_num_bins = 15
@@ -487,8 +693,8 @@ def process(config: DictConfig) -> Optional[float]:
         'model': best["model"],
         'predict_func': best['predict_func'],
         'df': df,
-        'feature_names': feature_names,
-        'outcome_name': target_name,
+        'feature_names': feature_names['all'],
+        'target_name': target_name,
         'ids_all': np.arange(df.shape[0]),
         'ids_trn': datamodule.ids_trn,
         'ids_val': datamodule.ids_val,

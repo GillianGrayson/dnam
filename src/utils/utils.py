@@ -1,9 +1,8 @@
 import logging
-import os
 import warnings
 from typing import List, Sequence
-
 import pytorch_lightning as pl
+from pytorch_lightning.loggers.base import LightningLoggerBase
 import rich.syntax
 import rich.tree
 from omegaconf import DictConfig, OmegaConf
@@ -113,13 +112,28 @@ def empty(*args, **kwargs):
 
 
 @rank_zero_only
-def log_hyperparameters(
+def log_hyperparameters_stand_alone(
+        config: DictConfig,
+        logger,
+) -> None:
+
+    for l in logger:
+        l.log_hyperparams(config)
+
+        # disable logging any more hyperparameters for all loggers
+        # this is just a trick to prevent trainer from logging hparams of model,
+        # since we already did that above
+        l.log_hyperparams = empty
+
+
+@rank_zero_only
+def log_hyperparameters_pytorch(
     config: DictConfig,
     model: pl.LightningModule,
     datamodule: pl.LightningDataModule,
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
-    logger: List[pl.loggers.LightningLoggerBase],
+    logger: List[LightningLoggerBase],
 ) -> None:
     """This method controls which parameters from Hydra config are saved by Lightning loggers.
 
@@ -163,7 +177,7 @@ def finish(
     datamodule: pl.LightningDataModule,
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
-    logger: List[pl.loggers.LightningLoggerBase],
+    logger: List[LightningLoggerBase],
 ) -> None:
     """Makes sure everything closed properly."""
 

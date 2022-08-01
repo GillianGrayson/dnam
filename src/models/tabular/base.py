@@ -50,7 +50,6 @@ class BaseModel(pl.LightningModule):
                 self.loss_fn = torch.nn.L1Loss(reduction='mean')
             else:
                 raise ValueError("Unsupported loss_type")
-
             self.metrics = get_reg_metrics()
             self.metrics = {f'{k}_pl': v for k, v in self.metrics.items()}
             self.metrics_dict = {k: v[0] for k, v in self.metrics.items()}
@@ -74,8 +73,9 @@ class BaseModel(pl.LightningModule):
             for stage_type in ['trn', 'val', 'tst']:
                 for m in self.metrics:
                     wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics[m][1])
-                for m in self.metrics_prob:
-                    wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
+                if self.task == "classification":
+                    for m in self.metrics_prob:
+                        wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
                 wandb.define_metric(f"{stage_type}/loss", summary='min')
 
     def step(self, batch: Dict, stage:str):

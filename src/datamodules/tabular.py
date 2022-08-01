@@ -144,6 +144,9 @@ class TabularDataModule(LightningDataModule):
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.feats_cat_encoding}")
         self.feats_all = self.feats_con + self.feats_cat
+        self.feats_all_ids = np.arange(len(self.feats_all))
+        self.feats_con_ids = np.arange(len(self.feats_con))
+        self.feats_cat_ids = np.arange(len(self.feats_cat)) + len(self.feats_con)
         self.widedeep['column_idx'] = {feat_name: feat_id for feat_id, feat_name in enumerate(self.feats_all)}
         self.widedeep['continuous_cols'] = self.feats_con
 
@@ -341,7 +344,10 @@ class TabularDataModule(LightningDataModule):
         feature_names = {
             'all': self.feats_all,
             'con': self.feats_con,
-            'cat': self.feats_cat
+            'cat': self.feats_cat,
+            'all_ids': self.feats_all_ids,
+            'con_ids': self.feats_con_ids,
+            'cat_ids': self.feats_cat_ids,
         }
         return feature_names
 

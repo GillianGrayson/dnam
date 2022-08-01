@@ -159,7 +159,7 @@ def process(config: DictConfig) -> Optional[float]:
 
         # Send some parameters from config to all lightning loggers
         log.info("Logging hyperparameters!")
-        utils.log_hyperparameters(
+        utils.log_hyperparameters_pytorch(
             config=config,
             model=model,
             datamodule=datamodule,

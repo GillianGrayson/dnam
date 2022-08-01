@@ -79,7 +79,7 @@ def explain_shap(config, expl_data):
     predict_func = expl_data['predict_func']
     df = expl_data['df']
     feature_names = expl_data['feature_names']
-    outcome_name = expl_data['outcome_name']
+    target_name = expl_data['target_name']
 
     if config.shap_explainer == 'Tree' and config.shap_bkgrd == 'tree_path_dependent':
         explainer = shap.TreeExplainer(model)
@@ -92,7 +92,7 @@ def explain_shap(config, expl_data):
         elif config.shap_explainer == "Kernel":
             explainer = shap.KernelExplainer(predict_func, X_bkgrd)
         elif config.shap_explainer == "Deep":
-            explainer = shap.DeepExplainer(model, torch.from_numpy(X_bkgrd))
+            explainer = shap.DeepExplainer(model, X_bkgrd)
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
@@ -110,8 +110,8 @@ def explain_shap(config, expl_data):
                 expected_value = explainer.expected_value
             elif config.shap_explainer == "Kernel":
                 shap_values = explainer.shap_values(X)
-                shap_values = shap_values[0]
-                expected_value = explainer.expected_value[0]
+                shap_values = shap_values
+                expected_value = explainer.expected_value
             elif config.shap_explainer == "Deep":
                 shap_values = explainer.shap_values(torch.from_numpy(X))
                 expected_value = explainer.expected_value
@@ -216,7 +216,7 @@ def explain_shap(config, expl_data):
 
             explain_samples(
                 config,
-                df.loc[indexes, outcome_name].values,
+                df.loc[indexes, target_name].values,
                 df.loc[indexes, "Estimation"].values,
                 indexes,
                 shap_values,
