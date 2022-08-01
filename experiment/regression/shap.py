@@ -92,12 +92,12 @@ def explain_shap(config, expl_data):
         elif config.shap_explainer == "Kernel":
             explainer = shap.KernelExplainer(predict_func, X_bkgrd)
         elif config.shap_explainer == "Deep":
-            explainer = shap.DeepExplainer(model, X_bkgrd)
+            explainer = shap.DeepExplainer(model, torch.from_numpy(X_bkgrd))
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
-    for part in ['trn', 'val', 'tst', 'all']:
-        if expl_data[f"ids_{part}"] is not None:
+    for part in ['val', 'trn', 'tst', 'all']:
+        if expl_data[f"ids_{part}"] is not None and len(expl_data[f"ids_{part}"]) > 0:
             log.info(f"Calculating SHAP for {part}")
             Path(f"shap/{part}/global").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
@@ -110,11 +110,14 @@ def explain_shap(config, expl_data):
                 expected_value = explainer.expected_value
             elif config.shap_explainer == "Kernel":
                 shap_values = explainer.shap_values(X)
-                shap_values = shap_values
+                if isinstance(shap_values, list):
+                    shap_values = shap_values[0]
                 expected_value = explainer.expected_value
+                if isinstance(expected_value, (list, np.ndarray)):
+                    expected_value = expected_value[0]
             elif config.shap_explainer == "Deep":
                 shap_values = explainer.shap_values(torch.from_numpy(X))
-                expected_value = explainer.expected_value
+                expected_value = explainer.expected_value[0]
             else:
                 raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 

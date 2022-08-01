@@ -53,6 +53,15 @@ class WDTabResnetModel(BaseModel):
         )
         self.save_hyperparameters(logger=False)
         self._build_network()
+        self.feats_all_ids = list(self.hparams.column_idx.values())
+        self.feats_cat_ids = []
+        if self.hparams.cat_embed_input:
+            for x in self.hparams.cat_embed_input:
+                self.feats_cat_ids.append(self.hparams.column_idx[x[0]])
+        if self.hparams.continuous_cols:
+            self.feats_con_ids = []
+            for x in self.hparams.continuous_cols:
+                self.feats_con_ids.append(self.hparams.column_idx[x])
 
     def _build_network(self):
         self.model = TabResnet(
@@ -79,8 +88,11 @@ class WDTabResnetModel(BaseModel):
             mlp_linear_first=self.hparams.mlp_linear_first
         )
 
-    def forward(self, batch: Dict):
-        x = batch["all"]
+    def forward(self, batch):
+        if isinstance(batch, dict):
+            x = batch["all"]
+        else:
+            x = batch[:, self.feats_all_ids]
         x = self.model(x)
         if self.produce_probabilities:
             return torch.softmax(x, dim=1)
