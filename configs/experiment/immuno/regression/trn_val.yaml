@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: pytorch # stand_alone pytorch
+model_framework: stand_alone
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -25,7 +25,7 @@ model_framework: pytorch # stand_alone pytorch
 # pytorch_tabular_category_embedding (pytorch)
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
-model_type: widedeep_tab_net
+model_type: lightgbm
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -61,7 +61,7 @@ work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: True # True False
+is_shap: False # True False
 is_shap_save: False
 shap_explainer: Deep # Tree Kernel Deep
 shap_bkgrd: trn # trn all tree_path_dependent

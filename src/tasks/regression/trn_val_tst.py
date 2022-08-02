@@ -44,6 +44,7 @@ from scripts.python.routines.plot.layout import add_layout
 from src.tasks.routines import eval_regression, eval_loss, save_feature_importance
 from datetime import datetime
 from pathlib import Path
+import pickle
 import wandb
 import glob
 import os
@@ -575,6 +576,16 @@ def process(config: DictConfig) -> Optional[float]:
 
     elif config.model_framework == "stand_alone":
         eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
+        if config.model_type == "xgboost":
+            best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
+        elif config.model_type == "catboost":
+            best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
+        elif config.model_type == "lightgbm":
+            best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model", num_iteration=best['model'].best_iteration)
+        elif config.model_type == "elastic_net":
+            pickle.dump(best["model"], open(f"elastic_net_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+        else:
+            raise ValueError(f"Model {config.model_type} is not supported")
 
     if config.optimized_part == "trn":
         metrics_main = metrics_trn
