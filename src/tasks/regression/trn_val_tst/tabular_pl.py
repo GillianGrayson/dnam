@@ -4,7 +4,6 @@ import hydra
 from omegaconf import DictConfig
 from pytorch_lightning import (
     Callback,
-    LightningModule,
     Trainer,
     seed_everything,
 )
@@ -35,14 +34,14 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from tqdm import tqdm
-from experiment.regression.shap import explain_shap
-from experiment.regression.lime import explain_lime
+from src.tasks.regression.shap import explain_shap
+from src.tasks.regression.lime import explain_lime
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.save import save_figure
 from scipy.stats import mannwhitneyu
 from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression, eval_loss, save_feature_importance
+from src.tasks.routines import eval_regression, eval_loss, save_feature_importance
 from datetime import datetime
 from pathlib import Path
 import wandb

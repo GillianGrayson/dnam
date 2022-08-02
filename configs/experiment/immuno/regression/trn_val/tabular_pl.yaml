@@ -37,7 +37,7 @@ out_dim: 1
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 5
 
 optimized_metric: mean_absolute_error
 optimized_mean: cv_mean
@@ -53,8 +53,8 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 20
-patience: 2
+max_epochs: 2000
+patience: 20
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
@@ -63,8 +63,8 @@ data_dir: "${base_dir}"
 # SHAP values
 is_shap: True # True False
 is_shap_save: False
-shap_explainer: Kernel # Tree Kernel Deep
-shap_bkgrd: trn # trn all tree_path_dependent
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
 # LIME weights
 is_lime: False # True False

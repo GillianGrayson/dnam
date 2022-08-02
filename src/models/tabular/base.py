@@ -3,7 +3,7 @@ from torchmetrics import MetricCollection
 import wandb
 import pytorch_lightning as pl
 import torch
-from experiment.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
+from src.tasks.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
 
 
 class BaseModel(pl.LightningModule):

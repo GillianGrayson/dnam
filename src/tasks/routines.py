@@ -1,5 +1,5 @@
 import pandas as pd
-from experiment.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
+from src.tasks.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
 from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
 import wandb

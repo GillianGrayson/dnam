@@ -1,40 +1,52 @@
+from typing import List, Optional
+import torch
 import hydra
-import numpy as np
 from omegaconf import DictConfig
 from pytorch_lightning import (
+    Callback,
     LightningDataModule,
+    LightningModule,
+    Trainer,
     seed_everything,
 )
-from experiment.logging import log_hyperparameters
-from experiment.regression.shap import explain_shap
-from experiment.regression.lime import explain_lime
-from pytorch_lightning.loggers import LightningLoggerBase
-import pandas as pd
-from src.utils import utils
-import xgboost as xgb
-import plotly.graph_objects as go
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.layout import add_layout
-from experiment.routines import eval_regression
-from experiment.routines import eval_loss, save_feature_importance
-from typing import List
-from catboost import CatBoost
-import lightgbm as lgb
-from scripts.python.routines.plot.scatter import add_scatter_trace
 import statsmodels.formula.api as smf
-import wandb
-from scripts.python.routines.plot.p_value import add_p_value_annotation
-from scipy.stats import mannwhitneyu
+from pytorch_lightning.loggers import LightningLoggerBase
+import plotly.graph_objects as go
+from src.models.tabnet.model import TabNetModel
+from src.models.node.model import NodeModel
+from src.models.tab_transformer.model import TabTransformerModel
+from src.models.widedeep.tab_mlp import TabMLPModel
+from src.models.widedeep.tab_resnet import TabResnetModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
+import numpy as np
+from src.utils import utils
+import pandas as pd
 from tqdm import tqdm
-from sklearn.linear_model import ElasticNet
-import pickle
+from src.tasks.regression.shap import explain_shap
+from src.tasks.regression.lime import explain_lime
+from scripts.python.routines.plot.scatter import add_scatter_trace
+from scripts.python.routines.plot.save import save_figure
+from scipy.stats import mannwhitneyu
+from scripts.python.routines.plot.p_value import add_p_value_annotation
+from scripts.python.routines.plot.layout import add_layout
+from src.tasks.routines import eval_regression, save_feature_importance
 from datetime import datetime
+from pathlib import Path
 
 
 log = utils.get_logger(__name__)
 
-def process(config: DictConfig):
+
+def process(config: DictConfig) -> Optional[float]:
+    """Contains training pipeline.
+    Instantiates all PyTorch Lightning objects from config.
+
+    Args:
+        config (DictConfig): Configuration composed by Hydra.
+
+    Returns:
+        Optional[float]: Metric score for hyperparameter optimization.
+    """
 
     # Set seed for random number generators in pytorch, numpy and python.random
     if "seed" in config:
@@ -48,6 +60,9 @@ def process(config: DictConfig):
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
+    num_features = len(feature_names)
+    config.in_dim = num_features
+    con_features_ids, cat_features_ids = datamodule.get_con_cat_feature_ids()
     outcome_name = datamodule.get_outcome_name()
     df = datamodule.get_df()
     ids_tst = datamodule.ids_tst
@@ -61,7 +76,7 @@ def process(config: DictConfig):
         is_split=config.cv_is_split,
         n_splits=config.cv_n_splits,
         n_repeats=config.cv_n_repeats,
-        random_state=config.seed,
+        random_state=config.seed
     )
 
     best = {}
@@ -73,26 +88,60 @@ def process(config: DictConfig):
     cv_progress = pd.DataFrame(columns=['fold', 'optimized_metric'])
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    ckpt_name = config.callbacks.model_checkpoint.filename
 
     for fold_idx, (ids_trn, ids_val) in tqdm(enumerate(cv_splitter.split())):
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
-        X_trn = df.loc[df.index[ids_trn], feature_names].values
-        y_trn = df.loc[df.index[ids_trn], outcome_name].values
         df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "train"
-        X_val = df.loc[df.index[ids_val], feature_names].values
-        y_val = df.loc[df.index[ids_val], outcome_name].values
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         if is_test:
-            X_tst = df.loc[df.index[ids_tst], feature_names].values
-            y_tst = df.loc[df.index[ids_tst], outcome_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "test"
+
+        config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
 
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
         if 'wandb' in config.logger:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
+
+        # Init lightning model
+        if config.model_type == "tabnet":
+            config.model = config["tabnet"]
+        elif config.model_type == "node":
+            config.model = config["node"]
+        elif config.model_type == "tab_transformer":
+            config.model = config["tab_transformer"]
+            config.model.categories = datamodule.categories
+            config.model.num_continuous = len(con_features_ids)
+        elif config.model_type == "widedeep_tab_mlp":
+            config.model = config["widedeep_tab_mlp"]
+            widedeep = datamodule.get_widedeep()
+            config.model.column_idx = widedeep['column_idx']
+            config.model.cat_embed_input = widedeep['cat_embed_input']
+            config.model.continuous_cols = widedeep['continuous_cols']
+        elif config.model_type == "widedeep_tab_resnet":
+            config.model = config["widedeep_tab_resnet"]
+            widedeep = datamodule.get_widedeep()
+            config.model.column_idx = widedeep['column_idx']
+            config.model.cat_embed_input = widedeep['cat_embed_input']
+            config.model.continuous_cols = widedeep['continuous_cols']
+        else:
+            raise ValueError(f"Unsupported model: {config.model_type}")
+
+        log.info(f"Instantiating model <{config.model._target_}>")
+        model: LightningModule = hydra.utils.instantiate(config.model)
+        model.ids_con = con_features_ids
+        model.ids_cat = cat_features_ids
+
+        # Init lightning callbacks
+        callbacks: List[Callback] = []
+        if "callbacks" in config:
+            for _, cb_conf in config.callbacks.items():
+                if "_target_" in cb_conf:
+                    log.info(f"Instantiating callback <{cb_conf._target_}>")
+                    callbacks.append(hydra.utils.instantiate(cb_conf))
 
         # Init lightning loggers
         loggers: List[LightningLoggerBase] = []
@@ -102,151 +151,76 @@ def process(config: DictConfig):
                     log.info(f"Instantiating logger <{lg_conf._target_}>")
                     loggers.append(hydra.utils.instantiate(lg_conf))
 
+        # Init lightning trainer
+        log.info(f"Instantiating trainer <{config.trainer._target_}>")
+        trainer: Trainer = hydra.utils.instantiate(
+            config.trainer, callbacks=callbacks, logger=loggers, _convert_="partial"
+        )
+
+        # Send some parameters from config to all lightning loggers
         log.info("Logging hyperparameters!")
-        log_hyperparameters(loggers, config)
+        utils.log_hyperparameters_pytorch(
+            config=config,
+            model=model,
+            datamodule=datamodule,
+            trainer=trainer,
+            callbacks=callbacks,
+            logger=loggers,
+        )
 
-        if config.model_type == "xgboost":
-            model_params = {
-                'booster': config.xgboost.booster,
-                'eta': config.xgboost.learning_rate,
-                'max_depth': config.xgboost.max_depth,
-                'gamma': config.xgboost.gamma,
-                'sampling_method': config.xgboost.sampling_method,
-                'subsample': config.xgboost.subsample,
-                'objective': config.xgboost.objective,
-                'verbosity': config.xgboost.verbosity,
-                'eval_metric': config.xgboost.eval_metric,
-            }
+        # Train the model
+        log.info("Starting training!")
+        trainer.fit(model=model, datamodule=datamodule)
 
-            dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=feature_names)
-            dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names)
-            if is_test:
-                dmat_tst = xgb.DMatrix(X_tst, y_tst, feature_names=feature_names)
+        # Evaluate model on test set, using the best model achieved during training
+        if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
+            log.info("Starting testing!")
+            test_dataloader = datamodule.test_dataloader()
+            if test_dataloader is not None and len(test_dataloader) > 0:
+                trainer.test(model, test_dataloader, ckpt_path="best")
+            else:
+                log.info("Test data is empty!")
 
-            evals_result = {}
-            model = xgb.train(
-                params=model_params,
-                dtrain=dmat_trn,
-                evals=[(dmat_trn, "train"), (dmat_val, "val")],
-                num_boost_round=config.max_epochs,
-                early_stopping_rounds=config.patience,
-                evals_result=evals_result,
-                verbose_eval=False
+        datamodule.dataloaders_evaluate = True
+        trn_dataloader = datamodule.train_dataloader()
+        val_dataloader = datamodule.val_dataloader()
+        tst_dataloader = datamodule.test_dataloader()
+        datamodule.dataloaders_evaluate = False
+
+        y_trn = df.loc[df.index[ids_trn], outcome_name].values
+        y_val = df.loc[df.index[ids_val], outcome_name].values
+        if is_test:
+            y_tst = df.loc[df.index[ids_tst], outcome_name].values
+
+        y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+        y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+        if is_test:
+            y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+
+        if config.model_type == "tabnet":
+            feature_importances_raw = np.zeros((len(feature_names)))
+            model.produce_importance = True
+            raw_res = trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")
+            M_explain =  torch.cat([x[0] for x in raw_res])
+            model.produce_importance = False
+            feature_importances_raw += M_explain.sum(dim=0).cpu().detach().numpy()
+            feature_importances_raw = feature_importances_raw / np.sum(feature_importances_raw)
+            feature_importances = pd.DataFrame.from_dict(
+                {
+                    'feature': feature_names,
+                    'importance': feature_importances_raw
+                }
             )
-
-            y_trn_pred = model.predict(dmat_trn)
-            y_val_pred = model.predict(dmat_val)
-            if is_test:
-                y_tst_pred = model.predict(dmat_tst)
-
-            loss_info = {
-                'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
-                'train/loss': evals_result['train'][config.xgboost.eval_metric],
-                'val/loss': evals_result['val'][config.xgboost.eval_metric]
-            }
-
-            fi = model.get_score(importance_type='weight')
-            feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
-
-        elif config.model_type == "catboost":
-            model_params = {
-                'loss_function': config.catboost.loss_function,
-                'learning_rate': config.catboost.learning_rate,
-                'depth': config.catboost.depth,
-                'min_data_in_leaf': config.catboost.min_data_in_leaf,
-                'max_leaves': config.catboost.max_leaves,
-                'task_type': config.catboost.task_type,
-                'verbose': config.catboost.verbose,
-                'iterations': config.catboost.max_epochs,
-                'early_stopping_rounds': config.catboost.patience
-            }
-
-            model = CatBoost(params=model_params)
-            model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
-            model.set_feature_names(feature_names)
-
-            y_trn_pred = model.predict(X_trn).astype('float32')
-            y_val_pred = model.predict(X_val).astype('float32')
-            if is_test:
-                y_tst_pred = model.predict(X_tst).astype('float32')
-
-            metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
-            metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
-            loss_info = {
-                'epoch': metrics_train.iloc[:, 0],
-                'train/loss': metrics_train.iloc[:, 1],
-                'val/loss': metrics_val.iloc[:, 1]
-            }
-
-            feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
-
-        elif config.model_type == "lightgbm":
-            model_params = {
-                'objective': config.lightgbm.objective,
-                'boosting': config.lightgbm.boosting,
-                'learning_rate': config.lightgbm.learning_rate,
-                'num_leaves': config.lightgbm.num_leaves,
-                'device': config.lightgbm.device,
-                'max_depth': config.lightgbm.max_depth,
-                'min_data_in_leaf': config.lightgbm.min_data_in_leaf,
-                'feature_fraction': config.lightgbm.feature_fraction,
-                'bagging_fraction': config.lightgbm.bagging_fraction,
-                'bagging_freq': config.lightgbm.bagging_freq,
-                'verbose': config.lightgbm.verbose,
-                'metric': config.lightgbm.metric
-            }
-
-            ds_trn = lgb.Dataset(X_trn, label=y_trn, feature_name=feature_names)
-            ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=feature_names)
-
-            evals_result = {}
-            model = lgb.train(
-                params=model_params,
-                train_set=ds_trn,
-                num_boost_round=config.max_epochs,
-                valid_sets=[ds_val, ds_trn],
-                valid_names=['val', 'train'],
-                evals_result=evals_result,
-                early_stopping_rounds=config.patience,
-                verbose_eval=False
-            )
-
-            y_trn_pred = model.predict(X_trn, num_iteration=model.best_iteration).astype('float32')
-            y_val_pred = model.predict(X_val, num_iteration=model.best_iteration).astype('float32')
-            if is_test:
-                y_tst_pred = model.predict(X_tst, num_iteration=model.best_iteration).astype('float32')
-
-            loss_info = {
-                'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
-                'train/loss': evals_result['train'][config.lightgbm.metric],
-                'val/loss': evals_result['val'][config.lightgbm.metric]
-            }
-
-            feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
-
-        elif config.model_type == "elastic_net":
-            model = ElasticNet(
-                alpha=config.elastic_net.alpha,
-                l1_ratio=config.elastic_net.l1_ratio,
-                max_iter=config.elastic_net.max_iter,
-                tol=config.elastic_net.tol,
-            ).fit(X_trn, y_trn)
-
-            y_trn_pred = model.predict(X_trn).astype('float32')
-            y_val_pred = model.predict(X_val).astype('float32')
-            if is_test:
-                y_tst_pred = model.predict(X_tst).astype('float32')
-
-            loss_info = {
-                'epoch': [0],
-                'train/loss': [0],
-                'val/loss': [0]
-            }
-
-            feature_importances = pd.DataFrame.from_dict({'feature': ['Intercept'] + feature_names, 'importance': [model.intercept_] + list(model.coef_)})
-
+        elif config.model_type == "node":
+            feature_importances = None
+        elif config.model_type == "tab_transformer":
+            feature_importances = None
+        elif config.model_type == "widedeep_tab_mlp":
+            feature_importances = None
+        elif config.model_type == "widedeep_tab_resnet":
+            feature_importances = None
         else:
-            raise ValueError(f"Model {config.model_type} is not supported")
+            raise ValueError(f"Unsupported model: {config.model_type}")
 
         metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'train', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
@@ -259,16 +233,16 @@ def process(config: DictConfig):
             for m in metrics_tst.index.values:
                 cv_progress.at[fold_idx, f"test_{m}"] = metrics_tst.at[m, 'test']
 
-        if 'wandb' in config.logger:
-            wandb.define_metric(f"epoch")
-            wandb.define_metric(f"train/loss")
-            wandb.define_metric(f"val/loss")
-        eval_loss(loss_info, loggers, is_log=True, is_save=False)
-
-        for logger in loggers:
-            logger.save()
-        if 'wandb' in config.logger:
-            wandb.finish()
+        # Make sure everything closed properly
+        log.info("Finalizing!")
+        utils.finish(
+            config=config,
+            model=model,
+            datamodule=datamodule,
+            trainer=trainer,
+            callbacks=callbacks,
+            logger=loggers,
+        )
 
         if config.optimized_part == "train":
             metrics_main = metrics_trn
@@ -292,28 +266,37 @@ def process(config: DictConfig):
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
+            if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
+                if config.model_type == "tabnet":
+                    model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "node":
+                    model = NodeModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "tab_transformer":
+                    model = TabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "widedeep_tab_mlp":
+                    model = TabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                elif config.model_type == "widedeep_tab_resnet":
+                    model = TabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    model.eval()
+                    model.freeze()
+                else:
+                    raise ValueError(f"Unsupported model: {config.model_type}")
             best["model"] = model
-            best['loss_info'] = loss_info
+            best["trainer"] = trainer
 
-            if config.model_type == "xgboost":
-                def predict_func(X):
-                    X = xgb.DMatrix(X, feature_names=feature_names)
-                    y = best["model"].predict(X)
-                    return y
-            elif config.model_type == "catboost":
-                def predict_func(X):
-                    y = best["model"].predict(X)
-                    return y
-            elif config.model_type == "lightgbm":
-                def predict_func(X):
-                    y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
-                    return y
-            elif config.model_type == "elastic_net":
-                def predict_func(X):
-                    y = best["model"].predict(X)
-                    return y
-            else:
-                raise ValueError(f"Model {config.model_type} is not supported")
+            def predict_func(X):
+                X = np.float32(X)
+                X = torch.from_numpy(X)
+                tmp = best["model"](X)
+                return tmp.cpu().detach().numpy()
 
             best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
@@ -323,7 +306,6 @@ def process(config: DictConfig):
             df.loc[df.index[ids_trn], "Estimation"] = y_trn_pred
             df.loc[df.index[ids_val], "Estimation"] = y_val_pred
             if is_test:
-                best['ids_tst'] = ids_tst
                 df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
 
         cv_progress.at[fold_idx, 'fold'] = fold_idx
@@ -373,7 +355,7 @@ def process(config: DictConfig):
             metrics_tst_cv.at[f"{metric}_cv_std", 'test'] = cv_progress[f"test_{metric}"].std()
         metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
 
-        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_test" for x in metrics_names], columns=['val', 'test'])
+        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_test" for x in metrics_names],columns=['val', 'test'])
         for metric in metrics_names:
             val_test_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst.at[f"{metric}_cv_mean", 'test'])
             metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_test", 'val'] = val_test_value
@@ -382,8 +364,6 @@ def process(config: DictConfig):
         metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, ['test']]])
         metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
         metrics_tst.to_excel(f"metrics_test_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
-
-    eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
 
     if config.optimized_part == "train":
         metrics_main = metrics_trn
@@ -394,18 +374,8 @@ def process(config: DictConfig):
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
-    if config.model_type == "xgboost":
-        best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
-    elif config.model_type == "catboost":
-        best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
-    elif config.model_type == "lightgbm":
-        best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.txt", num_iteration=best['model'].best_iteration)
-    elif config.model_type == "elastic_net":
-        pickle.dump(best["model"], open(f"elastic_net_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-    else:
-        raise ValueError(f"Model {config.model_type} is not supported")
-
-    save_feature_importance(best['feature_importances'], config.num_top_features)
+    if best['feature_importances'] is not None:
+        save_feature_importance(best['feature_importances'], config.num_top_features)
 
     formula = f"Estimation ~ {outcome_name}"
     model_linear = smf.ols(formula=formula, data=df.loc[df.index[datamodule.ids_trn], :]).fit()
@@ -422,7 +392,15 @@ def process(config: DictConfig):
     add_layout(fig, outcome_name, f"Estimation", f"")
     fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
     fig.update_layout(legend_font_size=20)
-    fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=90,
+            r=20,
+            b=80,
+            t=65,
+            pad=0
+        )
+    )
     save_figure(fig, f"scatter")
 
     dist_num_bins = 15
@@ -475,16 +453,36 @@ def process(config: DictConfig):
         )
     add_layout(fig, "", "Estimation acceleration", f"")
     fig.update_layout({'colorway': ['red', 'blue', 'green']})
-    stat_01, pval_01 = mannwhitneyu(df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values, df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values, alternative='two-sided')
+    stat_01, pval_01 = mannwhitneyu(
+        df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
+        df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
+        alternative='two-sided'
+    )
     if is_test:
-        stat_02, pval_02 = mannwhitneyu(df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values, df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values, alternative='two-sided')
-        stat_12, pval_12 = mannwhitneyu(df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values, df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values, alternative='two-sided')
+        stat_02, pval_02 = mannwhitneyu(
+            df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
+            df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
+            alternative='two-sided'
+        )
+        stat_12, pval_12 = mannwhitneyu(
+            df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
+            df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
+            alternative='two-sided'
+        )
         fig = add_p_value_annotation(fig, {(0, 1): pval_01, (1, 2): pval_12, (0, 2): pval_02})
     else:
         fig = add_p_value_annotation(fig, {(0, 1): pval_01})
     fig.update_layout(title_xref='paper')
     fig.update_layout(legend_font_size=20)
-    fig.update_layout(margin=go.layout.Margin(l=110, r=20, b=50, t=90, pad=0))
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=90,
+            pad=0
+        )
+    )
     fig.update_layout(
         legend=dict(
             orientation="h",
@@ -507,12 +505,12 @@ def process(config: DictConfig):
         'ids_val': datamodule.ids_val,
         'ids_tst': datamodule.ids_tst
     }
-
     if config.is_lime == True:
         explain_lime(config, expl_data)
     if config.is_shap == True:
         explain_shap(config, expl_data)
 
+    # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")
     optimized_mean = config.get("optimized_mean")
     if optimized_metric:
