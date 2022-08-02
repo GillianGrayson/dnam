@@ -138,7 +138,7 @@ def explain_lime(config, expl_data):
     df = expl_data['df']
     feature_names = expl_data['feature_names']
     class_names = expl_data['class_names']
-    outcome_name = expl_data['outcome_name']
+    target_name = expl_data['target_name']
 
     num_features = config.lime_num_features
     if num_features == 'all':
@@ -163,7 +163,7 @@ def explain_lime(config, expl_data):
             Path(f"lime/{part}/samples/corrects").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
-            y_real = df.loc[indexes, outcome_name].values
+            y_real = df.loc[indexes, target_name].values
             y_pred = df.loc[indexes, "pred"].values
             is_correct_pred = (np.array(y_real) == np.array(y_pred))
             mistakes_ids = np.where(is_correct_pred == False)[0]
@@ -192,7 +192,7 @@ def explain_lime(config, expl_data):
         df_weights[cl] = pd.DataFrame(index=df.index, columns=feature_names)
     for ind in tqdm(indexes_all, desc=f'Calculating LIME explanations'):
         X = df.loc[ind, feature_names].values
-        y_real = df.at[ind, outcome_name]
+        y_real = df.at[ind, target_name]
         y_pred = df.at[ind, "pred"]
 
         explanation = explainer.explain_instance(
@@ -336,7 +336,7 @@ def explain_lime(config, expl_data):
 
                 fig = go.Figure()
                 for cl_id, cl in enumerate(class_names):
-                    vals = df.loc[(df.index.isin(indexes)) & (df[outcome_name] == cl_id), feat].values
+                    vals = df.loc[(df.index.isin(indexes)) & (df[target_name] == cl_id), feat].values
                     fig.add_trace(
                         go.Violin(
                             y=vals,

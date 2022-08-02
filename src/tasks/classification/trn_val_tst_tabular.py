@@ -7,13 +7,12 @@ from pytorch_lightning import (
     Trainer,
     seed_everything,
 )
-import statsmodels.formula.api as smf
 from pytorch_lightning.loggers import LightningLoggerBase
-import plotly.graph_objects as go
 import xgboost as xgb
 from catboost import CatBoost
 import lightgbm
-from sklearn.linear_model import ElasticNet
+from sklearn.linear_model import LogisticRegression
+from sklearn import svm
 from src.models.tabular.widedeep.tab_mlp import WDTabMLPModel
 from src.models.tabular.widedeep.tab_resnet import WDTabResnetModel
 from src.models.tabular.widedeep.tab_net import WDTabNetModel
@@ -34,14 +33,9 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from tqdm import tqdm
-from src.tasks.regression.shap import explain_shap
-from src.tasks.regression.lime import explain_lime
-from scripts.python.routines.plot.scatter import add_scatter_trace
-from scripts.python.routines.plot.save import save_figure
-from scipy.stats import mannwhitneyu
-from scripts.python.routines.plot.p_value import add_p_value_annotation
-from scripts.python.routines.plot.layout import add_layout
-from src.tasks.routines import eval_regression, eval_loss, save_feature_importance
+from src.tasks.classification.shap import explain_shap
+from src.tasks.classification.lime import explain_lime
+from src.tasks.routines import eval_classification, eval_loss, save_feature_importance
 from datetime import datetime
 from pathlib import Path
 import pickle
@@ -68,8 +62,10 @@ def process(config: DictConfig) -> Optional[float]:
     feature_names = datamodule.get_feature_names()
     num_features = len(feature_names['all'])
     config.in_dim = num_features
+    class_names = datamodule.get_class_names()
     target_name = datamodule.get_target()
     df = datamodule.get_data()
+    df['pred'] = 0
     ids_tst = datamodule.ids_tst
     if len(ids_tst) > 0:
         is_tst = True
@@ -194,15 +190,23 @@ def process(config: DictConfig) -> Optional[float]:
             tst_dataloader = datamodule.test_dataloader()
             datamodule.dataloaders_evaluate = False
 
+            model.produce_probabilities = True
             y_trn = df.loc[df.index[ids_trn], target_name].values
             y_val = df.loc[df.index[ids_val], target_name].values
+            y_trn_pred_prob = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_val_pred_prob = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
             if is_tst:
                 y_tst = df.loc[df.index[ids_tst], target_name].values
-
-            y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
-            y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+                y_tst_pred_prob = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            model.produce_probabilities = False
+            y_trn_pred_raw = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_val_pred_raw = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+            y_val_pred = np.argmax(y_val_pred_prob, 1)
             if is_tst:
-                y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+                y_tst_pred_raw = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+                y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+            model.produce_probabilities = True
 
             if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
                 feature_importances = None
@@ -212,6 +216,7 @@ def process(config: DictConfig) -> Optional[float]:
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
                 model_params = {
+                    'num_class': config.xgboost.output_dim,
                     'booster': config.xgboost.booster,
                     'eta': config.xgboost.learning_rate,
                     'max_depth': config.xgboost.max_depth,
@@ -239,10 +244,16 @@ def process(config: DictConfig) -> Optional[float]:
                     verbose_eval=False
                 )
 
-                y_trn_pred = model.predict(dmat_trn)
-                y_val_pred = model.predict(dmat_val)
+                y_trn_pred_prob = model.predict(dmat_trn)
+                y_val_pred_prob = model.predict(dmat_val)
+                y_trn_pred_raw = model.predict(dmat_trn, output_margin=True)
+                y_val_pred_raw = model.predict(dmat_val, output_margin=True)
+                y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+                y_val_pred = np.argmax(y_val_pred_prob, 1)
                 if is_tst:
-                    y_tst_pred = model.predict(dmat_tst)
+                    y_tst_pred_prob = model.predict(dmat_tst)
+                    y_tst_pred_raw = model.predict(dmat_tst, output_margin=True)
+                    y_tst_pred = np.argmax(y_tst_pred_prob, 1)
 
                 loss_info = {
                     'epoch': list(range(len(evals_result['train'][config.xgboost.eval_metric]))),
@@ -251,11 +262,11 @@ def process(config: DictConfig) -> Optional[float]:
                 }
 
                 fi = model.get_score(importance_type='weight')
-                feature_importances = pd.DataFrame.from_dict(
-                    {'feature': list(fi.keys()), 'importance': list(fi.values())})
+                feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
 
             elif config.model_type == "catboost":
                 model_params = {
+                    'classes_count': config.catboost.output_dim,
                     'loss_function': config.catboost.loss_function,
                     'learning_rate': config.catboost.learning_rate,
                     'depth': config.catboost.depth,
@@ -271,24 +282,30 @@ def process(config: DictConfig) -> Optional[float]:
                 model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
                 model.set_feature_names(feature_names['all'])
 
-                y_trn_pred = model.predict(X_trn).astype('float32')
-                y_val_pred = model.predict(X_val).astype('float32')
+                y_trn_pred_prob = model.predict(X_trn, prediction_type="Probability")
+                y_val_pred_prob = model.predict(X_val, prediction_type="Probability")
+                y_trn_pred_raw = model.predict(X_trn, prediction_type="RawFormulaVal")
+                y_val_pred_raw = model.predict(X_val, prediction_type="RawFormulaVal")
+                y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+                y_val_pred = np.argmax(y_val_pred_prob, 1)
                 if is_tst:
-                    y_tst_pred = model.predict(X_tst).astype('float32')
+                    y_tst_pred_prob = model.predict(X_tst, prediction_type="Probability")
+                    y_tst_pred_raw = model.predict(X_tst, prediction_type="RawFormulaVal")
+                    y_tst_pred = np.argmax(y_tst_pred_prob, 1)
 
-                metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
+                metrics_trn = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
                 metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
                 loss_info = {
-                    'epoch': metrics_train.iloc[:, 0],
-                    'trn/loss': metrics_train.iloc[:, 1],
+                    'epoch': metrics_trn.iloc[:, 0],
+                    'trn/loss': metrics_trn.iloc[:, 1],
                     'val/loss': metrics_val.iloc[:, 1]
                 }
 
-                feature_importances = pd.DataFrame.from_dict(
-                    {'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
+                feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
 
             elif config.model_type == "lightgbm":
                 model_params = {
+                    'num_class': config.lightgbm.output_dim,
                     'objective': config.lightgbm.objective,
                     'boosting': config.lightgbm.boosting,
                     'learning_rate': config.lightgbm.learning_rate,
@@ -318,10 +335,16 @@ def process(config: DictConfig) -> Optional[float]:
                     verbose_eval=False
                 )
 
-                y_trn_pred = model.predict(X_trn, num_iteration=model.best_iteration).astype('float32')
-                y_val_pred = model.predict(X_val, num_iteration=model.best_iteration).astype('float32')
+                y_trn_pred_prob = model.predict(X_trn, num_iteration=model.best_iteration)
+                y_val_pred_prob = model.predict(X_val, num_iteration=model.best_iteration)
+                y_trn_pred_raw = model.predict(X_trn, num_iteration=model.best_iteration, raw_score=True)
+                y_val_pred_raw = model.predict(X_val, num_iteration=model.best_iteration, raw_score=True)
+                y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+                y_val_pred = np.argmax(y_val_pred_prob, 1)
                 if is_tst:
-                    y_tst_pred = model.predict(X_tst, num_iteration=model.best_iteration).astype('float32')
+                    y_tst_pred_prob = model.predict(X_tst, num_iteration=model.best_iteration)
+                    y_tst_pred_raw = model.predict(X_tst, num_iteration=model.best_iteration, raw_score=True)
+                    y_tst_pred = np.argmax(y_tst_pred_prob, 1)
 
                 loss_info = {
                     'epoch': list(range(len(evals_result['train'][config.lightgbm.metric]))),
@@ -329,21 +352,30 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': evals_result['val'][config.lightgbm.metric]
                 }
 
-                feature_importances = pd.DataFrame.from_dict(
-                    {'feature': model.feature_name(), 'importance': list(model.feature_importance())})
+                feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
 
-            elif config.model_type == "elastic_net":
-                model = ElasticNet(
-                    alpha=config.elastic_net.alpha,
-                    l1_ratio=config.elastic_net.l1_ratio,
-                    max_iter=config.elastic_net.max_iter,
-                    tol=config.elastic_net.tol,
+            elif config.model_type == "logistic_regression":
+                model = LogisticRegression(
+                    penalty=config.logistic_regression.penalty,
+                    l1_ratio=config.logistic_regression.l1_ratio,
+                    C=config.logistic_regression.C,
+                    multi_class=config.logistic_regression.multi_class,
+                    solver=config.logistic_regression.solver,
+                    max_iter=config.logistic_regression.max_iter,
+                    tol=config.logistic_regression.tol,
+                    verbose=config.logistic_regression.verbose,
                 ).fit(X_trn, y_trn)
 
-                y_trn_pred = model.predict(X_trn).astype('float32')
-                y_val_pred = model.predict(X_val).astype('float32')
+                y_trn_pred_prob = model.predict_proba(X_trn)
+                y_val_pred_prob = model.predict_proba(X_val)
+                y_trn_pred_raw = model.predict_proba(X_trn)
+                y_val_pred_raw = model.predict_proba(X_val)
+                y_trn_pred = model.predict(X_trn)
+                y_val_pred = model.predict(X_val)
                 if is_tst:
-                    y_tst_pred = model.predict(X_tst).astype('float32')
+                    y_tst_pred_prob = model.predict_proba(X_tst)
+                    y_tst_pred_raw = model.predict_proba(X_tst)
+                    y_tst_pred = model.predict(X_tst)
 
                 loss_info = {
                     'epoch': [0],
@@ -352,7 +384,41 @@ def process(config: DictConfig) -> Optional[float]:
                 }
 
                 feature_importances = pd.DataFrame.from_dict(
-                    {'feature': ['Intercept'] + feature_names['all'], 'importance': [model.intercept_] + list(model.coef_)})
+                    {
+                        'feature': ['Intercept'] + feature_names['all'],
+                        'importance': [model.intercept_] + list(model.coef_.ravel())
+                    }
+                )
+
+            elif config.model_type == "svm":
+                model = svm.SVC(
+                    C=config.svm.C,
+                    kernel=config.svm.kernel,
+                    decision_function_shape=config.svm.decision_function_shape,
+                    max_iter=config.svm.max_iter,
+                    tol=config.svm.tol,
+                    verbose=config.svm.verbose,
+                    probability=True
+                ).fit(X_trn, y_trn)
+
+                y_trn_pred_prob = model.predict_proba(X_trn)
+                y_val_pred_prob = model.predict_proba(X_val)
+                y_trn_pred_raw = model.predict_proba(X_trn)
+                y_val_pred_raw = model.predict_proba(X_val)
+                y_trn_pred = model.predict(X_trn)
+                y_val_pred = model.predict(X_val)
+                if is_tst:
+                    y_tst_pred_prob = model.predict_proba(X_tst)
+                    y_tst_pred_raw = model.predict_proba(X_tst)
+                    y_tst_pred = model.predict(X_tst)
+
+                loss_info = {
+                    'epoch': [0],
+                    'trn/loss': [0],
+                    'val/loss': [0]
+                }
+
+                feature_importances = None
 
             else:
                 raise ValueError(f"Model {config.model_type} is not supported")
@@ -360,14 +426,14 @@ def process(config: DictConfig) -> Optional[float]:
         else:
             raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
-        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'trn', is_log=True, is_save=False)
+        metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'trn', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
             cv_progress.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
-        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False)
+        metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=False)
         for m in metrics_val.index.values:
             cv_progress.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
         if is_tst:
-            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'tst', is_log=True, is_save=False)
+            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'tst', is_log=True, is_save=False)
             for m in metrics_tst.index.values:
                 cv_progress.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
 
@@ -455,6 +521,7 @@ def process(config: DictConfig) -> Optional[float]:
                 best["model"] = model
 
                 def predict_func(X):
+                    best["model"].produce_probabilities = True
                     batch = {
                         'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
                         'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
@@ -480,9 +547,13 @@ def process(config: DictConfig) -> Optional[float]:
                     def predict_func(X):
                         y = best["model"].predict(X, num_iteration=best["model"].best_iteration)
                         return y
-                elif config.model_type == "elastic_net":
+                elif config.model_type == "logistic_regression":
                     def predict_func(X):
-                        y = best["model"].predict(X)
+                        y = best["model"].predict_proba(X)
+                        return y
+                elif config.model_type == "svm":
+                    def predict_func(X):
+                        y = best["model"].predict_proba(X)
                         return y
                 else:
                     raise ValueError(f"Model {config.model_type} is not supported")
@@ -495,19 +566,32 @@ def process(config: DictConfig) -> Optional[float]:
             best['fold'] = fold_idx
             best['ids_trn'] = ids_trn
             best['ids_val'] = ids_val
-            df.loc[df.index[ids_trn], "Estimation"] = y_trn_pred
-            df.loc[df.index[ids_val], "Estimation"] = y_val_pred
+            df.loc[df.index[ids_trn], "pred"] = y_trn_pred
+            df.loc[df.index[ids_val], "pred"] = y_val_pred
+            for cl_id, cl in enumerate(class_names):
+                df.loc[df.index[ids_trn], f"pred_prob_{cl_id}"] = y_trn_pred_prob[:, cl_id]
+                df.loc[df.index[ids_val], f"pred_prob_{cl_id}"] = y_val_pred_prob[:, cl_id]
+                df.loc[df.index[ids_trn], f"pred_raw_{cl_id}"] = y_trn_pred_raw[:, cl_id]
+                df.loc[df.index[ids_val], f"pred_raw_{cl_id}"] = y_val_pred_raw[:, cl_id]
             if is_tst:
-                df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
+                df.loc[df.index[ids_tst], "pred"] = y_tst_pred
+                for cl_id, cl in enumerate(class_names):
+                    df.loc[df.index[ids_tst], f"pred_prob_{cl_id}"] = y_tst_pred_prob[:, cl_id]
+                    df.loc[df.index[ids_tst], f"pred_raw_{cl_id}"] = y_tst_pred_raw[:, cl_id]
 
         cv_progress.at[fold_idx, 'fold'] = fold_idx
         cv_progress.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
 
-    df = df.astype({"Estimation": 'float32'})
     cv_progress.to_excel(f"cv_progress.xlsx", index=False)
-    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:, 'fold'].values]]
+    cv_ids_cols = [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:,'fold'].values]
+    if datamodule.split_top_feat:
+        cv_ids_cols.append(datamodule.split_top_feat)
+    cv_ids = df.loc[:, cv_ids_cols]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
-    predictions = df.loc[:, [f"fold_{best['fold']:04d}", target_name, "Estimation"]]
+    predictions_cols = [f"fold_{best['fold']:04d}", target_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]
+    if datamodule.split_top_feat:
+        predictions_cols.append(datamodule.split_top_feat)
+    predictions = df.loc[:, predictions_cols]
     predictions.to_excel(f"predictions.xlsx", index=True)
 
     datamodule.ids_trn = best['ids_trn']
@@ -522,14 +606,17 @@ def process(config: DictConfig) -> Optional[float]:
             os.remove(fn)
 
     y_trn = df.loc[df.index[datamodule.ids_trn], target_name].values
-    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Estimation"].values
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values
+    y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     y_val = df.loc[df.index[datamodule.ids_val], target_name].values
-    y_val_pred = df.loc[df.index[datamodule.ids_val], "Estimation"].values
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
+    y_val_pred_prob = df.loc[df.index[datamodule.ids_val], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     if is_tst:
         y_tst = df.loc[df.index[datamodule.ids_tst], target_name].values
-        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
+        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
+        y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
     metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['trn'])
     for metric in metrics_names:
@@ -538,7 +625,7 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
     metrics_trn.to_excel(f"metrics_trn_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
-    metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
         metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
@@ -547,7 +634,7 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     if is_tst:
-        metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'tst', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'tst', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
         metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['tst'])
         for metric in metrics_names:
             metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = cv_progress[f"tst_{metric}"].mean()
@@ -572,8 +659,10 @@ def process(config: DictConfig) -> Optional[float]:
             best["model"].save_model(f"epoch_{best['model'].best_iteration_}_best_{best['fold']:04d}.model")
         elif config.model_type == "lightgbm":
             best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model", num_iteration=best['model'].best_iteration)
-        elif config.model_type == "elastic_net":
-            pickle.dump(best["model"], open(f"elastic_net_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+        elif config.model_type == "logistic_regression":
+            pickle.dump(best["model"], open(f"logistic_regression_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+        elif config.model_type == "svm":
+            pickle.dump(best["model"], open(f"svm_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
 
@@ -588,120 +677,12 @@ def process(config: DictConfig) -> Optional[float]:
 
     save_feature_importance(best['feature_importances'], config.num_top_features)
 
-    formula = f"Estimation ~ {target_name}"
-    model_linear = smf.ols(formula=formula, data=df.loc[df.index[datamodule.ids_trn], :]).fit()
-    df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_trn], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_trn], :])
-    df.loc[df.index[datamodule.ids_val], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_val], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_val], :])
-    if is_tst:
-        df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_tst], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_tst], :])
-    fig = go.Figure()
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, df.loc[df.index[datamodule.ids_trn], "Estimation"].values, f"Train")
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, model_linear.fittedvalues.values, "", "lines")
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_val], target_name].values, df.loc[df.index[datamodule.ids_val], "Estimation"].values, f"Val")
-    if is_tst:
-        add_scatter_trace(fig, df.loc[df.index[datamodule.ids_tst], target_name].values, df.loc[df.index[datamodule.ids_tst], "Estimation"].values, f"Test")
-    add_layout(fig, target_name, f"Estimation", f"")
-    fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
-    save_figure(fig, f"scatter")
-
-    dist_num_bins = 15
-    fig = go.Figure()
-    fig.add_trace(
-        go.Violin(
-            y=df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-            name=f"Train",
-            box_visible=True,
-            meanline_visible=True,
-            showlegend=True,
-            line_color='black',
-            fillcolor='blue',
-            marker=dict(color='blue', line=dict(color='black', width=0.3), opacity=0.8),
-            points='all',
-            bandwidth=np.ptp(df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values) / dist_num_bins,
-            opacity=0.8
-        )
-    )
-    fig.add_trace(
-        go.Violin(
-            y=df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-            name=f"Val",
-            box_visible=True,
-            meanline_visible=True,
-            showlegend=True,
-            line_color='black',
-            fillcolor='red',
-            marker=dict(color='red', line=dict(color='black', width=0.3), opacity=0.8),
-            points='all',
-            bandwidth=np.ptp(df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values) / dist_num_bins,
-            opacity=0.8
-        )
-    )
-    if is_tst:
-        fig.add_trace(
-            go.Violin(
-                y=df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
-                name=f"Test",
-                box_visible=True,
-                meanline_visible=True,
-                showlegend=True,
-                line_color='black',
-                fillcolor='green',
-                marker=dict(color='green', line=dict(color='black', width=0.3), opacity=0.8),
-                points='all',
-                bandwidth=np.ptp(df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values) / 50,
-                opacity=0.8
-            )
-        )
-    add_layout(fig, "", "Estimation acceleration", f"")
-    fig.update_layout({'colorway': ['red', 'blue', 'green']})
-    stat_01, pval_01 = mannwhitneyu(
-        df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-        df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-        alternative='two-sided'
-    )
-    if is_tst:
-        stat_02, pval_02 = mannwhitneyu(
-            df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-            df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
-            alternative='two-sided'
-        )
-        stat_12, pval_12 = mannwhitneyu(
-            df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-            df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
-            alternative='two-sided'
-        )
-        fig = add_p_value_annotation(fig, {(0, 1): pval_01, (1, 2): pval_12, (0, 2): pval_02})
-    else:
-        fig = add_p_value_annotation(fig, {(0, 1): pval_01})
-    fig.update_layout(title_xref='paper')
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=110,
-            r=20,
-            b=50,
-            t=90,
-            pad=0
-        )
-    )
-    fig.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.25,
-            xanchor="center",
-            x=0.5
-        )
-    )
-    save_figure(fig, f"violin")
-
     expl_data = {
         'model': best["model"],
         'predict_func': best['predict_func'],
         'df': df,
         'feature_names': feature_names['all'],
+        'class_names': class_names,
         'target_name': target_name,
         'ids_all': np.arange(df.shape[0]),
         'ids_trn': datamodule.ids_trn,

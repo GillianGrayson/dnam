@@ -205,7 +205,7 @@ def eval_loss(loss_info, loggers, is_log=True, is_save=True, file_suffix=''):
     for epoch_id, epoch in enumerate(loss_info['epoch']):
         log_dict = {
             'epoch': loss_info['epoch'][epoch_id],
-            'train/loss': loss_info['train/loss'][epoch_id],
+            'trn/loss': loss_info['trn/loss'][epoch_id],
             'val/loss': loss_info['val/loss'][epoch_id]
         }
         if loggers is not None:
@@ -222,7 +222,7 @@ def eval_loss(loss_info, loggers, is_log=True, is_save=True, file_suffix=''):
         fig.add_trace(
             go.Scatter(
                 x=loss_info['epoch'],
-                y=loss_info['train/loss'],
+                y=loss_info['trn/loss'],
                 showlegend=True,
                 name="Train",
                 mode="lines",
@@ -264,5 +264,5 @@ def eval_loss(loss_info, loggers, is_log=True, is_save=True, file_suffix=''):
             )
         )
         fig.update_yaxes(autorange=False)
-        fig.update_layout(yaxis_range=[0, max(loss_info['train/loss'] + loss_info['val/loss']) + 0.1])
+        fig.update_layout(yaxis_range=[0, max(loss_info['trn/loss'] + loss_info['val/loss']) + 0.1])
         save_figure(fig, f"loss{file_suffix}")

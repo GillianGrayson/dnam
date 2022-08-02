@@ -7,7 +7,7 @@ import pandas as pd
 from collections import Counter
 from src.utils import utils
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
+import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
 import impyute.imputation.cs as imp
@@ -125,6 +125,7 @@ class TabularDataModule(LightningDataModule):
             self.data_all = self.data_all.loc[self.data_all[self.target].isin(self.target_classes_dict), :]
             self.data_all[f'{self.target}_origin'] = self.data_all[self.target]
             self.data_all[self.target].replace(self.target_classes_dict, inplace=True)
+            self.data_all.reset_index(drop=True, inplace=True)
         elif self.task == 'regression':
             self.data_all = self.data_all.astype({self.target: 'float32'})
 
@@ -202,7 +203,10 @@ class TabularDataModule(LightningDataModule):
         log.info(f"tst_count: {len(self.dataset_tst)}")
 
     def perform_split(self):
-        if self.split_by == "trn_val":
+        if self.split_by == "explicit_feat":
+            self.ids_trn = self.data_all.loc[self.data_all[self.split_explicit_feat] == "trn", 'ids'].values
+            self.ids_val = self.data_all.loc[self.data_all[self.split_explicit_feat] == "val", 'ids'].values
+        else:
             assert abs(1.0 - sum(self.split_trn_val)) < 1.0e-8, "Sum of trn_val_split must be 1"
             target_trn_val = self.data_all.loc[self.data_all.index[self.ids_trn_val], self.target].values
             if self.task == 'classification':
@@ -230,9 +234,6 @@ class TabularDataModule(LightningDataModule):
                     stratify=binned,
                     random_state=self.seed
                 )
-        elif self.split_by == "explicit_feat":
-            self.ids_trn = self.data_all.loc[self.data_all[self.split_explicit_feat] == "trn", 'ids'].values
-            self.ids_val = self.data_all.loc[self.data_all[self.split_explicit_feat] == "val", 'ids'].values
 
         self.refresh_datasets()
 
@@ -246,13 +247,34 @@ class TabularDataModule(LightningDataModule):
             for name, ids in dict_to_plot.items():
                 if len(ids) > 0:
                     classes_counts = pd.DataFrame(Counter(self.data_all.loc[self.data_all.index[ids], f"{self.target}_origin"].values), index=[0])
-                    classes_counts = classes_counts.reindex(self.data_all.loc[:, self.target].values, axis=1)
+                    # classes_counts = classes_counts.reindex(self.data_all.loc[:, self.target].values, axis=1)
                     fig = go.Figure()
                     for st, st_id in self.target_classes_dict.items():
-                        add_bar_trace(fig, x=[st], y=[classes_counts.at[0, st]], text=[classes_counts.at[0, st]], name=st)
+                        fig.add_trace(
+                            go.Bar(
+                                name=st,
+                                x=[st],
+                                y=[classes_counts.at[0, st]],
+                                text=[classes_counts.at[0, st]],
+                                textposition='auto',
+                                orientation='v',
+                                textfont_size=30,
+                            )
+                        )
                     add_layout(fig, f"", f"Count", "")
-                    fig.update_layout({'colorway': ["blue", "red", "green"]})
+                    fig.update_layout({'colorway': px.colors.qualitative.Light24})
                     fig.update_xaxes(showticklabels=False)
+                    fig.update_layout(legend={'itemsizing': 'constant'})
+                    fig.update_layout(legend_font_size=30)
+                    fig.update_layout(
+                        margin=go.layout.Margin(
+                            l=100,
+                            r=20,
+                            b=30,
+                            t=80,
+                            pad=0
+                        )
+                    )
                     save_figure(fig, f"bar_{name}{suffix}")
         elif self.task == 'regression':
             ptp = np.ptp(self.data_all.loc[:, self.target].values)

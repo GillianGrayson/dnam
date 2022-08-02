@@ -132,7 +132,7 @@ def explain_shap(config, expl_data):
     df = expl_data['df']
     feature_names = expl_data['feature_names']
     class_names = expl_data['class_names']
-    outcome_name = expl_data['outcome_name']
+    target_name = expl_data['target_name']
 
     if config.shap_explainer == 'Tree' and config.shap_bkgrd == 'tree_path_dependent':
         explainer = shap.TreeExplainer(model)
@@ -351,7 +351,7 @@ def explain_shap(config, expl_data):
 
                 fig = go.Figure()
                 for cl_id, cl in enumerate(class_names):
-                    vals = df.loc[(df.index.isin(indexes)) & (df[outcome_name] == cl_id), feat].values
+                    vals = df.loc[(df.index.isin(indexes)) & (df[target_name] == cl_id), feat].values
                     fig.add_trace(
                         go.Violin(
                             y=vals,
@@ -394,7 +394,7 @@ def explain_shap(config, expl_data):
 
             explain_samples(
                 config,
-                df.loc[indexes, outcome_name].values,
+                df.loc[indexes, target_name].values,
                 df.loc[indexes, "pred"].values,
                 indexes,
                 shap_values,
