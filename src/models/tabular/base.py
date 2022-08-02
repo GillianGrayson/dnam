@@ -8,45 +8,27 @@ from src.tasks.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_re
 
 class BaseModel(pl.LightningModule):
 
-    def __init__(
-            self,
-            task,
-            loss_type,
-            input_dim,
-            output_dim,
-            optimizer_lr,
-            optimizer_weight_decay,
-            scheduler_step_size,
-            scheduler_gamma,
-    ):
+    def __init__(self,  **kwargs):
         super().__init__()
-
-        self.task = task
-        self.loss_type = loss_type
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.optimizer_lr = optimizer_lr
-        self.optimizer_weight_decay = optimizer_weight_decay
-        self.scheduler_step_size = scheduler_step_size
-        self.scheduler_gamma = scheduler_gamma
+        self.save_hyperparameters(logger=False)
 
         self.produce_probabilities = False
         self.produce_importance = False
 
-        if self.task == "classification":
-            self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
-            if self.output_dim < 2:
-                raise ValueError(f"Classification with {self.output_dim} classes")
-            self.metrics = get_cls_pred_metrics(self.output_dim)
+        if self.hparams.task == "classification":
+            self.hparams.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
+            if self.hparams.output_dim < 2:
+                raise ValueError(f"Classification with {self.hparams.output_dim} classes")
+            self.metrics = get_cls_pred_metrics(self.hparams.output_dim)
             self.metrics = {f'{k}_pl': v for k, v in self.metrics.items()}
             self.metrics_dict = {k:v[0] for k,v in self.metrics.items()}
-            self.metrics_prob = get_cls_prob_metrics(self.output_dim)
+            self.metrics_prob = get_cls_prob_metrics(self.hparams.output_dim)
             self.metrics_prob = {f'{k}_pl': v for k, v in self.metrics_prob.items()}
             self.metrics_prob_dict =  {k:v[0] for k,v in self.metrics_prob.items()}
-        elif self.task == "regression":
-            if self.loss_type == "MSE":
+        elif self.hparams.task == "regression":
+            if self.hparams.loss_type == "MSE":
                 self.loss_fn = torch.nn.MSELoss(reduction='mean')
-            elif self.loss_type == "L1Loss":
+            elif self.hparams.loss_type == "L1Loss":
                 self.loss_fn = torch.nn.L1Loss(reduction='mean')
             else:
                 raise ValueError("Unsupported loss_type")
@@ -73,7 +55,7 @@ class BaseModel(pl.LightningModule):
             for stage_type in ['trn', 'val', 'tst']:
                 for m in self.metrics:
                     wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics[m][1])
-                if self.task == "classification":
+                if self.hparams.task == "classification":
                     for m in self.metrics_prob:
                         wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
                 wandb.define_metric(f"{stage_type}/loss", summary='min')
@@ -82,13 +64,13 @@ class BaseModel(pl.LightningModule):
         y = batch["target"]
         out = self.forward(batch)
         batch_size = y.size(0)
-        if self.task == "regression":
+        if self.hparams.task == "regression":
             y = y.view(batch_size, -1)
         loss = self.loss_fn(out, y)
 
         logs = {"loss": loss}
         non_logs = {}
-        if self.task == "classification":
+        if self.hparams.task == "classification":
             probs = torch.softmax(out, dim=1)
             preds = torch.argmax(out, dim=1)
             non_logs["preds"] = preds
@@ -111,7 +93,7 @@ class BaseModel(pl.LightningModule):
                     logs.update(self.metrics_tst_prob(probs, y))
                 except ValueError:
                     pass
-        elif self.task == "regression":
+        elif self.hparams.task == "regression":
             if stage == "trn":
                 logs.update(self.metrics_trn(out, y))
             elif stage == "val":
@@ -174,13 +156,13 @@ class BaseModel(pl.LightningModule):
         """
         optimizer = torch.optim.Adam(
             params=self.parameters(),
-            lr=self.optimizer_lr,
-            weight_decay=self.optimizer_weight_decay
+            lr=self.hparams.optimizer_lr,
+            weight_decay=self.hparams.optimizer_weight_decay
         )
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer=optimizer,
-            step_size=self.scheduler_step_size,
-            gamma=self.scheduler_gamma
+            step_size=self.hparams.scheduler_step_size,
+            gamma=self.hparams.scheduler_gamma
         )
 
         return (
