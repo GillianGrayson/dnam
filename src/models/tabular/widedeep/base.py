@@ -12,8 +12,8 @@ class WDBaseModel(BaseModel):
         if self.hparams.cat_embed_input:
             for x in self.hparams.cat_embed_input:
                 self.feats_cat_ids.append(self.hparams.column_idx[x[0]])
+        self.feats_con_ids = []
         if self.hparams.continuous_cols:
-            self.feats_con_ids = []
             for x in self.hparams.continuous_cols:
                 self.feats_con_ids.append(self.hparams.column_idx[x])
 
