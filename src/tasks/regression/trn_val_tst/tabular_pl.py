@@ -45,6 +45,8 @@ from src.tasks.routines import eval_regression, eval_loss, save_feature_importan
 from datetime import datetime
 from pathlib import Path
 import wandb
+import glob
+import os
 
 
 log = utils.get_logger(__name__)
@@ -521,6 +523,12 @@ def process(config: DictConfig) -> Optional[float]:
     datamodule.ids_val = best['ids_val']
 
     datamodule.plot_split(f"_best_{best['fold']:04d}")
+
+    if config.model_framework == "pytorch":
+        fns = glob.glob(f"{ckpt_name}*.ckpt")
+        fns.remove(f"{ckpt_name}_fold_{best['fold']:04d}.ckpt")
+        for fn in fns:
+            os.remove(fn)
 
     y_trn = df.loc[df.index[datamodule.ids_trn], target_name].values
     y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Estimation"].values

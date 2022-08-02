@@ -25,7 +25,7 @@ model_framework: pytorch # stand_alone pytorch
 # pytorch_tabular_category_embedding (pytorch)
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
-model_type: pytorch_tabular_node
+model_type: widedeep_tab_net
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}

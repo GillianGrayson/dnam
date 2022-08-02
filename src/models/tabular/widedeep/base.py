@@ -26,6 +26,8 @@ class WDBaseModel(BaseModel):
         else:
             x = batch[:, self.feats_all_ids]
         x = self.model(x)
+        if isinstance(x, tuple):
+            x = x[0]
         if self.produce_probabilities:
             return torch.softmax(x, dim=1)
         else:
