@@ -247,7 +247,6 @@ class TabularDataModule(LightningDataModule):
             for name, ids in dict_to_plot.items():
                 if len(ids) > 0:
                     classes_counts = pd.DataFrame(Counter(self.data_all.loc[self.data_all.index[ids], f"{self.target}_origin"].values), index=[0])
-                    # classes_counts = classes_counts.reindex(self.data_all.loc[:, self.target].values, axis=1)
                     fig = go.Figure()
                     for st, st_id in self.target_classes_dict.items():
                         fig.add_trace(

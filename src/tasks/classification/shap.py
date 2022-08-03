@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.scatter import add_scatter_trace
-from scripts.python.routines.plot.violin import add_violin_trace
 import plotly.express as px
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
@@ -149,8 +148,8 @@ def explain_shap(config, expl_data):
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
-    for part in ['trn', 'val', 'tst', 'all']:
-        if expl_data[f"ids_{part}"] is not None:
+    for part in ['val', 'tst', 'trn', 'all']:
+        if expl_data[f"ids_{part}"] is not None and len(expl_data[f"ids_{part}"]) > 0:
             log.info(f"Calculating SHAP for {part}")
             Path(f"shap/{part}/global").mkdir(parents=True, exist_ok=True)
 

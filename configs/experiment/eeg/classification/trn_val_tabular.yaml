@@ -28,7 +28,7 @@ model_framework: stand_alone
 # pytorch_tabular_category_embedding (pytorch)
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
-model_type: lightgbm
+model_type: xgboost
 target: class_simp
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -44,7 +44,7 @@ cv_n_repeats: 1
 
 optimized_metric: f1_score_weighted
 optimized_mean: ""
-optimized_part: val # tst
+optimized_part: val # val tst
 direction: max
 
 embed_dim: 16
@@ -102,7 +102,7 @@ datamodule:
   data_fn: "${data_dir}/data.pkl"
   data_index: index
   data_imputation: fast_knn
-  split_by: top_feat
+  split_by: explicit_feat # top_feat explicit_feat
   split_trn_val: [0.80, 0.20]
   split_top_feat: subject
   split_explicit_feat: Split

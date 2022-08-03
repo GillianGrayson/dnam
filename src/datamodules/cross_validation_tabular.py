@@ -46,12 +46,15 @@ class RepeatedStratifiedKFoldCVSplitter(CVSplitter):
 
     def split(self):
 
+        if self.datamodule.split_by == "explicit_feat":
+            self.is_split = False
+
         if self.is_split:
             self.datamodule.setup()
             cross_validation_df = self.datamodule.get_cross_validation_df()
             ids = cross_validation_df.loc[:, 'ids'].values
             target = cross_validation_df.loc[:, self.datamodule.target].values
-            if self.datamodule.split_top_feat is None:
+            if self.datamodule.split_by != "top_feat":
                 if self.datamodule.task == 'classification':
                     splits = self.k_fold.split(X=ids, y=target, groups=target)
                 elif self.datamodule.task == "regression":

@@ -16,7 +16,7 @@ class BaseModel(pl.LightningModule):
         self.produce_importance = False
 
         if self.hparams.task == "classification":
-            self.hparams.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
+            self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
             if self.hparams.output_dim < 2:
                 raise ValueError(f"Classification with {self.hparams.output_dim} classes")
             self.metrics = get_cls_pred_metrics(self.hparams.output_dim)
