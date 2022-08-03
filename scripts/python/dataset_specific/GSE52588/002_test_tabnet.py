@@ -5,7 +5,7 @@ from tqdm import tqdm
 import pandas as pd
 from torch.utils.data import DataLoader, ConcatDataset
 import pathlib
-from src.datamodules.dnam import DNAmSingleDataModule
+from src.datamodules.to_delete.dnam import DNAmSingleDataModule
 
 
 dataset = "GSE52588"

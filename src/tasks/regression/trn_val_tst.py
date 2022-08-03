@@ -28,7 +28,7 @@ from src.models.tabular.pytorch_tabular.node import PTNODEModel
 from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
 from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModel
 from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
-from src.datamodules.cross_validation_tabular import RepeatedStratifiedKFoldCVSplitter
+from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
 from src.utils import utils
