@@ -27,6 +27,7 @@ from src.models.tabular.pytorch_tabular.node import PTNODEModel
 from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
 from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModel
 from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
+from src.models.tabular.tab_survey.args import TabSurveyArgs
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -111,7 +112,7 @@ def process(config: DictConfig) -> Optional[float]:
         if 'wandb' in config.logger:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
 
-        if config.model_framework == "pytorch":
+        if config.model_framework in ["pytorch", "tab_survey"]:
             # Init lightning model
             config.model = config[config.model_type]
             widedeep = datamodule.get_widedeep()
@@ -124,10 +125,19 @@ def process(config: DictConfig) -> Optional[float]:
                 config.model.continuous_cols = feature_names['con']
                 config.model.categorical_cols = feature_names['cat']
                 config.model.embedding_dims = embedding_dims
-            else:
-                raise ValueError(f"Unsupported model: {config.model_type}")
+
             log.info(f"Instantiating model <{config.model._target_}>")
             model = hydra.utils.instantiate(config.model)
+
+            if config.model_framework == "tab_survey":
+                config.tab_survey_agrs.num_features = num_features
+                config.tab_survey_agrs.cat_idx = list(feature_names['cat_ids'])
+                cat_dims = []
+                if widedeep['cat_embed_input'] is not None and len(widedeep['cat_embed_input']) > 0:
+                    cat_dims = [x[1] for x in widedeep['cat_embed_input']]
+                config.tab_survey_agrs.cat_dims = cat_dims
+                args: TabSurveyArgs = hydra.utils.instantiate(config.tab_survey_agrs)
+                model.build_model(args)
 
             # Init lightning callbacks
             config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
@@ -161,7 +171,7 @@ def process(config: DictConfig) -> Optional[float]:
                 callbacks=callbacks,
                 logger=loggers,
             )
-        elif config.model_framework == "stand_alone":
+        elif config.model_framework in ["stand_alone", "tab_survey"]:
             log.info("Logging hyperparameters!")
             utils.log_hyperparameters_stand_alone(
                 config=config,
@@ -212,6 +222,29 @@ def process(config: DictConfig) -> Optional[float]:
                 feature_importances = None
             else:
                 raise ValueError(f"Unsupported model: {config.model_type}")
+
+        elif config.model_framework == "tab_survey":
+            log.info("Starting training!")
+            loss_history, val_loss_history = model.fit(X_trn, y_trn, X_val, y_val)
+
+            y_trn_pred_prob = model.predict_proba(X_trn)
+            y_val_pred_prob = model.predict_proba(X_val)
+            y_trn_pred_raw = model.predict_helper(X_trn)
+            y_val_pred_raw = model.predict_helper(X_val)
+            y_trn_pred = np.argmax(y_trn_pred_prob, 1)
+            y_val_pred = np.argmax(y_val_pred_prob, 1)
+            if is_tst:
+                y_tst_pred_prob = model.predict_proba(X_tst)
+                y_tst_pred_raw = model.predict_helper(X_tst)
+                y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+
+            loss_info = {
+                'epoch': list(range(len(val_loss_history))),
+                'trn/loss': np.zeros(len(val_loss_history)),
+                'val/loss': val_loss_history
+            }
+
+            feature_importances = None
 
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
@@ -448,7 +481,7 @@ def process(config: DictConfig) -> Optional[float]:
                 callbacks=callbacks,
                 logger=loggers,
             )
-        elif config.model_framework == "stand_alone":
+        elif config.model_framework in ["stand_alone", "tab_survey"]:
             if 'wandb' in config.logger:
                 wandb.define_metric(f"epoch")
                 wandb.define_metric(f"trn/loss")
@@ -558,6 +591,14 @@ def process(config: DictConfig) -> Optional[float]:
                 else:
                     raise ValueError(f"Model {config.model_type} is not supported")
 
+            elif config.model_framework == "tab_survey":
+                best["model"] = model
+                best['loss_info'] = loss_info
+
+                def predict_func(X):
+                    y = best["model"].predict_proba(X)
+                    return y
+
             else:
                 raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
@@ -665,6 +706,9 @@ def process(config: DictConfig) -> Optional[float]:
             pickle.dump(best["model"], open(f"svm_best_{best['fold']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
         else:
             raise ValueError(f"Model {config.model_type} is not supported")
+
+    elif config.model_framework == "tab_survey":
+        best["model"].save_model(filename_extension=None, directory=None)
 
     if config.optimized_part == "trn":
         metrics_main = metrics_trn

@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 dotenv.load_dotenv(override=True)
 
 
-@hydra.main(config_path="configs/", config_name="main.yaml")
+@hydra.main(config_path="configs/", config_name="main.yaml", version_base="1.1")
 def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion

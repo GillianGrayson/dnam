@@ -425,8 +425,8 @@ widedeep_tab_fastformer:
   n_blocks: 4
   attn_dropout: 0.2
   ff_dropout: 0.1
-  share_qv_weights: False,
-  share_weights: False,
+  share_qv_weights: False
+  share_weights: False
   transformer_activation: "relu"
   mlp_hidden_dims:
     - 100
