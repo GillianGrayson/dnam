@@ -1,14 +1,12 @@
 # @package _global_
 
-
 task: classification
 data_type: 1st_day
 experiment_type: real
 # Available frameworks of models:
 # stand_alone
 # pytorch
-# tab_survey
-model_framework: tab_survey
+model_framework: pytorch
 # Available types of models (framework):
 # logistic_regression (stand_alone)
 # svm (stand_alone)
@@ -29,8 +27,7 @@ model_framework: tab_survey
 # pytorch_tabular_category_embedding (pytorch)
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
-# tab_survey_vime (tab_survey)
-model_type: tab_survey_vime
+model_type: widedeep_tab_net
 target: class_simp
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -58,10 +55,10 @@ print_config: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 2000
-patience: 200
+max_epochs: 1000
+patience: 100
 
-base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
+base_dir: "C:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -670,37 +667,6 @@ pytorch_tabular_tab_transformer:
   use_batch_norm: False
   batch_norm_continuous_input: False
   out_ff_initialization: "kaiming"
-
-tab_survey_agrs:
-  _target_: src.models.tabular.tab_survey.args.TabSurveyArgs
-  objective: ${task} # choices=["regression", "classification", "binary"]
-  # GPU parameters
-  use_gpu: True           # "Set to true if GPU is available"
-  gpu_ids: [0]            # "IDs of the GPUs used when data_parallel is true"
-  data_parallel: False     # "Distribute the training over multiple GPUs"
-  # Preprocessing parameters
-  scale: False                # "Normalize input data."
-  target_encode: False        # "Encode the targets that they start at 0. (0, 1, 2,...)"
-  one_hot_encode: False       # "OneHotEncode the categorical features"
-  # Training parameters
-  batch_size: 128                         # "Batch size used for training"
-  val_batch_size: 256                     # "Batch size used for validating and testing"
-  early_stopping_rounds: ${patience}      # "Number of rounds before early stopping applies"
-  epochs: ${max_epochs}                   # "Max number of epochs to train"
-  logging_period: 100                     # "Number of iteration after which validation is printed"
-  # About the data
-  num_features: ${in_dim}
-  num_classes: ${out_dim}
-  cat_idx: null
-  cat_dims: null
-
-tab_survey_vime:
-  _target_: src.models.tabular.tab_survey.models.vime.VIME
-  p_m: 0.3
-  K: 3
-  alpha: 2.0
-  beta: 1.0
-  lr: 0.0005
 
 callbacks:
   model_checkpoint:

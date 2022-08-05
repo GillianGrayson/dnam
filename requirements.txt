@@ -58,3 +58,4 @@ pytorch-widedeep
 
 # --------- utils --------- #
 tqdm>=4.63.1
+category_encoders           # necessary for pytorch_tabular
