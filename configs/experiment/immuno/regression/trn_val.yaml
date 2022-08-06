@@ -26,7 +26,8 @@ model_framework: pytorch
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
 # nbm_spam_spam (pytorch)
-model_type: nbm_spam_spam
+# nbm_spam_nam (pytorch)
+model_type: nbm_spam_nam
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -670,6 +671,27 @@ nbm_spam_spam:
   use_geometric_mean: True
   orthogonal: False
   proximal: False
+
+nbm_spam_nam:
+  _target_: src.models.tabular.nbm_spam.nam.NAMModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  nary: null
+  first_layer: "linear"
+  first_hidden_dim: 64
+  hidden_dims: [64, 32]
+  num_subnets: 1
+  dropout: 0.0
+  concept_dropout: 0.0
+  batchnorm: True
+  output_penalty: 0.0
+  polynomial: null
 
 callbacks:
   model_checkpoint:
