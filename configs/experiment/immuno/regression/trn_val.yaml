@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: stand_alone
+model_framework: pytorch
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -25,7 +25,8 @@ model_framework: stand_alone
 # pytorch_tabular_category_embedding (pytorch)
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
-model_type: lightgbm
+# nbm_spam_spam (pytorch)
+model_type: nbm_spam_spam
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -650,6 +651,25 @@ pytorch_tabular_tab_transformer:
   use_batch_norm: False
   batch_norm_continuous_input: False
   out_ff_initialization: "kaiming"
+
+nbm_spam_spam:
+  _target_: src.models.tabular.nbm_spam.spam.SPAMModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  ranks: []
+  dropout: 0.0
+  ignore_unary: False
+  reg_order: 2
+  lower_order_correction: False
+  use_geometric_mean: True
+  orthogonal: False
+  proximal: False
 
 callbacks:
   model_checkpoint:
