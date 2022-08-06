@@ -30,6 +30,7 @@ from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerMod
 from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
 from src.models.tabular.nbm_spam.spam import SPAMModel
 from src.models.tabular.nbm_spam.nam import NAMModel
+from src.models.tabular.nbm_spam.nbm import NBMModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -449,6 +450,8 @@ def process(config: DictConfig) -> Optional[float]:
                         model = SPAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     elif config.model_type == "nbm_spam_nam":
                         model = NAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "nbm_spam_nbm":
+                        model = NBMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     else:
                         raise ValueError(f"Unsupported model: {config.model_type}")
                     if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
