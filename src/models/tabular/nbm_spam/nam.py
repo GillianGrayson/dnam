@@ -1,7 +1,8 @@
 import torch
 from src.models.tabular.base import BaseModel
-from src.models.tabular.nbm_spam.archs.concept_nam import ConceptNAMNary
-
+from src.models.tabular.nbm_spam.repository.concept_nam import ConceptNAMNary
+from typing import Dict
+from torch import Tensor
 
 class NAMModel(BaseModel):
 
@@ -29,11 +30,28 @@ class NAMModel(BaseModel):
         if isinstance(batch, dict):
             x = batch["all"]
         else:
-            x = batch[:, self.feats_all_ids]
+            x = batch
         x = self.model(x)
         if isinstance(x, tuple):
-            x = x[0]
-        if self.produce_probabilities:
-            return torch.softmax(x, dim=1)
-        else:
             return x
+        else:
+            if self.produce_probabilities:
+                return torch.softmax(x, dim=1)
+            else:
+                return x
+
+    def calc_out_and_loss(self, out, y, stage):
+        if stage == "trn":
+            out_base, out_nn = out
+            loss = self.loss_fn(out_base, y)
+            loss_output_penalty = (torch.pow(out_nn, 2).mean(dim=-1)).mean() * self.hparams.output_penalty
+            loss += loss_output_penalty
+            return out_base, loss
+        elif stage == "val":
+            loss = self.loss_fn(out, y)
+            return out, loss
+        elif stage == "tst":
+            loss = self.loss_fn(out, y)
+            return out, loss
+        else:
+            raise ValueError(f"Unsupported stage: {stage}")

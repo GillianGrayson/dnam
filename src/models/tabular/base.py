@@ -60,13 +60,18 @@ class BaseModel(pl.LightningModule):
                         wandb.define_metric(f"{stage_type}/{m}", summary=self.metrics_prob[m][1])
                 wandb.define_metric(f"{stage_type}/loss", summary='min')
 
+    def calc_out_and_loss(self, out, y, stage):
+        loss = self.loss_fn(out, y)
+        return out, loss
+
     def step(self, batch: Dict, stage:str):
         y = batch["target"]
-        out = self.forward(batch)
         batch_size = y.size(0)
         if self.hparams.task == "regression":
             y = y.view(batch_size, -1)
-        loss = self.loss_fn(out, y)
+
+        out = self.forward(batch)
+        out, loss = self.calc_out_and_loss(out, y, stage)
 
         logs = {"loss": loss}
         non_logs = {}

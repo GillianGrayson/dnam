@@ -119,9 +119,12 @@ class ConceptSPAM(nn.Module):
         return loss
 
     def basis_l1_regularization(self):
-        return torch.stack(
-            [torch.abs(_poly.weight).sum() for _poly in self.poly_weights]
-        ).sum()
+        if len(self.poly_weights) > 0:
+            return torch.stack(
+                [torch.abs(_poly.weight).sum() for _poly in self.poly_weights]
+            ).sum()
+        else:
+            return torch.tensor(0.0)
 
     def _compute_correction(self, input: Tensor, weight: Tensor, degree: int) -> Tensor:
         """remove lower order interactions to prevent redundancy"""
