@@ -29,7 +29,7 @@ model_framework: pytorch
 # nbm_spam_nam (pytorch)
 # nbm_spam_nbm (pytorch)
 # arm_net_models (pytorch)
-model_type: arm_net_models
+model_type: danet
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -741,6 +741,22 @@ arm_net_models:
   dnn_nlayer: 2 # the number of mlp layers
   dnn_nhid: 100 # mlp hidden units
   alpha: 1.7 # entmax alpha to control sparsity
+
+danet:
+  _target_: src.models.tabular.danet.danet.DANetModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.75
+  layer_num: 20
+  base_outdim: 64
+  k: 5
+  virtual_batch_size: 256
+  drop_rate: 0.1
 
 callbacks:
   model_checkpoint:
