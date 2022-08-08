@@ -29,7 +29,7 @@ model_framework: pytorch
 # nbm_spam_nam (pytorch)
 # nbm_spam_nbm (pytorch)
 # arm_net_models (pytorch)
-model_type: nbm_spam_spam
+model_type: arm_net_models
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -60,7 +60,7 @@ test_after_training: True
 max_epochs: 1000
 patience: 100
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -729,17 +729,17 @@ arm_net_models:
   scheduler_gamma: 0.8
   model: armnet # model type: lr, fm, hofm, afm, dcn, cin, afn, armnet, armnet_1h, dnn, gcn, gat, wd, ipnn, kpnn, nfm, dfm, dcn+, xdfm, gc_arm, sa_glu
   nfeat: ${in_dim} # the number of features
-  nfield: 10 # the number of fields
-  nemb: 10 # nemb
+  nfield: ${in_dim} # the number of fields
+  nemb: 4 # nemb
   k: 3 # interaction order for hofm/dcn/cin/gcn/gat/xdfm
-  h: 600 # afm/cin/afn/armnet/gcn/gat hidden features/neurons
+  h: 50 # afm/cin/afn/armnet/gcn/gat hidden features/neurons
   mlp_nlayer: 2 # the number of mlp layers
-  mlp_nhid: 300 # mlp hidden units
+  mlp_nhid: 100 # mlp hidden units
   dropout: 0.0 # dropout rate
   nattn_head: 4 # the number of attention heads, gat/armnet
   ensemble: False # to ensemble with DNNs
   dnn_nlayer: 2 # the number of mlp layers
-  dnn_nhid: 300 # mlp hidden units
+  dnn_nhid: 100 # mlp hidden units
   alpha: 1.7 # entmax alpha to control sparsity
 
 callbacks:

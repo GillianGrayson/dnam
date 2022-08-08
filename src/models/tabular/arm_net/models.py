@@ -78,12 +78,23 @@ class ARMNetModels(BaseModel):
 
     def forward(self, batch):
         if isinstance(batch, dict):
-            x = batch["all"]
+            batch_size = batch["all"].shape[0]
+            feats_ids = torch.LongTensor(np.arange(self.hparams.nfeat)).to(batch['all'].device)
+            feats_ids = feats_ids.repeat(batch["all"].shape[0], 1)
+            x = {
+                'id': feats_ids,
+                'value': batch["all"],
+            }
         else:
-            x = batch[:, self.feats_all_ids]
+            batch_size = batch.shape[0]
+            feats_ids = torch.LongTensor(np.arange(self.hparams.nfeat)).to(batch.device)
+            feats_ids = feats_ids.repeat(batch.shape[0], 1)
+            x = {
+                'id': feats_ids,
+                'value': batch,
+            }
         x = self.model(x)
-        if isinstance(x, tuple):
-            x = x[0]
+        x = x.view(batch_size, -1)
         if self.produce_probabilities:
             return torch.softmax(x, dim=1)
         else:

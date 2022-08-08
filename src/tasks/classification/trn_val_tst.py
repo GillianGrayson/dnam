@@ -516,9 +516,8 @@ def process(config: DictConfig) -> Optional[float]:
                         model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     else:
                         raise ValueError(f"Unsupported model: {config.model_type}")
-                    if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
-                        model.eval()
-                        model.freeze()
+                    model.eval()
+                    model.freeze()
                 best["model"] = model
 
                 def predict_func(X):
