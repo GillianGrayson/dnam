@@ -29,7 +29,8 @@ model_framework: pytorch
 # nbm_spam_nam (pytorch)
 # nbm_spam_nbm (pytorch)
 # arm_net_models (pytorch)
-model_type: danet
+# nam (pytorch)
+model_type: nam
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -757,6 +758,28 @@ danet:
   k: 5
   virtual_batch_size: 256
   drop_rate: 0.1
+
+nam:
+  _target_: src.models.tabular.nam.nam.NeuralAdditiveModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.01
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.75
+  hidden_sizes: []  # [64, 32],
+  activation: 'exu'  ## Either `ExU` or `Relu`
+  dropout: 0.1
+  feature_dropout: 0.1  # 0.5,
+  decay_rate: 0.995
+  l2_regularization: 0.1
+  output_regularization: 0.1
+  num_basis_functions: 500
+  units_multiplier: 2
+  use_dnn: False
+  num_units: null
 
 callbacks:
   model_checkpoint:

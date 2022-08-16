@@ -33,6 +33,7 @@ from src.models.tabular.nbm_spam.nam import NAMModel
 from src.models.tabular.nbm_spam.nbm import NBMModel
 from src.models.tabular.arm_net.models import ARMNetModels
 from src.models.tabular.danet.danet import DANetModel
+from src.models.tabular.nam.nam import NeuralAdditiveModel
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -133,6 +134,10 @@ def process(config: DictConfig) -> Optional[float]:
                 config.model.continuous_cols = feature_names['con']
                 config.model.categorical_cols = feature_names['cat']
                 config.model.embedding_dims = embedding_dims
+            elif config.model_type == 'nam':
+                num_unique_vals = [len(np.unique(X_trn[:, i])) for i in range(X_trn.shape[1])]
+                num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
+                config.model.num_units = num_units
 
             log.info(f"Instantiating model <{config.model._target_}>")
             model = hydra.utils.instantiate(config.model)
@@ -458,6 +463,9 @@ def process(config: DictConfig) -> Optional[float]:
                         model = ARMNetModels.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     elif config.model_type == "danet":
                         model = DANetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "nam":
+                        model = NeuralAdditiveModel.load_from_checkpoint( checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+
                     else:
                         raise ValueError(f"Unsupported model: {config.model_type}")
                     model.eval()
