@@ -56,6 +56,9 @@ class NeuralAdditiveModel(BaseModel):
         else:
             return predictions, fnn_out
 
+    def forward_eval(self, batch):
+        return self.forward_train(batch)
+
     def calc_out_and_loss(self, out, y, stage):
         predictions, fnn_out = out
 
@@ -88,47 +91,3 @@ class NeuralAdditiveModel(BaseModel):
         else:
             raise ValueError(f"Unsupported stage: {stage}")
 
-    def step(self, batch: Dict, stage:str):
-        y = batch["target"]
-        batch_size = y.size(0)
-        if self.hparams.task == "regression":
-            y = y.view(batch_size, -1)
-
-        # Main change here: model always returns tuple
-        out = self.forward_train(batch)
-        out, loss = self.calc_out_and_loss(out, y, stage)
-
-        logs = {"loss": loss}
-        non_logs = {}
-        if self.hparams.task == "classification":
-            probs = torch.softmax(out, dim=1)
-            preds = torch.argmax(out, dim=1)
-            non_logs["preds"] = preds
-            non_logs["targets"] = y
-            if stage == "trn":
-                logs.update(self.metrics_trn(preds, y))
-                try:
-                    logs.update(self.metrics_trn_prob(probs, y))
-                except ValueError:
-                    pass
-            elif stage == "val":
-                logs.update(self.metrics_val(preds, y))
-                try:
-                    logs.update(self.metrics_val_prob(probs, y))
-                except ValueError:
-                    pass
-            elif stage == "tst":
-                logs.update(self.metrics_tst(preds, y))
-                try:
-                    logs.update(self.metrics_tst_prob(probs, y))
-                except ValueError:
-                    pass
-        elif self.hparams.task == "regression":
-            if stage == "trn":
-                logs.update(self.metrics_trn(out, y))
-            elif stage == "val":
-                logs.update(self.metrics_val(out, y))
-            elif stage == "tst":
-                logs.update(self.metrics_tst(out, y))
-
-        return loss, logs, non_logs

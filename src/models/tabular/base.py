@@ -64,13 +64,25 @@ class BaseModel(pl.LightningModule):
         loss = self.loss_fn(out, y)
         return out, loss
 
+    def forward(self, batch):
+        pass
+
+    def forward_train(self, batch):
+        return self.forward(batch)
+
+    def forward_eval(self, batch):
+        return self.forward(batch)
+
     def step(self, batch: Dict, stage:str):
         y = batch["target"]
         batch_size = y.size(0)
         if self.hparams.task == "regression":
             y = y.view(batch_size, -1)
 
-        out = self.forward(batch)
+        if stage == "trn":
+            out = self.forward_train(batch)
+        else:
+            out = self.forward_eval(batch)
         out, loss = self.calc_out_and_loss(out, y, stage)
 
         logs = {"loss": loss}
