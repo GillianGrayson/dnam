@@ -38,7 +38,6 @@ class NeuralAdditiveModel(BaseModel):
         else:
             x = batch
         predictions, fnn_out = self.model(x)
-        predictions = predictions.unsqueeze(1)
         if self.produce_probabilities:
             return torch.softmax(predictions, dim=1)
         else:
@@ -50,7 +49,6 @@ class NeuralAdditiveModel(BaseModel):
         else:
             x = batch
         predictions, fnn_out = self.model(x)
-        predictions = predictions.unsqueeze(1)
         if self.produce_probabilities:
             return torch.softmax(predictions, dim=1), fnn_out
         else:

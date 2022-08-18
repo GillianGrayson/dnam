@@ -45,7 +45,8 @@ class NAM(Model):
 
     def forward(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         individual_outputs = self.calc_outputs(inputs)
-        conc_out = torch.cat(individual_outputs, dim=-1)
+        # conc_out = torch.cat(individual_outputs, dim=-1)
+        conc_out = torch.stack(individual_outputs, dim=-1)
         dropout_out = self.dropout(conc_out)
 
         out = torch.sum(dropout_out, dim=-1)

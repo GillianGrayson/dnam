@@ -8,6 +8,7 @@ from pytorch_lightning import (
     seed_everything,
 )
 from pytorch_lightning.loggers import LightningLoggerBase
+
 import xgboost as xgb
 from catboost import CatBoost
 import lightgbm
@@ -27,6 +28,13 @@ from src.models.tabular.pytorch_tabular.node import PTNODEModel
 from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
 from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModel
 from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
+from src.models.tabular.nbm_spam.spam import SPAMModel
+from src.models.tabular.nbm_spam.nam import NAMModel
+from src.models.tabular.nbm_spam.nbm import NBMModel
+from src.models.tabular.arm_net.models import ARMNetModels
+from src.models.tabular.danet.danet import DANetModel
+from src.models.tabular.nam.nam import NeuralAdditiveModel
+
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -124,8 +132,10 @@ def process(config: DictConfig) -> Optional[float]:
                 config.model.continuous_cols = feature_names['con']
                 config.model.categorical_cols = feature_names['cat']
                 config.model.embedding_dims = embedding_dims
-            else:
-                raise ValueError(f"Unsupported model: {config.model_type}")
+            elif config.model_type == 'nam':
+                num_unique_vals = [len(np.unique(X_trn[:, i])) for i in range(X_trn.shape[1])]
+                num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
+                config.model.num_units = num_units
 
             log.info(f"Instantiating model <{config.model._target_}>")
             model = hydra.utils.instantiate(config.model)
@@ -209,10 +219,7 @@ def process(config: DictConfig) -> Optional[float]:
                 y_tst_pred = np.argmax(y_tst_pred_prob, 1)
             model.produce_probabilities = True
 
-            if config.model_type.startswith(('widedeep', 'pytorch_tabular')):
-                feature_importances = None
-            else:
-                raise ValueError(f"Unsupported model: {config.model_type}")
+            feature_importances = None
 
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
@@ -514,6 +521,18 @@ def process(config: DictConfig) -> Optional[float]:
                         model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     elif config.model_type == "pytorch_tabular_tab_transformer":
                         model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "nbm_spam_spam":
+                        model = SPAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "nbm_spam_nam":
+                        model = NAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "nbm_spam_nbm":
+                        model = NBMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "arm_net_models":
+                        model = ARMNetModels.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "danet":
+                        model = DANetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "nam":
+                        model = NeuralAdditiveModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     else:
                         raise ValueError(f"Unsupported model: {config.model_type}")
                     model.eval()

@@ -27,7 +27,12 @@ model_framework: pytorch
 # pytorch_tabular_category_embedding (pytorch)
 # pytorch_tabular_ft_transformer (pytorch)
 # pytorch_tabular_tab_transformer (pytorch)
-model_type: widedeep_tab_net
+# nbm_spam_spam (pytorch)
+# nbm_spam_nam (pytorch)
+# nbm_spam_nbm (pytorch)
+# arm_net_models (pytorch)
+# nam (pytorch)
+model_type: nam # widedeep_tab_net
 target: class_simp
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -58,7 +63,7 @@ test_after_training: True
 max_epochs: 1000
 patience: 100
 
-base_dir: "C:/YandexDisk/EEG/experiments/${data_type}"
+base_dir: "E:/YandexDisk/EEG/experiments/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -667,6 +672,131 @@ pytorch_tabular_tab_transformer:
   use_batch_norm: False
   batch_norm_continuous_input: False
   out_ff_initialization: "kaiming"
+
+nbm_spam_spam:
+  _target_: src.models.tabular.nbm_spam.spam.SPAMModel
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  ranks: []
+  dropout: 0.0
+  ignore_unary: False
+  reg_order: 2
+  lower_order_correction: False
+  use_geometric_mean: True
+  orthogonal: False
+  proximal: False
+  regularization_scale: 0.0
+  basis_l1_regularization: 0.0
+
+nbm_spam_nam:
+  _target_: src.models.tabular.nbm_spam.nam.NAMModel
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  nary: null
+  first_layer: "linear"
+  first_hidden_dim: 64
+  hidden_dims: [64, 32]
+  num_subnets: 1
+  dropout: 0.0
+  concept_dropout: 0.0
+  batchnorm: True
+  output_penalty: 0.0
+  polynomial: null
+
+nbm_spam_nbm:
+  _target_: src.models.tabular.nbm_spam.nbm.NBMModel
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  nary: null
+  num_bases: 100
+  hidden_dims: [256, 128, 128]
+  num_subnets: 1
+  dropout: 0.0
+  bases_dropout: 0.0
+  batchnorm: True
+  output_penalty: 0.0
+  polynomial: null
+
+arm_net_models:
+  _target_: src.models.tabular.arm_net.models.ARMNetModels
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  model: armnet # model type: lr, fm, hofm, afm, dcn, cin, afn, armnet, armnet_1h, dnn, gcn, gat, wd, ipnn, kpnn, nfm, dfm, dcn+, xdfm, gc_arm, sa_glu
+  nfeat: ${in_dim} # the number of features
+  nfield: ${in_dim} # the number of fields
+  nemb: 4 # nemb
+  k: 3 # interaction order for hofm/dcn/cin/gcn/gat/xdfm
+  h: 50 # afm/cin/afn/armnet/gcn/gat hidden features/neurons
+  mlp_nlayer: 2 # the number of mlp layers
+  mlp_nhid: 100 # mlp hidden units
+  dropout: 0.0 # dropout rate
+  nattn_head: 4 # the number of attention heads, gat/armnet
+  ensemble: False # to ensemble with DNNs
+  dnn_nlayer: 2 # the number of mlp layers
+  dnn_nhid: 100 # mlp hidden units
+  alpha: 1.7 # entmax alpha to control sparsity
+
+danet:
+  _target_: src.models.tabular.danet.danet.DANetModel
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.001
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.75
+  layer_num: 20
+  base_outdim: 64
+  k: 5
+  virtual_batch_size: 256
+  drop_rate: 0.1
+
+nam:
+  _target_: src.models.tabular.nam.nam.NeuralAdditiveModel
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.01
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 30
+  scheduler_gamma: 0.75
+  hidden_sizes: []  # [64, 32],
+  activation: 'exu'  # Either `ExU` or `Relu`
+  dropout: 0.1
+  feature_dropout: 0.1  # 0.5,
+  decay_rate: 0.95
+  l2_regularization: 0.0
+  output_regularization: 0.0
+  num_basis_functions: 20
+  units_multiplier: 2
+  use_dnn: False
+  num_units: null
 
 callbacks:
   model_checkpoint:
