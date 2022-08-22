@@ -30,7 +30,8 @@ model_framework: pytorch
 # nbm_spam_nbm (pytorch)
 # arm_net_models (pytorch)
 # nam (pytorch)
-model_type: nam
+# stg (pytorch)
+model_type: nbm_spam_spam
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -61,14 +62,14 @@ test_after_training: True
 max_epochs: 1000
 patience: 100
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: True # True False
+is_shap: False # True False
 is_shap_save: False
-shap_explainer: Kernel # Tree Kernel Deep
+shap_explainer: Deep # Tree Kernel Deep
 shap_bkgrd: trn # trn all tree_path_dependent
 
 # LIME weights
@@ -150,23 +151,23 @@ catboost:
   patience: ${patience}
 
 lightgbm:
-  objective: 'regression'
-  boosting: 'gbdt'
-  learning_rate: 0.05
-  num_leaves: 15
-  device: 'cpu'
+  objective: regression
+  boosting: gbdt
+  learning_rate: 0.26130800356847156
+  num_leaves: 31
+  device: cpu
   max_depth: -1
-  min_data_in_leaf: 7
-  feature_fraction: 0.9
-  bagging_fraction: 0.7
+  min_data_in_leaf: 20
+  feature_fraction: 0.7271721229029722
+  bagging_fraction: 0.7746507185212222
   bagging_freq: 5
   verbose: -1
-  metric: 'l1'
+  metric: l1
   max_epochs: ${max_epochs}
   patience: ${patience}
 
 elastic_net:
-  alpha: 1.122
+  alpha: 15.0
   l1_ratio: 0.5
   max_iter: 100000
   tol: 1e-2
@@ -780,6 +781,21 @@ nam:
   units_multiplier: 2
   use_dnn: False
   num_units: null
+
+stg:
+  _target_: src.models.tabular.stg.stg.StochasticGatesModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.02
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 100
+  scheduler_gamma: 0.85
+  hidden_dims: [60, 20]
+  activation: 'tanh'
+  sigma: 0.5
+  lam: 0.2
 
 callbacks:
   model_checkpoint:

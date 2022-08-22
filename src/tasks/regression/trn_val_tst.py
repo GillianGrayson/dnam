@@ -35,6 +35,7 @@ from src.models.tabular.nbm_spam.nbm import NBMModel
 from src.models.tabular.arm_net.models import ARMNetModels
 from src.models.tabular.danet.danet import DANetModel
 from src.models.tabular.nam.nam import NeuralAdditiveModel
+from src.models.tabular.stg.stg import StochasticGatesModel
 
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
@@ -467,6 +468,8 @@ def process(config: DictConfig) -> Optional[float]:
                         model = DANetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     elif config.model_type == "nam":
                         model = NeuralAdditiveModel.load_from_checkpoint( checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                    elif config.model_type == "stg":
+                        model = StochasticGatesModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     else:
                         raise ValueError(f"Unsupported model: {config.model_type}")
                     model.eval()
