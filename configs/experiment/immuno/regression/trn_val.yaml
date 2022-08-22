@@ -31,7 +31,7 @@ model_framework: pytorch
 # arm_net_models (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: nbm_spam_spam
+model_type: stg
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -62,7 +62,7 @@ test_after_training: True
 max_epochs: 1000
 patience: 100
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -788,14 +788,14 @@ stg:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.02
+  optimizer_lr: 0.002
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.85
-  hidden_dims: [60, 20]
-  activation: 'tanh'
-  sigma: 0.5
-  lam: 0.2
+  hidden_dims: [100, 50]
+  activation: 'relu'
+  sigma: 1.0
+  lam: 0.1
 
 callbacks:
   model_checkpoint:

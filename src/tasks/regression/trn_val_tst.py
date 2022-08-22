@@ -428,50 +428,7 @@ def process(config: DictConfig) -> Optional[float]:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             if config.model_framework == "pytorch":
                 if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
-                    if config.model_type == "widedeep_tab_mlp":
-                        model = WDTabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_resnet":
-                        model = WDTabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_net":
-                        model = WDTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_transformer":
-                        model = WDTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_ft_transformer":
-                        model = WDFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_saint":
-                        model = WDSAINTModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_fastformer":
-                        model = WDTabFastFormerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_perceiver":
-                        model = WDTabPerceiverModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_autoint":
-                        model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_tabnet":
-                        model = PTTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_node":
-                        model = PTNODEModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_category_embedding":
-                        model = PTCategoryEmbeddingModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_ft_transformer":
-                        model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_tab_transformer":
-                        model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nbm_spam_spam":
-                        model = SPAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nbm_spam_nam":
-                        model = NAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nbm_spam_nbm":
-                        model = NBMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "arm_net_models":
-                        model = ARMNetModels.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "danet":
-                        model = DANetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nam":
-                        model = NeuralAdditiveModel.load_from_checkpoint( checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "stg":
-                        model = StochasticGatesModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    else:
-                        raise ValueError(f"Unsupported model: {config.model_type}")
+                    model = type(model).load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 best["model"] = model
