@@ -216,8 +216,6 @@ def process(config: DictConfig) -> Optional[float]:
             if is_tst:
                 y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
 
-            feature_importances = None
-
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
                 model_params = {
@@ -432,6 +430,12 @@ def process(config: DictConfig) -> Optional[float]:
                     model.eval()
                     model.freeze()
                 best["model"] = model
+
+                feature_importances_vals = model.get_feature_importance(X_trn)
+                if feature_importances_vals is not None:
+                    feature_importances = pd.DataFrame.from_dict({'feature': feature_names['all'], 'importance': feature_importances_vals})
+                else:
+                    feature_importances = None
 
                 def predict_func(X):
                     batch = {

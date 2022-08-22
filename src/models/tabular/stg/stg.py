@@ -55,3 +55,7 @@ class StochasticGatesModel(BaseModel):
             return out, loss
         else:
             raise ValueError(f"Unsupported stage: {stage}")
+
+    def get_feature_importance(self, data):
+        importance = self.model.get_gates(mode="prob")
+        return importance

@@ -164,6 +164,9 @@ class BaseModel(pl.LightningModule):
             self.metrics_val_prob[m].reset()
             self.metrics_tst_prob[m].reset()
 
+    def get_feature_importance(self, data):
+        return None
+
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
