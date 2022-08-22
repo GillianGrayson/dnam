@@ -788,14 +788,14 @@ stg:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.002
+  optimizer_lr: 0.034113562219535036
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.85
   hidden_dims: [100, 50]
-  activation: 'relu'
-  sigma: 1.0
-  lam: 0.1
+  activation: 'selu'
+  sigma: 0.23518779410414542
+  lam: 0.029362490045525522
 
 callbacks:
   model_checkpoint:
