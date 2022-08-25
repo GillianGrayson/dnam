@@ -14,27 +14,6 @@ from catboost import CatBoost
 import lightgbm
 from sklearn.linear_model import LogisticRegression
 from sklearn import svm
-from src.models.tabular.widedeep.tab_mlp import WDTabMLPModel
-from src.models.tabular.widedeep.tab_resnet import WDTabResnetModel
-from src.models.tabular.widedeep.tab_net import WDTabNetModel
-from src.models.tabular.widedeep.tab_transformer import WDTabTransformerModel
-from src.models.tabular.widedeep.ft_transformer import WDFTTransformerModel
-from src.models.tabular.widedeep.saint import WDSAINTModel
-from src.models.tabular.widedeep.tab_fastformer import WDTabFastFormerModel
-from src.models.tabular.widedeep.tab_perceiver import WDTabPerceiverModel
-from src.models.tabular.pytorch_tabular.autoint import PTAutoIntModel
-from src.models.tabular.pytorch_tabular.tabnet import PTTabNetModel
-from src.models.tabular.pytorch_tabular.node import PTNODEModel
-from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
-from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModel
-from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
-from src.models.tabular.nbm_spam.spam import SPAMModel
-from src.models.tabular.nbm_spam.nam import NAMModel
-from src.models.tabular.nbm_spam.nbm import NBMModel
-from src.models.tabular.arm_net.models import ARMNetModels
-from src.models.tabular.danet.danet import DANetModel
-from src.models.tabular.nam.nam import NeuralAdditiveModel
-
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np
@@ -218,8 +197,6 @@ def process(config: DictConfig) -> Optional[float]:
                 y_tst_pred_raw = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
                 y_tst_pred = np.argmax(y_tst_pred_prob, 1)
             model.produce_probabilities = True
-
-            feature_importances = None
 
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
@@ -493,51 +470,16 @@ def process(config: DictConfig) -> Optional[float]:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
             if config.model_framework == "pytorch":
                 if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
-                    if config.model_type == "widedeep_tab_mlp":
-                        model = WDTabMLPModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_resnet":
-                        model = WDTabResnetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_net":
-                        model = WDTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_transformer":
-                        model = WDTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_ft_transformer":
-                        model = WDFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_saint":
-                        model = WDSAINTModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_fastformer":
-                        model = WDTabFastFormerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "widedeep_tab_perceiver":
-                        model = WDTabPerceiverModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_autoint":
-                        model = PTAutoIntModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_tabnet":
-                        model = PTTabNetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_node":
-                        model = PTNODEModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_category_embedding":
-                        model = PTCategoryEmbeddingModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_ft_transformer":
-                        model = PTFTTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "pytorch_tabular_tab_transformer":
-                        model = PTTabTransformerModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nbm_spam_spam":
-                        model = SPAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nbm_spam_nam":
-                        model = NAMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nbm_spam_nbm":
-                        model = NBMModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "arm_net_models":
-                        model = ARMNetModels.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "danet":
-                        model = DANetModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    elif config.model_type == "nam":
-                        model = NeuralAdditiveModel.load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
-                    else:
-                        raise ValueError(f"Unsupported model: {config.model_type}")
+                    model = type(model).load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
                     model.freeze()
                 best["model"] = model
+
+                feature_importances_vals = model.get_feature_importance(X_trn)
+                if feature_importances_vals is not None:
+                    feature_importances = pd.DataFrame.from_dict({'feature': feature_names['all'], 'importance': feature_importances_vals})
+                else:
+                    feature_importances = None
 
                 def predict_func(X):
                     best["model"].produce_probabilities = True

@@ -15,28 +15,6 @@ import xgboost as xgb
 from catboost import CatBoost
 import lightgbm
 from sklearn.linear_model import ElasticNet
-from src.models.tabular.widedeep.tab_mlp import WDTabMLPModel
-from src.models.tabular.widedeep.tab_resnet import WDTabResnetModel
-from src.models.tabular.widedeep.tab_net import WDTabNetModel
-from src.models.tabular.widedeep.tab_transformer import WDTabTransformerModel
-from src.models.tabular.widedeep.ft_transformer import WDFTTransformerModel
-from src.models.tabular.widedeep.saint import WDSAINTModel
-from src.models.tabular.widedeep.tab_fastformer import WDTabFastFormerModel
-from src.models.tabular.widedeep.tab_perceiver import WDTabPerceiverModel
-from src.models.tabular.pytorch_tabular.autoint import PTAutoIntModel
-from src.models.tabular.pytorch_tabular.tabnet import PTTabNetModel
-from src.models.tabular.pytorch_tabular.node import PTNODEModel
-from src.models.tabular.pytorch_tabular.category_embedding import PTCategoryEmbeddingModel
-from src.models.tabular.pytorch_tabular.ft_transformer import PTFTTransformerModel
-from src.models.tabular.pytorch_tabular.tab_transformer import PTTabTransformerModel
-from src.models.tabular.nbm_spam.spam import SPAMModel
-from src.models.tabular.nbm_spam.nam import NAMModel
-from src.models.tabular.nbm_spam.nbm import NBMModel
-from src.models.tabular.arm_net.models import ARMNetModels
-from src.models.tabular.danet.danet import DANetModel
-from src.models.tabular.nam.nam import NeuralAdditiveModel
-from src.models.tabular.stg.stg import StochasticGatesModel
-
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
 import numpy as np

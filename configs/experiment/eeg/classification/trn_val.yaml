@@ -32,7 +32,8 @@ model_framework: pytorch
 # nbm_spam_nbm (pytorch)
 # arm_net_models (pytorch)
 # nam (pytorch)
-model_type: nam # widedeep_tab_net
+# stg (pytorch)
+model_type: arm_net_models # widedeep_tab_net
 target: class_simp
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -748,13 +749,13 @@ arm_net_models:
   model: armnet # model type: lr, fm, hofm, afm, dcn, cin, afn, armnet, armnet_1h, dnn, gcn, gat, wd, ipnn, kpnn, nfm, dfm, dcn+, xdfm, gc_arm, sa_glu
   nfeat: ${in_dim} # the number of features
   nfield: ${in_dim} # the number of fields
-  nemb: 4 # nemb
-  k: 3 # interaction order for hofm/dcn/cin/gcn/gat/xdfm
-  h: 50 # afm/cin/afn/armnet/gcn/gat hidden features/neurons
-  mlp_nlayer: 2 # the number of mlp layers
-  mlp_nhid: 100 # mlp hidden units
+  nemb: 1 # nemb
+  k: 2 # interaction order for hofm/dcn/cin/gcn/gat/xdfm
+  h: 10 # afm/cin/afn/armnet/gcn/gat hidden features/neurons
+  mlp_nlayer: 1 # the number of mlp layers
+  mlp_nhid: 30 # mlp hidden units
   dropout: 0.0 # dropout rate
-  nattn_head: 4 # the number of attention heads, gat/armnet
+  nattn_head: 2 # the number of attention heads, gat/armnet
   ensemble: False # to ensemble with DNNs
   dnn_nlayer: 2 # the number of mlp layers
   dnn_nhid: 100 # mlp hidden units
@@ -797,6 +798,21 @@ nam:
   units_multiplier: 2
   use_dnn: False
   num_units: null
+
+stg:
+  _target_: src.models.tabular.stg.stg.StochasticGatesModel
+  task: ${task}
+  loss_type: "CrossEntropyLoss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.01
+  optimizer_weight_decay: 0.0
+  scheduler_step_size: 30
+  scheduler_gamma: 0.75
+  hidden_dims: [100, 50]
+  activation: 'selu'
+  sigma: 0.23518779410414542
+  lam: 0.029362490045525522
 
 callbacks:
   model_checkpoint:

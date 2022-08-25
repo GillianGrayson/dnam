@@ -31,7 +31,7 @@ model_framework: pytorch
 # arm_net_models (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: stg
+model_type: arm_net_models
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -725,7 +725,7 @@ arm_net_models:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.001
+  optimizer_lr: 0.01
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
