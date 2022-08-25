@@ -41,8 +41,6 @@ class ARMNetModels(BaseModel):
             self.model = AFMModel(self.hparams.nfeat, self.hparams.nemb, self.hparams.h, self.hparams.dropout)
         elif self.hparams.model == 'dcn':
             self.model = CrossNetModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k)
-        elif self.hparams.model == 'cin':
-            self.model = CINModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.h)
         elif self.hparams.model == 'afn':
             self.model = AFNModel(
                 nfield=self.hparams.nfield,
@@ -105,12 +103,35 @@ class ARMNetModels(BaseModel):
             self.model = DeepFMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'dcn+':
             self.model = DCNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
-        elif self.hparams.model == 'xdfm':
-            self.model = xDeepFMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.h, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'gc_arm':
-            self.model = GC_ARMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.nattn_head, self.hparams.alpha, self.hparams.h, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout, self.hparams.ensemble, self.hparams.dnn_nlayer, self.hparams.dnn_nhid)
+            self.model = GC_ARMModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                nhead=self.hparams.nattn_head,
+                alpha=self.hparams.alpha,
+                arm_hid=self.hparams.h,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                ensemble=self.hparams.ensemble,
+                deep_layers=self.hparams.dnn_nlayer,
+                deep_hid=self.hparams.dnn_nhid,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'sa_glu':
-            self.model = SA_GLUModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout, self.hparams.ensemble, self.hparams.dnn_nlayer, self.hparams.dnn_nhid)
+            self.model = SA_GLUModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                ensemble=self.hparams.ensemble,
+                deep_layers=self.hparams.dnn_nlayer,
+                deep_hid=self.hparams.dnn_nhid,
+                noutput=self.hparams.output_dim
+            )
         else:
             raise ValueError(f'Unsupported model: {self.hparams.model}')
 

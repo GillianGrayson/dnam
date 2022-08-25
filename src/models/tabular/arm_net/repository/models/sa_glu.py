@@ -8,7 +8,7 @@ class SA_GLUModel(nn.Module):
     Ref:    Y N. Dauphin, et al. Language Modeling with Gated Convolutional Networks, 2017
     """
     def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid,
-                 dropout, ensemble, deep_layers, deep_hid):
+                 dropout, ensemble, deep_layers, deep_hid, noutput):
         super().__init__()
         self.nfield, self.nfeat, self.nemb = nfield, nfeat, nemb
         self.ensemble = ensemble
@@ -25,12 +25,12 @@ class SA_GLUModel(nn.Module):
         self.v_b = nn.Parameter(torch.zeros(nemb,))
 
         # MLP
-        self.mlp = MLP(nfield*nemb, mlp_layers, mlp_hid, dropout)
+        self.mlp = MLP(nfield*nemb, mlp_layers, mlp_hid, dropout, noutput=noutput)
 
         if ensemble:
             self.deep_embedding = Embedding(nfeat, nemb)
-            self.deep_mlp = MLP(nfield*nemb, deep_layers, deep_hid, dropout)
-            self.ensemble_layer = nn.Linear(2, 1)
+            self.deep_mlp = MLP(nfield*nemb, deep_layers, deep_hid, dropout, noutput=noutput)
+            self.ensemble_layer = nn.Linear(2*noutput, noutput)
             nn.init.constant_(self.ensemble_layer.weight, 0.5)
             nn.init.constant_(self.ensemble_layer.bias, 0.)
 

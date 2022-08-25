@@ -53,7 +53,7 @@ class GC_ARMModel(nn.Module):
     Ref:    [Global Context] B Yang, et al. Context-Aware Self-Attention Networks, 2019
     """
     def __init__(self, nfield, nfeat, nemb, nhead, alpha, arm_hid, mlp_layers, mlp_hid,
-                 dropout, ensemble, deep_layers, deep_hid):
+                 dropout, ensemble, deep_layers, deep_hid, noutput):
         super().__init__()
         self.nfield, self.nfeat, self.nemb = nfield, nfeat, nemb
         self.nhead, self.arm_hid = nhead, arm_hid
@@ -69,12 +69,12 @@ class GC_ARMModel(nn.Module):
         self.arm_bn = nn.BatchNorm1d(nhead*arm_hid)
 
         # MLP
-        self.mlp = MLP(nhead*arm_hid*nemb, mlp_layers, mlp_hid, dropout)
+        self.mlp = MLP(nhead*arm_hid*nemb, mlp_layers, mlp_hid, dropout, noutput=noutput)
 
         if ensemble:
             self.deep_embedding = Embedding(nfeat, nemb)
-            self.deep_mlp = MLP(nfield*nemb, deep_layers, deep_hid, dropout)
-            self.ensemble_layer = nn.Linear(2, 1)
+            self.deep_mlp = MLP(nfield*nemb, deep_layers, deep_hid, dropout, noutput=noutput)
+            self.ensemble_layer = nn.Linear(2*noutput, noutput)
             nn.init.constant_(self.ensemble_layer.weight, 0.5)
             nn.init.constant_(self.ensemble_layer.bias, 0.)
 
