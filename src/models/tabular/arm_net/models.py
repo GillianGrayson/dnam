@@ -40,7 +40,13 @@ class ARMNetModels(BaseModel):
         elif self.hparams.model == 'afm':
             self.model = AFMModel(self.hparams.nfeat, self.hparams.nemb, self.hparams.h, self.hparams.dropout)
         elif self.hparams.model == 'dcn':
-            self.model = CrossNetModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k)
+            self.model = CrossNetModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                cn_layers=self.hparams.k,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'afn':
             self.model = AFNModel(
                 nfield=self.hparams.nfield,
@@ -99,10 +105,17 @@ class ARMNetModels(BaseModel):
             self.model = IPNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'kpnn':
             self.model = KPNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
-        elif self.hparams.model == 'dfm':
-            self.model = DeepFMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'dcn+':
-            self.model = DCNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
+            self.model = DCNModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                cn_layers=self.hparams.k,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'gc_arm':
             self.model = GC_ARMModel(
                 nfield=self.hparams.nfield,

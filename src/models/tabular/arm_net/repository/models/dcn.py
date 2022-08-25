@@ -29,12 +29,12 @@ class CrossNetModel(torch.nn.Module):
     Model:  Deep & Cross (w/o a neural network)
     Ref:    R Wang, et al. Deep & Cross Network for Ad Click Predictions, 2017.
     """
-    def __init__(self, nfield, nfeat, nemb, cn_layers):
+    def __init__(self, nfield, nfeat, nemb, cn_layers, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
         self.ninput = nfield * nemb
         self.cross_net = CrossNetwork(self.ninput, cn_layers)
-        self.w = torch.nn.Linear(self.ninput, 1, bias=False)
+        self.w = torch.nn.Linear(self.ninput, noutput, bias=False)
 
     def forward(self, x):
         """
@@ -51,13 +51,13 @@ class DCNModel(torch.nn.Module):
     Model:  Deep & Cross (w/ a neural network)
     Ref:    R Wang, et al. Deep & Cross Network for Ad Click Predictions, 2017.
     """
-    def __init__(self, nfield, nfeat, nemb, cn_layers, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfield, nfeat, nemb, cn_layers, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
         self.ninput = nfield * nemb
         self.cross_net = CrossNetwork(self.ninput, cn_layers)
         self.mlp = MLP(self.ninput, mlp_layers, mlp_hid, dropout, noutput=mlp_hid)
-        self.w = torch.nn.Linear(mlp_hid+self.ninput, 1, bias=False)
+        self.w = torch.nn.Linear(mlp_hid+self.ninput, noutput, bias=False)
 
     def forward(self, x):
         """
