@@ -51,7 +51,7 @@ class GATModel(nn.Module):
         Model:  Graph Attention Networks
         Ref:    P Veličković, et al. Graph Attention Networks, 2018.
         """
-    def __init__(self, nfield, nfeat, nemb, gat_layers, gat_hid, mlp_layers, mlp_hid, dropout, alpha=0.2, nhead=8):
+    def __init__(self, nfield, nfeat, nemb, gat_layers, gat_hid, mlp_layers, mlp_hid, dropout, alpha=0.2, nhead=8, noutput=1):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
 
@@ -63,7 +63,7 @@ class GATModel(nn.Module):
             ninfeat = nhead*gat_hid
 
         self.dropout = nn.Dropout(p=dropout)
-        self.affine = MLP(nfield*ninfeat, mlp_layers, mlp_hid, dropout)
+        self.affine = MLP(nfield*ninfeat, mlp_layers, mlp_hid, dropout, noutput)
 
     def forward(self, x, adj=None):
         """

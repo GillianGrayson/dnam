@@ -41,7 +41,7 @@ class GCNModel(nn.Module):
         Model:  Graph Convolutional Networks
         Ref:    T N. Kipf, et al. Semi-Supervised Classification with Graph Convolutional Networks, 2017.
         """
-    def __init__(self, nfield, nfeat, nemb, gcn_layers, gcn_hid, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfield, nfeat, nemb, gcn_layers, gcn_hid, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
 
@@ -54,7 +54,7 @@ class GCNModel(nn.Module):
             ninfeat = gcn_hid
 
         self.dropout = nn.Dropout(p=dropout)
-        self.affine = MLP(nfield*ninfeat, mlp_layers, mlp_hid, dropout)
+        self.affine = MLP(nfield*ninfeat, mlp_layers, mlp_hid, dropout, noutput)
 
     def forward(self, x, adj=None):
         """

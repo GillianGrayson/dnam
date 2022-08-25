@@ -4,7 +4,7 @@ from ..models.layers import Embedding, Linear, MLP
 
 class CompressedInteraction(torch.nn.Module):
 
-    def __init__(self, nfield, nlayers, nfilter):
+    def __init__(self, nfield, nlayers, nfilter, noutput):
         super().__init__()
         self.nlayers = nlayers
         self.filters = torch.nn.ModuleList()
@@ -15,7 +15,7 @@ class CompressedInteraction(torch.nn.Module):
             n_prev = nfilter
             n_fc += n_prev
 
-        self.affine = torch.nn.Linear(n_fc, 1, bias=False)
+        self.affine = torch.nn.Linear(n_fc, noutput, bias=False)
 
     def forward(self, x):
         """
@@ -40,11 +40,11 @@ class CINModel(torch.nn.Module):
     Ref:    J Lian, et al. xDeepFM: Combining Explicit and
                 Implicit Feature Interactions for Recommender Systems, 2018.
     """
-    def __init__(self, nfield, nfeat, nemb, cin_layers, nfilter):
+    def __init__(self, nfield, nfeat, nemb, cin_layers, nfilter, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
         self.linear = Linear(nfeat)
-        self.cin = CompressedInteraction(nfield, cin_layers, nfilter)
+        self.cin = CompressedInteraction(nfield, cin_layers, nfilter, noutput)
 
     def forward(self, x):
         """
@@ -61,13 +61,13 @@ class xDeepFMModel(torch.nn.Module):
     Ref:    J Lian, et al. xDeepFM: Combining Explicit and
                 Implicit Feature Interactions for Recommender Systems, 2018.
     """
-    def __init__(self, nfield, nfeat, nemb, cin_layers, nfilter, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfield, nfeat, nemb, cin_layers, nfilter, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
-        self.linear = Linear(nfeat)
-        self.cin = CompressedInteraction(nfield, cin_layers, nfilter)
+        self.linear = Linear(nfeat, noutput)
+        self.cin = CompressedInteraction(nfield, cin_layers, nfilter, noutput)
         self.ninput = nfield*nemb
-        self.mlp = MLP(self.ninput, mlp_layers, mlp_hid, dropout)
+        self.mlp = MLP(self.ninput, mlp_layers, mlp_hid, dropout, noutput)
 
     def forward(self, x):
         """

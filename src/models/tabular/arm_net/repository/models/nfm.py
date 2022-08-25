@@ -7,16 +7,16 @@ class NFMModel(torch.nn.Module):
     Ref:    X He and TS Chua, Neural Factorization Machines for Sparse Predictive Analytics, 2017.
     """
 
-    def __init__(self, nfeat, nemb, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfeat, nemb, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
-        self.linear = Linear(nfeat)
+        self.linear = Linear(nfeat, noutput)
         self.fm = torch.nn.Sequential(
             FactorizationMachine(reduce_dim=False),
             torch.nn.BatchNorm1d(nemb),
             torch.nn.Dropout(dropout)
         )
-        self.mlp = MLP(nemb, mlp_layers, mlp_hid, dropout, noutput=1)
+        self.mlp = MLP(nemb, mlp_layers, mlp_hid, dropout, noutput=noutput)
 
     def forward(self, x):
         """

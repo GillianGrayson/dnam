@@ -6,12 +6,12 @@ class WDModel(torch.nn.Module):
     Model:  Wide and Deep
     Ref:    HT Cheng, et al. Wide & Deep Learning for Recommender Systems, 2016.
     """
-    def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
-        self.linear = Linear(nfeat)
+        self.linear = Linear(nfeat, noutput)
         self.mlp_ninput = nfield*nemb
-        self.mlp = MLP(self.mlp_ninput, mlp_layers, mlp_hid, dropout)
+        self.mlp = MLP(self.mlp_ninput, mlp_layers, mlp_hid, dropout, noutput)
 
     def forward(self, x):
         """

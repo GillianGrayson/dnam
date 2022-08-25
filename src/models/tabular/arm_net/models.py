@@ -47,6 +47,15 @@ class ARMNetModels(BaseModel):
                 cn_layers=self.hparams.k,
                 noutput=self.hparams.output_dim
             )
+        elif self.hparams.model == 'cin':
+            self.model = CINModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                cin_layers=self.hparams.k,
+                nfilter=self.hparams.h,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'afn':
             self.model = AFNModel(
                 nfield=self.hparams.nfield,
@@ -96,21 +105,90 @@ class ARMNetModels(BaseModel):
         elif self.hparams.model == 'dnn':
             self.model = DNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'gcn':
-            self.model = GCNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.h, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
+            self.model = GCNModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                gcn_layers=self.hparams.k,
+                gcn_hid=self.hparams.h,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'gat':
-            self.model = GATModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.h, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout, 0.2, self.hparams.nattn_head)
+            self.model = GATModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                gat_layers=self.hparams.k,
+                gat_hid=self.hparams.h,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                alpha=0.2,
+                nhead=self.hparams.nattn_head,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'wd':
-            self.model = WDModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
+            self.model = WDModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'ipnn':
-            self.model = IPNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
+            self.model = IPNNModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'kpnn':
-            self.model = KPNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
+            self.model = KPNNModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
+        elif self.hparams.model == 'nfm':
+            self.model = NFMModel(
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
+        elif self.hparams.model == 'dfm':
+            self.model = DeepFMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'dcn+':
             self.model = DCNModel(
                 nfield=self.hparams.nfield,
                 nfeat=self.hparams.nfeat,
                 nemb=self.hparams.nemb,
                 cn_layers=self.hparams.k,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                noutput=self.hparams.output_dim
+            )
+        elif self.hparams.model == 'xdfm':
+            self.model = xDeepFMModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                cin_layers=self.hparams.k,
+                nfilter=self.hparams.h,
                 mlp_layers=self.hparams.mlp_nlayer,
                 mlp_hid=self.hparams.mlp_nhid,
                 dropout=self.hparams.dropout,

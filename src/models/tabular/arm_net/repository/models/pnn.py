@@ -20,13 +20,13 @@ class IPNNModel(torch.nn.Module):
     Ref:    Y Qu, et al. Product-based Neural Networks for User Response Prediction
                 over Multi-field Categorical Data, 2016.
     """
-    def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
         self.ninput = nfield * nemb
         self.pnn = InnnerProduct()
         self.mlp = MLP(self.ninput + nfield*(nfield-1)//2,
-                       mlp_layers, mlp_hid, dropout)
+                       mlp_layers, mlp_hid, dropout, noutput)
 
     def forward(self, x):
         """
@@ -63,13 +63,13 @@ class KPNNModel(torch.nn.Module):
     Ref:    Y Qu, et al. Product-based Neural Networks for User Response Prediction
                 over Multi-field Categorical Data, 2016.
     """
-    def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid, dropout):
+    def __init__(self, nfield, nfeat, nemb, mlp_layers, mlp_hid, dropout, noutput):
         super().__init__()
         self.embedding = Embedding(nfeat, nemb)
         self.ninput = nfield * nemb
         self.pnn = KernelProduct(nfield, nemb)
         self.mlp = MLP(self.ninput + nfield*(nfield-1)//2,
-                       mlp_layers, mlp_hid, dropout)
+                       mlp_layers, mlp_hid, dropout, noutput)
 
     def forward(self, x):
         """

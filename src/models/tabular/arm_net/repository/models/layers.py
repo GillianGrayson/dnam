@@ -23,9 +23,10 @@ class Embedding(nn.Module):
 
 class Linear(nn.Module):
 
-    def __init__(self, nfeat):
+    def __init__(self, nfeat, noutput=1):
         super().__init__()
-        self.weight = nn.Embedding(nfeat, 1)
+        self.noutput = noutput
+        self.weight = nn.Embedding(nfeat, noutput)
         self.bias = nn.Parameter(torch.zeros((1,)))
 
     def forward(self, x):
@@ -33,8 +34,20 @@ class Linear(nn.Module):
         :param x:   {'id': LongTensor B*F, 'value': FloatTensor B*F}
         :return:    linear transform of x
         """
-        linear = self.weight(x['id']).squeeze(2) * x['value']   # B*F
-        return torch.sum(linear, dim=1) + self.bias             # B
+        #linear = self.weight(x['id']).squeeze(2) * x['value']   # B*F
+        #return torch.sum(linear, dim=1) + self.bias             # B
+
+        wights = self.weight(x['id'])
+        linear = []
+        for i in range(self.noutput):
+            a_i = wights[:, :, i]
+            a_i_mul_b_i = torch.mul(a_i, x['value'])
+            linear.append(a_i_mul_b_i)
+        linear = torch.stack(linear, dim=2)
+
+        val = torch.sum(linear, dim=1) + self.bias
+
+        return val
 
 
 class FactorizationMachine(nn.Module):
