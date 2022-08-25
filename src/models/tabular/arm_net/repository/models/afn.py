@@ -9,7 +9,7 @@ class AFNModel(nn.Module):
                 Learning Adaptive-Order Feature Interactions, 2020.
     """
     def __init__(self, nfield, nfeat, nemb, afn_hid, mlp_layers, mlp_hid, dropout,
-                 ensemble, deep_layers, deep_hid):
+                 ensemble, deep_layers, deep_hid, noutput):
         super().__init__()
         self.nfield, self.nfeat = nfield, nfeat
         self.nemb, self.afn_hid = nemb, afn_hid
@@ -28,7 +28,7 @@ class AFNModel(nn.Module):
 
         # MLP
         ninput = afn_hid * nemb
-        self.mlp = MLP(ninput, mlp_layers, mlp_hid, dropout)
+        self.mlp = MLP(ninput, mlp_layers, mlp_hid, dropout, noutput=noutput)
         # TODO: original AFN adopt order:   Linear->ReLU->BN->Dropout
         #  recent reserach recommend:       Linear->BN->ReLU->Dropout
 
@@ -36,8 +36,8 @@ class AFNModel(nn.Module):
         if ensemble:
             self.deep_embedding = Embedding(nfeat, nemb)
             # TODO: original AFN adopt nn.init.normal_(feat_emb_mlp.weight, std=0.1)
-            self.deep_mlp = MLP(nfield*nemb, deep_layers, deep_hid, dropout)
-            self.ensemble_layer = nn.Linear(2, 1)
+            self.deep_mlp = MLP(nfield*nemb, deep_layers, deep_hid, dropout, noutput=noutput)
+            self.ensemble_layer = nn.Linear(2 * noutput, noutput)
             nn.init.constant_(self.ensemble_layer.weight, 0.5)
             nn.init.constant_(self.ensemble_layer.bias, 0.)
 

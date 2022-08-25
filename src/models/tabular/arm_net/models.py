@@ -44,7 +44,19 @@ class ARMNetModels(BaseModel):
         elif self.hparams.model == 'cin':
             self.model = CINModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.k, self.hparams.h)
         elif self.hparams.model == 'afn':
-            self.model = AFNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.h, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout, self.hparams.ensemble, self.hparams.dnn_nlayer, self.hparams.dnn_nhid)
+            self.model = AFNModel(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                afn_hid=self.hparams.h,
+                mlp_layers=self.hparams.mlp_nlayer,
+                mlp_hid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                ensemble=self.hparams.ensemble,
+                deep_layers=self.hparams.dnn_nlayer,
+                deep_hid=self.hparams.dnn_nhid,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'armnet':
             self.model = ARMNetModel(
                 nfield=self.hparams.nfield,
@@ -62,7 +74,21 @@ class ARMNetModels(BaseModel):
                 noutput=self.hparams.output_dim
             )
         elif self.hparams.model == 'armnet_1h':
-            self.model = ARMNet1H(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.alpha, self.hparams.h, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout, self.hparams.ensemble, self.hparams.dnn_nlayer, self.hparams.dnn_nhid)
+            self.model = ARMNet1H(
+                nfield=self.hparams.nfield,
+                nfeat=self.hparams.nfeat,
+                nemb=self.hparams.nemb,
+                alpha=self.hparams.alpha,
+                nhid=self.hparams.h,
+                d_k=self.hparams.nemb,
+                mlp_nlayer=self.hparams.mlp_nlayer,
+                mlp_nhid=self.hparams.mlp_nhid,
+                dropout=self.hparams.dropout,
+                ensemble=self.hparams.ensemble,
+                deep_nlayer=self.hparams.dnn_nlayer,
+                deep_nhid=self.hparams.dnn_nhid,
+                noutput=self.hparams.output_dim
+            )
         elif self.hparams.model == 'dnn':
             self.model = DNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'gcn':
@@ -75,8 +101,6 @@ class ARMNetModels(BaseModel):
             self.model = IPNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'kpnn':
             self.model = KPNNModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
-        elif self.hparams.model == 'nfm':
-            self.model = NFMModel(self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'dfm':
             self.model = DeepFMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
         elif self.hparams.model == 'dcn+':

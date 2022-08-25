@@ -746,7 +746,7 @@ arm_net_models:
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
-  model: armnet # model type: lr, fm, hofm, afm, dcn, cin, afn, armnet, armnet_1h, dnn, gcn, gat, wd, ipnn, kpnn, nfm, dfm, dcn+, xdfm, gc_arm, sa_glu
+  model: afn # model type: lr, fm, hofm, afm, dcn, cin, afn, armnet, armnet_1h, dnn, gcn, gat, wd, ipnn, kpnn, nfm, dfm, dcn+, xdfm, gc_arm, sa_glu
   nfeat: ${in_dim} # the number of features
   nfield: ${in_dim} # the number of fields
   nemb: 1 # nemb
@@ -756,7 +756,7 @@ arm_net_models:
   mlp_nhid: 30 # mlp hidden units
   dropout: 0.0 # dropout rate
   nattn_head: 2 # the number of attention heads, gat/armnet
-  ensemble: False # to ensemble with DNNs
+  ensemble: True # to ensemble with DNNs
   dnn_nlayer: 2 # the number of mlp layers
   dnn_nhid: 100 # mlp hidden units
   alpha: 1.7 # entmax alpha to control sparsity
