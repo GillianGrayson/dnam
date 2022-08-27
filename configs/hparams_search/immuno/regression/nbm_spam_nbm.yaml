@@ -50,8 +50,9 @@ hydra:
 
     # define range of hyperparameters
     params:
-      lightgbm.learning_rate: tag(log, interval(0.0005, 1))
-      lightgbm.num_leaves: choice(31)
-      lightgbm.min_data_in_leaf: int(range(1, 50, step=1))
-      lightgbm.feature_fraction: interval(0.6, 1.0)
-      lightgbm.bagging_fraction: interval(0.6, 1.0)
+      nbm_spam_nbm.optimizer_lr: tag(log, interval(0.00001, 100))
+      nbm_spam_nbm.num_bases: choice(50, 100, 200, 300)
+      nbm_spam_nbm.dropout: choice(0.0, 0.01, 0.1, 0.2)
+      nbm_spam_nbm.bases_dropout: choice(0.0, 0.01, 0.1, 0.2)
+      nbm_spam_nbm.hidden_dims: choice([256, 128, 128], [256, 128], [64, 32], [128, 64])
+      nbm_spam_nbm.output_penalty: tag(log, interval(0.00001, 100))

@@ -50,7 +50,7 @@ hydra:
 
     # define range of hyperparameters
     params:
-      stg.optimizer_lr: tag(log, interval(0.00001, 0.1))
+      stg.optimizer_lr: tag(log, interval(0.00001, 1))
       stg.hidden_dims: choice([200, 100], [100, 50], [50, 25])
       stg.activation: choice('relu','selu', 'tanh')
       stg.sigma: interval(0.1, 1.0)

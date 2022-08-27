@@ -50,7 +50,7 @@ hydra:
 
     # define range of hyperparameters
     params:
-      widedeep_tab_net.optimizer_lr: tag(log, interval(0.00001, 0.1))
+      widedeep_tab_net.optimizer_lr: tag(log, interval(0.00001, 1))
       widedeep_tab_net.n_steps: choice(3, 4, 5)
       widedeep_tab_net.attn_dim: choice(8, 16)
       widedeep_tab_net.dropout: choice(0.0, 0.1)

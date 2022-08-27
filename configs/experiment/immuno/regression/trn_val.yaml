@@ -31,7 +31,7 @@ model_framework: pytorch
 # arm_net_models (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: arm_net_models
+model_type: pytorch_tabular_ft_transformer
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -369,7 +369,7 @@ widedeep_saint:
   optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
-  scheduler_gamma: 0.75
+  scheduler_gamma: 0.8
   column_idx: null
   cat_embed_input: null
   cat_embed_dropout: 0.1
@@ -753,7 +753,7 @@ danet:
   optimizer_lr: 0.001
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
-  scheduler_gamma: 0.75
+  scheduler_gamma: 0.8
   layer_num: 20
   base_outdim: 64
   k: 5
@@ -769,7 +769,7 @@ nam:
   optimizer_lr: 0.01
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
-  scheduler_gamma: 0.75
+  scheduler_gamma: 0.8
   hidden_sizes: []  # [64, 32],
   activation: 'exu'  ## Either `ExU` or `Relu`
   dropout: 0.1
@@ -791,7 +791,7 @@ stg:
   optimizer_lr: 0.034113562219535036
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
-  scheduler_gamma: 0.85
+  scheduler_gamma: 0.8
   hidden_dims: [100, 50]
   activation: 'selu'
   sigma: 0.23518779410414542

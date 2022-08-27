@@ -50,8 +50,11 @@ hydra:
 
     # define range of hyperparameters
     params:
-      lightgbm.learning_rate: tag(log, interval(0.0005, 1))
-      lightgbm.num_leaves: choice(31)
-      lightgbm.min_data_in_leaf: int(range(1, 50, step=1))
-      lightgbm.feature_fraction: interval(0.6, 1.0)
-      lightgbm.bagging_fraction: interval(0.6, 1.0)
+      pytorch_tabular_tabnet.optimizer_lr: tag(log, interval(0.00001, 1))
+      pytorch_tabular_tabnet.n_d: choice(8, 16)
+      pytorch_tabular_tabnet.n_a: choice(8, 16)
+      pytorch_tabular_tabnet.n_steps: choice(3, 4, 5)
+      pytorch_tabular_tabnet.gamma: interval(1.1, 1.5)
+      pytorch_tabular_tabnet.n_independent: choice(1, 2, 3)
+      pytorch_tabular_tabnet.n_shared: choice(1, 2, 3)
+      pytorch_tabular_tabnet.mask_type: choice(sparsemax, entmax)

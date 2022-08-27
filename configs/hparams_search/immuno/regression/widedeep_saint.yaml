@@ -50,7 +50,7 @@ hydra:
 
     # define range of hyperparameters
     params:
-      widedeep_saint.optimizer_lr: tag(log, interval(0.00001, 0.1))
+      widedeep_saint.optimizer_lr: tag(log, interval(0.00001, 1))
       widedeep_saint.embed_dim: choice(2, 4, 8)
       widedeep_saint.n_heads: choice(2, 4, 8)
       widedeep_saint.n_blocks: choice(1, 2, 3)
