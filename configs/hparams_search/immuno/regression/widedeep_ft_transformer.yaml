@@ -9,7 +9,7 @@ defaults:
 # choose metric which will be optimized by Optuna
 # make sure this is the correct name of some metric logged in lightning module!
 optimized_metric: "mean_absolute_error"
-optimized_mean: "cv_mean"
+optimized_mean: "cv_mean" # "cv_mean_val_test"
 
 # here we define Optuna hyperparameter search
 # it optimizes for value returned from function with @hydra.main decorator
@@ -50,4 +50,12 @@ hydra:
 
     # define range of hyperparameters
     params:
-      elastic_net.alpha: tag(log, interval(0.001, 100))
+      widedeep_ft_transformer.optimizer_lr: tag(log, interval(0.00001, 0.1))
+      widedeep_ft_transformer.embed_dim: choice(16, 32, 64)
+      widedeep_ft_transformer.n_heads: choice(2, 4, 8, 16)
+      widedeep_ft_transformer.n_blocks: choice(2, 4, 6)
+      widedeep_ft_transformer.attn_dropout: choice(0.05, 0.1, 0.2)
+      widedeep_ft_transformer.ff_dropout: choice(0.05, 0.1, 0.2)
+      widedeep_ft_transformer.mlp_hidden_dims: choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1])
+      widedeep_ft_transformer.mlp_dropout: choice(0.05, 0.1, 0.15)
+

@@ -190,7 +190,7 @@ widedeep_tab_mlp:
   continuous_cols: null
   cont_norm_layer: "batchnorm"
   embed_continuous: False
-  cont_embed_dim: 32
+  cont_embed_dim: 16
   cont_embed_dropout: 0.1
   use_cont_bias: True
   cont_embed_activation: null
@@ -222,7 +222,7 @@ widedeep_tab_resnet:
   continuous_cols: null
   cont_norm_layer: "batchnorm"
   embed_continuous: False
-  cont_embed_dim: 32
+  cont_embed_dim: 16
   cont_embed_dropout: 0.1
   use_cont_bias: True
   cont_embed_activation: null
@@ -258,7 +258,7 @@ widedeep_tab_net:
   continuous_cols: null
   cont_norm_layer: "batchnorm"
   embed_continuous: False
-  cont_embed_dim: 32
+  cont_embed_dim: 16
   cont_embed_dropout: 0.1
   use_cont_bias: True
   cont_embed_activation: null
