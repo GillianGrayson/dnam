@@ -20,5 +20,5 @@ class WDModel(torch.nn.Module):
         """
         x_emb = self.embedding(x)                                       # B*F*E
         y = self.linear(x)+\
-            self.mlp(x_emb.view(-1, self.mlp_ninput)).squeeze(1)        # B
+            self.mlp(x_emb.view(-1, self.mlp_ninput))        # B
         return y

@@ -72,4 +72,4 @@ class GCNModel(nn.Module):
             h = F.relu(self.dropout(h))                         # B*F*gcn_hid
 
         y = self.affine(h.reshape(h.size(0), -1))               # B*1
-        return y.squeeze(1)                                     # B
+        return y                                                # B

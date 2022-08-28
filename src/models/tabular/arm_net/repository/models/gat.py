@@ -79,4 +79,4 @@ class GATModel(nn.Module):
             h = F.elu(self.dropout(h))
 
         y = self.affine(h.view(h.size(0), -1))                                  # B*1
-        return y.squeeze(1)                                                     # B
+        return y                                                                # B

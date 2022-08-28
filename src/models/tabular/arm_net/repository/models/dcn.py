@@ -44,7 +44,7 @@ class CrossNetModel(torch.nn.Module):
         x_emb = self.embedding(x).view(-1, self.ninput)     # B*(FxE)
         xl1 = self.cross_net(x_emb)                         # B*(FxE)
         y = self.w(xl1)                                     # B*1
-        return y.squeeze(1)
+        return y
 
 class DCNModel(torch.nn.Module):
     """
@@ -68,4 +68,4 @@ class DCNModel(torch.nn.Module):
         xl1 = self.cross_net(x_emb)                             # B*(FxE)
         hl2 = self.mlp(x_emb)                                   # B*mlp_hid
         y = self.w(torch.cat([xl1, hl2], dim=1))                # B*1
-        return y.squeeze(1)
+        return y

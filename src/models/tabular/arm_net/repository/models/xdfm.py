@@ -31,7 +31,7 @@ class CompressedInteraction(torch.nn.Module):
             xlist.append(torch.sum(xk, dim=-1))                 # B*nfilter
 
         y = self.affine(torch.cat(xlist, dim=1))                # B*1
-        return y.squeeze(1)                                     # B
+        return y                                    # B
 
 
 class CINModel(torch.nn.Module):
@@ -52,7 +52,7 @@ class CINModel(torch.nn.Module):
         :return:    y of size B, Regression and Classification (+sigmoid)
         """
         x_emb = self.embedding(x)                       # B*F*E
-        y = self.linear(x)+self.cin(x_emb)              # B
+        y = self.linear(x) + self.cin(x_emb)            # B
         return y
 
 class xDeepFMModel(torch.nn.Module):
@@ -75,6 +75,5 @@ class xDeepFMModel(torch.nn.Module):
         :return:    y of size B, Regression and Classification (+sigmoid)
         """
         x_emb = self.embedding(x)                                                   # B*F*E
-        y = self.linear(x)+self.cin(x_emb)+\
-            self.mlp(x_emb.view(-1, self.ninput)).squeeze(1)                        # B
+        y = self.linear(x) + self.cin(x_emb) + self.mlp(x_emb.view(-1, self.ninput))                        # B
         return y

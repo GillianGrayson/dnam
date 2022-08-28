@@ -36,7 +36,7 @@ class IPNNModel(torch.nn.Module):
         x_emb = self.embedding(x)                                               # B*F*E
         x_prod = self.pnn(x_emb)
         y = self.mlp(torch.cat([x_emb.view(-1, self.ninput), x_prod], dim=1))   # B*1
-        return y.squeeze(1)
+        return y
 
 class KernelProduct(torch.nn.Module):
 
@@ -79,4 +79,4 @@ class KPNNModel(torch.nn.Module):
         x_emb = self.embedding(x)                                               # B*(FxE)
         x_prod = self.pnn(x_emb)                                                # B*(Fx(F-1)/2)
         y = self.mlp(torch.cat([x_emb.view(-1, self.ninput), x_prod], dim=1))   # B*1
-        return y.squeeze(1)
+        return y

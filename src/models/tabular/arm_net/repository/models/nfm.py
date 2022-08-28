@@ -24,5 +24,5 @@ class NFMModel(torch.nn.Module):
         :return:    y of size B, Regression and Classification (+sigmoid)
         """
         bi_interaction = self.fm(self.embedding(x))                 # B*E
-        y = self.linear(x) + self.mlp(bi_interaction).squeeze(1)    # B
+        y = self.linear(x) + self.mlp(bi_interaction)    # B
         return y

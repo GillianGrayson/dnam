@@ -171,7 +171,7 @@ class ARMNetModels(BaseModel):
             )
         elif self.hparams.model == 'dfm':
             self.model = DeepFMModel(self.hparams.nfield, self.hparams.nfeat, self.hparams.nemb, self.hparams.mlp_nlayer, self.hparams.mlp_nhid, self.hparams.dropout)
-        elif self.hparams.model == 'dcn+':
+        elif self.hparams.model == 'dcn_plus':
             self.model = DCNModel(
                 nfield=self.hparams.nfield,
                 nfeat=self.hparams.nfeat,

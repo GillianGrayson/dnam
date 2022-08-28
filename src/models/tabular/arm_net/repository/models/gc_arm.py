@@ -103,4 +103,4 @@ class GC_ARMModel(nn.Module):
             y = torch.cat([y, y_deep], dim=1)                           # B*2
             y = self.ensemble_layer(y)                                  # B*1
 
-        return y.squeeze(1)                                             # B
+        return y                                                        # B

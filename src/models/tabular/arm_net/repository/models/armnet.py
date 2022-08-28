@@ -98,4 +98,4 @@ class ARMNetModel(nn.Module):
             y = torch.cat([y, y_deep], dim=1)                           # bsz*(2*noutput)
             y = self.ensemble_layer(y)                                  # bsz*noutput
 
-        return y.squeeze()                                              # bsz*noutput
+        return y                                                        # bsz*noutput
