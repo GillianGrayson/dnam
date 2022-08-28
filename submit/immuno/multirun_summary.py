@@ -23,4 +23,11 @@ for file in files:
     for metric in df_trn.index.values:
         df_res.at[file, metric + "_trn"] = df_trn.at[metric, "trn"]
 
+first_columns = [
+    'mean_absolute_error_trn',
+    'mean_absolute_error_cv_mean_trn',
+    'mean_absolute_error_val',
+    'mean_absolute_error_cv_mean_val',
+]
+df_res = df_res[first_columns + [col for col in df_res.columns if col not in first_columns]]
 df_res.to_excel(f"{path_load}/summary.xlsx", index=True, index_label="file")
