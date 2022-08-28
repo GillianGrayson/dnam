@@ -53,6 +53,7 @@ for model_name, (model_type, model_framework) in model_dict.items():
            f"trainer.progress_bar_refresh_rate={progress_bar_refresh_rate} " \
            f"max_epochs={max_epochs} " \
            f"patience={patience} " \
+           f"print_config=False " \
            f"base_dir={base_dir} "
 
     os.system(f"sbatch run_{segment}.sh \"{args}\"")
