@@ -118,6 +118,8 @@ def process(config: DictConfig) -> Optional[float]:
 
             log.info(f"Instantiating model <{config.model._target_}>")
             model = hydra.utils.instantiate(config.model)
+            if config.print_model:
+                print(model)
 
             # Init lightning callbacks
             config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"

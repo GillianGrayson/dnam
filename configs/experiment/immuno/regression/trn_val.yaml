@@ -31,7 +31,7 @@ model_framework: pytorch
 # arm_net_models (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: widedeep_saint
+model_type: danet
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -56,6 +56,7 @@ is_shuffle: False
 
 debug: False
 print_config: True
+print_model: True
 ignore_warnings: True
 test_after_training: True
 
