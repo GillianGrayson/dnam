@@ -31,7 +31,7 @@ model_framework: pytorch
 # arm_net_models (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: danet
+model_type: pytorch_tabular_autoint
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -63,7 +63,7 @@ test_after_training: True
 max_epochs: 1000
 patience: 100
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
