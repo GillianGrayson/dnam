@@ -4,6 +4,9 @@ import wandb
 import pytorch_lightning as pl
 import torch
 from src.tasks.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
+import numpy as np
+import shap
+import pandas as pd
 
 
 class BaseModel(pl.LightningModule):
@@ -164,8 +167,78 @@ class BaseModel(pl.LightningModule):
             self.metrics_val_prob[m].reset()
             self.metrics_tst_prob[m].reset()
 
-    def get_feature_importance(self, data):
-        return None
+    def get_feature_importance(self, data, feature_names, method="shap_kernel"):
+
+
+
+        if method.startswith("shap"):
+
+            if self.hparams.task == "regression":
+
+                def predict_func(X):
+                    batch = {
+                        'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
+                        'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
+                        'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                    }
+                    tmp = self.forward(batch)
+                    return tmp.cpu().detach().numpy()
+
+                if method == "shap_kernel":
+                    explainer = shap.KernelExplainer(predict_func, data)
+                    shap_values = explainer.shap_values(data)
+                    if isinstance(shap_values, list):
+                        shap_values = shap_values[0]
+                elif method == "shap_deep":
+                    explainer = shap.DeepExplainer(self, torch.from_numpy(data))
+                    shap_values = explainer.shap_values(torch.from_numpy(data))
+                else:
+                    raise ValueError(f"Unsupported feature importance method: {method}")
+
+                importance_values = np.mean(np.abs(shap_values), axis=0)
+
+
+            elif self.hparams.task == "classification":
+
+                def predict_func(X):
+                    self.produce_probabilities = True
+                    batch = {
+                        'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
+                        'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
+                        'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                    }
+                    tmp = self.forward(batch)
+                    return tmp.cpu().detach().numpy()
+
+                if method == "shap_kernel":
+                    explainer = shap.KernelExplainer(predict_func, data)
+                    shap_values = explainer.shap_values(data)
+                elif method == "shap_deep":
+                    explainer = shap.DeepExplainer(self, torch.from_numpy(data))
+                    shap_values = explainer.shap_values(torch.from_numpy(data))
+                else:
+                    raise ValueError(f"Unsupported feature importance method: {method}")
+
+                importance_values = np.zeros(len(feature_names['all']))
+                for cl_id in range(len(shap_values)):
+                    importance_values += np.mean(np.abs(shap_values[cl_id]), axis=0)
+
+            else:
+                raise ValueError("Unsupported task")
+
+        elif method == "none":
+            importance_values = np.zeros(len(feature_names['all']))
+        else:
+            raise ValueError(f"Unsupported feature importance method: {method}")
+
+        feature_importances = pd.DataFrame.from_dict(
+            {
+                'feature': feature_names['all'],
+                'importance': importance_values
+            }
+        )
+
+        return feature_importances
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.

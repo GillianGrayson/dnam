@@ -18,6 +18,86 @@ pio.kaleido.scope.mathjax = None
 log = utils.get_logger(__name__)
 
 
+def get_feature_importance(fi_data):
+    feature_importance = fi_data['feature_importance']
+    model = fi_data['model']
+    X = fi_data['X']
+    y_pred_prob = fi_data['y_pred_prob']
+    y_pred_raw = fi_data['y_pred_raw']
+    predict_func = fi_data['predict_func']
+    feature_names = fi_data['feature_names']
+
+    if feature_importance == 'shap_tree':
+        explainer = shap.TreeExplainer(model, data=X, feature_perturbation='interventional')
+        shap_values = explainer.shap_values(X)
+
+        base_prob = list(np.mean(y_pred_prob, axis=0))
+
+        base_prob_expl = []
+        base_prob_num = []
+        base_prob_den = 0
+        for class_id in range(0, len(explainer.expected_value)):
+            base_prob_num.append(np.exp(explainer.expected_value[class_id]))
+            base_prob_den += np.exp(explainer.expected_value[class_id])
+        for class_id in range(0, len(explainer.expected_value)):
+            base_prob_expl.append(base_prob_num[class_id] / base_prob_den)
+        log.info(f"Base probability check: {np.linalg.norm(np.array(base_prob) - np.array(base_prob_expl))}")
+
+        # Сonvert raw SHAP values to probability SHAP values
+        shap_values_prob = copy.deepcopy(shap_values)
+        for class_id in range(0, len(shap_values)):
+            for subject_id in range(0, y_pred_prob.shape[0]):
+
+                # Сhecking raw SHAP values
+                real_raw = y_pred_raw[subject_id, class_id]
+                expl_raw = explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id])
+                diff_raw = real_raw - expl_raw
+                if abs(diff_raw) > 1e-5:
+                    log.warning(f"Difference between raw for subject {subject_id} in class {class_id}: {abs(diff_raw)}")
+
+                # Checking conversion to probability space
+                real_prob = y_pred_prob[subject_id, class_id]
+                expl_prob_num = np.exp(explainer.expected_value[class_id] + sum(shap_values[class_id][subject_id]))
+                expl_prob_den = 0
+                for c_id in range(0, len(explainer.expected_value)):
+                    expl_prob_den += np.exp(explainer.expected_value[c_id] + sum(shap_values[c_id][subject_id]))
+                expl_prob = expl_prob_num / expl_prob_den
+                delta_prob = expl_prob - base_prob[class_id]
+                diff_prob = real_prob - expl_prob
+                if abs(diff_prob) > 1e-5:
+                    log.warning(f"Difference between prediction for subject {subject_id} in class {class_id}: {abs(diff_prob)}")
+
+                # Сonvert raw SHAP values to probability SHAP values
+                shap_contrib_logodd = np.sum(shap_values[class_id][subject_id])
+                shap_contrib_prob = delta_prob
+                coeff = shap_contrib_prob / shap_contrib_logodd
+                for feature_id in range(0, X.shape[1]):
+                    shap_values_prob[class_id][subject_id, feature_id] = shap_values[class_id][subject_id, feature_id] * coeff
+                diff_check = shap_contrib_prob - sum(shap_values_prob[class_id][subject_id])
+                if abs(diff_check) > 1e-5:
+                    log.warning(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
+
+        shap_values = shap_values_prob
+    elif feature_importance == "shap_kernel":
+        explainer = shap.KernelExplainer(predict_func, X)
+        shap_values = explainer.shap_values(X)
+    else:
+        raise ValueError(f"Unsupported feature importance type: {feature_importance}")
+
+    importance_values = np.zeros(len(feature_names['all']))
+    for cl_id in range(len(shap_values)):
+        importance_values += np.mean(np.abs(shap_values[cl_id]), axis=0)
+
+    feature_importances = pd.DataFrame.from_dict(
+        {
+            'feature': feature_names['all'],
+            'importance': importance_values
+        }
+    )
+
+    return feature_importances
+
+
 def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, features, feature_names, class_names, path):
     Path(f"{path}").mkdir(parents=True, exist_ok=True)
     is_correct_pred = (np.array(y_real) == np.array(y_pred))

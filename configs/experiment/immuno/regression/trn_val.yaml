@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: pytorch
+model_framework: stand_alone
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -31,7 +31,7 @@ model_framework: pytorch
 # arm_net_models (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: pytorch_tabular_autoint
+model_type: lightgbm
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -43,7 +43,7 @@ out_dim: 1
 
 cv_is_split: True
 cv_n_splits: 5
-cv_n_repeats: 1
+cv_n_repeats: 5
 
 optimized_metric: mean_absolute_error
 optimized_mean: cv_mean
@@ -55,7 +55,7 @@ embed_dim: 16
 is_shuffle: False
 
 debug: False
-print_config: True
+print_config: False
 print_model: True
 ignore_warnings: True
 test_after_training: True
@@ -63,9 +63,12 @@ test_after_training: True
 max_epochs: 1000
 patience: 100
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
+
+# Feature importance
+feature_importance: none # none shap_deep shap_kernel shap_tree native
 
 # SHAP values
 is_shap: False # True False
@@ -121,7 +124,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 10 #10
+  progress_bar_refresh_rate: 0 #10
   resume_from_checkpoint: null
 
 model:
@@ -154,13 +157,13 @@ catboost:
 lightgbm:
   objective: regression
   boosting: gbdt
-  learning_rate: 0.26130800356847156
+  learning_rate: 0.10020980304900481
   num_leaves: 31
   device: cpu
   max_depth: -1
-  min_data_in_leaf: 20
-  feature_fraction: 0.7271721229029722
-  bagging_fraction: 0.7746507185212222
+  min_data_in_leaf: 18
+  feature_fraction: 0.7083699026647442
+  bagging_fraction: 0.8045059035772489
   bagging_freq: 5
   verbose: -1
   metric: l1

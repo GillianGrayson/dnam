@@ -20,7 +20,7 @@ import numpy as np
 from src.utils import utils
 import pandas as pd
 from tqdm import tqdm
-from src.tasks.classification.shap import explain_shap
+from src.tasks.classification.shap import explain_shap, get_feature_importance
 from src.tasks.classification.lime import explain_lime
 from src.tasks.routines import eval_classification, eval_loss, save_feature_importance
 from datetime import datetime
@@ -73,7 +73,8 @@ def process(config: DictConfig) -> Optional[float]:
     elif config.direction == "max":
         best["optimized_metric"] = 0.0
 
-    cv_progress = pd.DataFrame(columns=['fold', 'optimized_metric'])
+    metrics_cv = pd.DataFrame(columns=['fold', 'optimized_metric'])
+    feature_importances_cv = pd.DataFrame(columns=['fold'] + feature_names['all'])
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     ckpt_name = config.callbacks.model_checkpoint.filename
@@ -200,6 +201,14 @@ def process(config: DictConfig) -> Optional[float]:
                 y_tst_pred = np.argmax(y_tst_pred_prob, 1)
             model.produce_probabilities = True
 
+            # Feature importance
+            if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
+                model = type(model).load_from_checkpoint(
+                    checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                model.eval()
+                model.freeze()
+            feature_importances = model.get_feature_importance(X_trn, feature_names, config.feature_importance)
+
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
                 model_params = {
@@ -248,8 +257,39 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': evals_result['val'][config.xgboost.eval_metric]
                 }
 
-                fi = model.get_score(importance_type='weight')
-                feature_importances = pd.DataFrame.from_dict({'feature': list(fi.keys()), 'importance': list(fi.values())})
+                if config.feature_importance.startswith("shap"):
+
+                    def predict_func(X):
+                        X = xgb.DMatrix(X, feature_names=feature_names['all'])
+                        y = model.predict(X)
+                        return y
+
+                    fi_data = {
+                        'feature_importance': config.feature_importance,
+                        'model': model,
+                        'X': X_trn,
+                        'y_pred_prob': y_trn_pred_prob,
+                        'y_pred_raw': y_trn_pred_raw,
+                        'predict_func': predict_func,
+                        'feature_names': feature_names
+                    }
+                    feature_importances = get_feature_importance(fi_data)
+                else:
+                    if config.feature_importance == "native":
+                        fi = model.get_score(importance_type='weight')
+                        fi_features = list(fi.keys())
+                        fi_importances = list(fi.values())
+                    elif config.feature_importance == "none":
+                        fi_features = feature_names['all']
+                        fi_importances = np.zeros(len(feature_names['all']))
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    feature_importances = pd.DataFrame.from_dict(
+                        {
+                            'feature': fi_features,
+                            'importance': fi_importances
+                        }
+                    )
 
             elif config.model_type == "catboost":
                 model_params = {
@@ -288,7 +328,37 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': metrics_val.iloc[:, 1]
                 }
 
-                feature_importances = pd.DataFrame.from_dict({'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
+                if config.feature_importance.startswith("shap"):
+
+                    def predict_func(X):
+                        y = model.predict(X)
+                        return y
+
+                    fi_data = {
+                        'feature_importance': config.feature_importance,
+                        'model': model,
+                        'X': X_trn,
+                        'y_pred_prob': y_trn_pred_prob,
+                        'y_pred_raw': y_trn_pred_raw,
+                        'predict_func': predict_func,
+                        'feature_names': feature_names
+                    }
+                    feature_importances = get_feature_importance(fi_data)
+                else:
+                    if config.feature_importance == "native":
+                        fi_features = model.feature_names_
+                        fi_importances = list(model.feature_importances_)
+                    elif config.feature_importance == "none":
+                        fi_features = feature_names['all']
+                        fi_importances = np.zeros(len(feature_names['all']))
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    feature_importances = pd.DataFrame.from_dict(
+                        {
+                            'feature': fi_features,
+                            'importance': fi_importances
+                        }
+                    )
 
             elif config.model_type == "lightgbm":
                 model_params = {
@@ -339,7 +409,37 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': evals_result['val'][config.lightgbm.metric]
                 }
 
-                feature_importances = pd.DataFrame.from_dict({'feature': model.feature_name(), 'importance': list(model.feature_importance())})
+                if config.feature_importance.startswith("shap"):
+
+                    def predict_func(X):
+                        y = model.predict(X, num_iteration=model.best_iteration)
+                        return y
+
+                    fi_data = {
+                        'feature_importance': config.feature_importance,
+                        'model': model,
+                        'X': X_trn,
+                        'y_pred_prob': y_trn_pred_prob,
+                        'y_pred_raw': y_trn_pred_raw,
+                        'predict_func': predict_func,
+                        'feature_names': feature_names
+                    }
+                    feature_importances = get_feature_importance(fi_data)
+                else:
+                    if config.feature_importance == "native":
+                        fi_features = model.feature_name()
+                        fi_importances = list(model.feature_importance())
+                    elif config.feature_importance == "none":
+                        fi_features = feature_names['all']
+                        fi_importances = np.zeros(len(feature_names['all']))
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    feature_importances = pd.DataFrame.from_dict(
+                        {
+                            'feature': fi_features,
+                            'importance': fi_importances
+                        }
+                    )
 
             elif config.model_type == "logistic_regression":
                 model = LogisticRegression(
@@ -370,12 +470,37 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': [0]
                 }
 
-                feature_importances = pd.DataFrame.from_dict(
-                    {
-                        'feature': ['Intercept'] + feature_names['all'],
-                        'importance': [model.intercept_] + list(model.coef_.ravel())
+                if config.feature_importance.startswith("shap"):
+
+                    def predict_func(X):
+                        y = model.predict_proba(X)
+                        return y
+
+                    fi_data = {
+                        'feature_importance': config.feature_importance,
+                        'model': model,
+                        'X': X_trn,
+                        'y_pred_prob': y_trn_pred_prob,
+                        'y_pred_raw': y_trn_pred_raw,
+                        'predict_func': predict_func,
+                        'feature_names': feature_names
                     }
-                )
+                    feature_importances = get_feature_importance(fi_data)
+                else:
+                    if config.feature_importance == "native":
+                        fi_features = ['Intercept'] + feature_names['all']
+                        fi_importances = [model.intercept_] + list(model.coef_.ravel())
+                    elif config.feature_importance == "none":
+                        fi_features = feature_names['all']
+                        fi_importances = np.zeros(len(feature_names['all']))
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    feature_importances = pd.DataFrame.from_dict(
+                        {
+                            'feature': fi_features,
+                            'importance': fi_importances
+                        }
+                    )
 
             elif config.model_type == "svm":
                 model = svm.SVC(
@@ -405,7 +530,34 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': [0]
                 }
 
-                feature_importances = None
+                if config.feature_importance.startswith("shap"):
+
+                    def predict_func(X):
+                        y = model.predict_proba(X)
+                        return y
+
+                    fi_data = {
+                        'feature_importance': config.feature_importance,
+                        'model': model,
+                        'X': X_trn,
+                        'y_pred_prob': y_trn_pred_prob,
+                        'y_pred_raw': y_trn_pred_raw,
+                        'predict_func': predict_func,
+                        'feature_names': feature_names
+                    }
+                    feature_importances = get_feature_importance(fi_data)
+                else:
+                    if config.feature_importance == "none":
+                        fi_features = feature_names['all']
+                        fi_importances = np.zeros(len(feature_names['all']))
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    feature_importances = pd.DataFrame.from_dict(
+                        {
+                            'feature': fi_features,
+                            'importance': fi_importances
+                        }
+                    )
 
             else:
                 raise ValueError(f"Model {config.model_type} is not supported")
@@ -415,14 +567,14 @@ def process(config: DictConfig) -> Optional[float]:
 
         metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'trn', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
-            cv_progress.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
+            metrics_cv.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
         metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=False)
         for m in metrics_val.index.values:
-            cv_progress.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
+            metrics_cv.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
         if is_tst:
             metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'tst', is_log=True, is_save=False)
             for m in metrics_tst.index.values:
-                cv_progress.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
+                metrics_cv.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
 
         # Make sure everything closed properly
         if config.model_framework == "pytorch":
@@ -476,12 +628,6 @@ def process(config: DictConfig) -> Optional[float]:
                     model.eval()
                     model.freeze()
                 best["model"] = model
-
-                feature_importances_vals = model.get_feature_importance(X_trn)
-                if feature_importances_vals is not None:
-                    feature_importances = pd.DataFrame.from_dict({'feature': feature_names['all'], 'importance': feature_importances_vals})
-                else:
-                    feature_importances = None
 
                 def predict_func(X):
                     best["model"].produce_probabilities = True
@@ -542,11 +688,15 @@ def process(config: DictConfig) -> Optional[float]:
                     df.loc[df.index[ids_tst], f"pred_prob_{cl_id}"] = y_tst_pred_prob[:, cl_id]
                     df.loc[df.index[ids_tst], f"pred_raw_{cl_id}"] = y_tst_pred_raw[:, cl_id]
 
-        cv_progress.at[fold_idx, 'fold'] = fold_idx
-        cv_progress.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
+        metrics_cv.at[fold_idx, 'fold'] = fold_idx
+        metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
+        feature_importances_cv.at[fold_idx, 'fold'] = fold_idx
+        for feat in feature_names['all']:
+            feature_importances_cv.at[fold_idx, feat] = feature_importances.loc[feature_importances['feature'] == feat, 'importance'].values[0]
 
-    cv_progress.to_excel(f"cv_progress.xlsx", index=False)
-    cv_ids_cols = [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:,'fold'].values]
+    metrics_cv.to_excel(f"cv_progress.xlsx", index=False)
+    feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
+    cv_ids_cols = [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:,'fold'].values]
     if datamodule.split_top_feat:
         cv_ids_cols.append(datamodule.split_top_feat)
     cv_ids = df.loc[:, cv_ids_cols]
@@ -583,16 +733,16 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_names = metrics_trn.index.values
     metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['trn'])
     for metric in metrics_names:
-        metrics_trn_cv.at[f"{metric}_cv_mean", 'trn'] = cv_progress[f"trn_{metric}"].mean()
-        metrics_trn_cv.at[f"{metric}_cv_std", 'trn'] = cv_progress[f"trn_{metric}"].std()
+        metrics_trn_cv.at[f"{metric}_cv_mean", 'trn'] = metrics_cv[f"trn_{metric}"].mean()
+        metrics_trn_cv.at[f"{metric}_cv_std", 'trn'] = metrics_cv[f"trn_{metric}"].std()
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
     metrics_trn.to_excel(f"metrics_trn_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
-        metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
-        metrics_val_cv.at[f"{metric}_cv_std", 'val'] = cv_progress[f"val_{metric}"].std()
+        metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = metrics_cv[f"val_{metric}"].mean()
+        metrics_val_cv.at[f"{metric}_cv_std", 'val'] = metrics_cv[f"val_{metric}"].std()
     metrics_val = pd.concat([metrics_val, metrics_val_cv])
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
@@ -600,8 +750,8 @@ def process(config: DictConfig) -> Optional[float]:
         metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'tst', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
         metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['tst'])
         for metric in metrics_names:
-            metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = cv_progress[f"tst_{metric}"].mean()
-            metrics_tst_cv.at[f"{metric}_cv_std", 'tst'] = cv_progress[f"tst_{metric}"].std()
+            metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = metrics_cv[f"tst_{metric}"].mean()
+            metrics_tst_cv.at[f"{metric}_cv_std", 'tst'] = metrics_cv[f"tst_{metric}"].std()
         metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
 
         metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_tst" for x in metrics_names],columns=['val', 'tst'])

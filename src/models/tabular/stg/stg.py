@@ -1,7 +1,7 @@
 import torch
 from src.models.tabular.base import BaseModel
 from .repository.models import STGClassificationModel, STGRegressionModel
-from typing import Any, List, Dict
+import pandas as pd
 
 
 class StochasticGatesModel(BaseModel):
@@ -56,6 +56,15 @@ class StochasticGatesModel(BaseModel):
         else:
             raise ValueError(f"Unsupported stage: {stage}")
 
-    def get_feature_importance(self, data):
-        importance = self.model.get_gates(mode="prob")
-        return importance
+    def get_feature_importance(self, data, feature_names, method="shap_kernel"):
+        if method == "native":
+            importance_values = self.model.get_gates(mode="prob")
+            feature_importances = pd.DataFrame.from_dict(
+                {
+                    'feature': feature_names['all'],
+                    'importance': importance_values
+                }
+            )
+            return feature_importances
+        else:
+            return super().get_feature_importance(data, feature_names, method)

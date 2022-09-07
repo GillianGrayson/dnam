@@ -35,6 +35,7 @@ import pickle
 import wandb
 import glob
 import os
+import shap
 
 
 log = utils.get_logger(__name__)
@@ -77,7 +78,8 @@ def process(config: DictConfig) -> Optional[float]:
     elif config.direction == "max":
         best["optimized_metric"] = 0.0
 
-    cv_progress = pd.DataFrame(columns=['fold', 'optimized_metric'])
+    metrics_cv = pd.DataFrame(columns=['fold', 'optimized_metric'])
+    feature_importances_cv = pd.DataFrame(columns=['fold'] + feature_names['all'])
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     ckpt_name = config.callbacks.model_checkpoint.filename
@@ -196,6 +198,14 @@ def process(config: DictConfig) -> Optional[float]:
             if is_tst:
                 y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
 
+            # Feature importance
+            if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
+                model = type(model).load_from_checkpoint(
+                    checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
+                model.eval()
+                model.freeze()
+            feature_importances = model.get_feature_importance(X_trn, feature_names, config.feature_importance)
+
         elif config.model_framework == "stand_alone":
             if config.model_type == "xgboost":
                 model_params = {
@@ -237,9 +247,38 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': evals_result['val'][config.xgboost.eval_metric]
                 }
 
-                fi = model.get_score(importance_type='weight')
+                if config.feature_importance == "native":
+                    fi = model.get_score(importance_type='weight')
+                    fi_features = list(fi.keys())
+                    fi_importances = list(fi.values())
+                elif config.feature_importance.startswith("shap"):
+                    if config.feature_importance == "shap_tree":
+                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        shap_values = explainer.shap_values(X_trn)
+                    elif config.feature_importance == "shap_kernel":
+                        def predict_func(X):
+                            X = xgb.DMatrix(X, feature_names=feature_names['all'])
+                            y = model.predict(X)
+                            return y
+                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        shap_values = explainer.shap_values(X_trn)
+                        if isinstance(shap_values, list):
+                            shap_values = shap_values[0]
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    fi_features = feature_names['all']
+                    fi_importances = np.mean(np.abs(shap_values), axis=0)
+                elif config.feature_importance == "none":
+                    fi_features = feature_names['all']
+                    fi_importances = np.zeros(len(feature_names['all']))
+                else:
+                    raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                 feature_importances = pd.DataFrame.from_dict(
-                    {'feature': list(fi.keys()), 'importance': list(fi.values())})
+                    {
+                        'feature': fi_features,
+                        'importance': fi_importances
+                    }
+                )
 
             elif config.model_type == "catboost":
                 model_params = {
@@ -271,8 +310,36 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': metrics_val.iloc[:, 1]
                 }
 
+                if config.feature_importance == "native":
+                    fi_features = model.feature_names_
+                    fi_importances = list(model.feature_importances_)
+                elif config.feature_importance.startswith("shap"):
+                    if config.feature_importance == "shap_tree":
+                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        shap_values = explainer.shap_values(X_trn)
+                    elif config.feature_importance == "shap_kernel":
+                        def predict_func(X):
+                            y = model.predict(X)
+                            return y
+                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        shap_values = explainer.shap_values(X_trn)
+                        if isinstance(shap_values, list):
+                            shap_values = shap_values[0]
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    fi_features = feature_names['all']
+                    fi_importances = np.mean(np.abs(shap_values), axis=0)
+                elif config.feature_importance == "none":
+                    fi_features = feature_names['all']
+                    fi_importances = np.zeros(len(feature_names['all']))
+                else:
+                    raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                 feature_importances = pd.DataFrame.from_dict(
-                    {'feature': model.feature_names_, 'importance': list(model.feature_importances_)})
+                    {
+                        'feature': fi_features,
+                        'importance': fi_importances
+                    }
+                )
 
             elif config.model_type == "lightgbm":
                 model_params = {
@@ -316,8 +383,36 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': evals_result['val'][config.lightgbm.metric]
                 }
 
+                if config.feature_importance == "native":
+                    fi_features = model.feature_name()
+                    fi_importances = list(model.feature_importance())
+                elif config.feature_importance.startswith("shap"):
+                    if config.feature_importance == "shap_tree":
+                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        shap_values = explainer.shap_values(X_trn)
+                    elif config.feature_importance == "shap_kernel":
+                        def predict_func(X):
+                            y = model.predict(X, num_iteration=model.best_iteration)
+                            return y
+                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        shap_values = explainer.shap_values(X_trn)
+                        if isinstance(shap_values, list):
+                            shap_values = shap_values[0]
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    fi_features = feature_names['all']
+                    fi_importances = np.mean(np.abs(shap_values), axis=0)
+                elif config.feature_importance == "none":
+                    fi_features = feature_names['all']
+                    fi_importances = np.zeros(len(feature_names['all']))
+                else:
+                    raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                 feature_importances = pd.DataFrame.from_dict(
-                    {'feature': model.feature_name(), 'importance': list(model.feature_importance())})
+                    {
+                        'feature': fi_features,
+                        'importance': fi_importances
+                    }
+                )
 
             elif config.model_type == "elastic_net":
                 model = ElasticNet(
@@ -338,8 +433,36 @@ def process(config: DictConfig) -> Optional[float]:
                     'val/loss': [0]
                 }
 
+                if config.feature_importance == "native":
+                    fi_features = ['Intercept'] + feature_names['all']
+                    fi_importances = [model.intercept_] + list(model.coef_)
+                elif config.feature_importance.startswith("shap"):
+                    if config.feature_importance == "shap_tree":
+                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        shap_values = explainer.shap_values(X_trn)
+                    elif config.feature_importance == "shap_kernel":
+                        def predict_func(X):
+                            y = model.predict(X)
+                            return y
+                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        shap_values = explainer.shap_values(X_trn)
+                        if isinstance(shap_values, list):
+                            shap_values = shap_values[0]
+                    else:
+                        raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
+                    fi_features = feature_names['all']
+                    fi_importances = np.mean(np.abs(shap_values), axis=0)
+                elif config.feature_importance == "none":
+                    fi_features = feature_names['all']
+                    fi_importances = np.zeros(len(feature_names['all']))
+                else:
+                    raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                 feature_importances = pd.DataFrame.from_dict(
-                    {'feature': ['Intercept'] + feature_names['all'], 'importance': [model.intercept_] + list(model.coef_)})
+                    {
+                        'feature': fi_features,
+                        'importance': fi_importances
+                    }
+                )
 
             else:
                 raise ValueError(f"Model {config.model_type} is not supported")
@@ -349,14 +472,14 @@ def process(config: DictConfig) -> Optional[float]:
 
         metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'trn', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
-            cv_progress.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
+            metrics_cv.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
         metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False)
         for m in metrics_val.index.values:
-            cv_progress.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
+            metrics_cv.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
         if is_tst:
             metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'tst', is_log=True, is_save=False)
             for m in metrics_tst.index.values:
-                cv_progress.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
+                metrics_cv.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
 
         # Make sure everything closed properly
         if config.model_framework == "pytorch":
@@ -411,12 +534,6 @@ def process(config: DictConfig) -> Optional[float]:
                     model.freeze()
                 best["model"] = model
 
-                feature_importances_vals = model.get_feature_importance(X_trn)
-                if feature_importances_vals is not None:
-                    feature_importances = pd.DataFrame.from_dict({'feature': feature_names['all'], 'importance': feature_importances_vals})
-                else:
-                    feature_importances = None
-
                 def predict_func(X):
                     batch = {
                         'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
@@ -463,12 +580,16 @@ def process(config: DictConfig) -> Optional[float]:
             if is_tst:
                 df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
 
-        cv_progress.at[fold_idx, 'fold'] = fold_idx
-        cv_progress.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
+        metrics_cv.at[fold_idx, 'fold'] = fold_idx
+        metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
+        feature_importances_cv.at[fold_idx, 'fold'] = fold_idx
+        for feat in feature_names['all']:
+            feature_importances_cv.at[fold_idx, feat] = feature_importances.loc[feature_importances['feature'] == feat, 'importance'].values[0]
 
     df = df.astype({"Estimation": 'float32'})
-    cv_progress.to_excel(f"cv_progress.xlsx", index=False)
-    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in cv_progress.loc[:, 'fold'].values]]
+    metrics_cv.to_excel(f"metrics_cv.xlsx", index=False)
+    feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
+    cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:, 'fold'].values]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
     predictions = df.loc[:, [f"fold_{best['fold']:04d}", target_name, "Estimation"]]
     predictions.to_excel(f"predictions.xlsx", index=True)
@@ -496,16 +617,16 @@ def process(config: DictConfig) -> Optional[float]:
     metrics_names = metrics_trn.index.values
     metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['trn'])
     for metric in metrics_names:
-        metrics_trn_cv.at[f"{metric}_cv_mean", 'trn'] = cv_progress[f"trn_{metric}"].mean()
-        metrics_trn_cv.at[f"{metric}_cv_std", 'trn'] = cv_progress[f"trn_{metric}"].std()
+        metrics_trn_cv.at[f"{metric}_cv_mean", 'trn'] = metrics_cv[f"trn_{metric}"].mean()
+        metrics_trn_cv.at[f"{metric}_cv_std", 'trn'] = metrics_cv[f"trn_{metric}"].std()
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
     metrics_trn.to_excel(f"metrics_trn_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     metrics_val = eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
-        metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = cv_progress[f"val_{metric}"].mean()
-        metrics_val_cv.at[f"{metric}_cv_std", 'val'] = cv_progress[f"val_{metric}"].std()
+        metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = metrics_cv[f"val_{metric}"].mean()
+        metrics_val_cv.at[f"{metric}_cv_std", 'val'] = metrics_cv[f"val_{metric}"].std()
     metrics_val = pd.concat([metrics_val, metrics_val_cv])
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
@@ -513,8 +634,8 @@ def process(config: DictConfig) -> Optional[float]:
         metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'tst', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
         metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['tst'])
         for metric in metrics_names:
-            metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = cv_progress[f"tst_{metric}"].mean()
-            metrics_tst_cv.at[f"{metric}_cv_std", 'tst'] = cv_progress[f"tst_{metric}"].std()
+            metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = metrics_cv[f"tst_{metric}"].mean()
+            metrics_tst_cv.at[f"{metric}_cv_std", 'tst'] = metrics_cv[f"tst_{metric}"].std()
         metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
 
         metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_tst" for x in metrics_names],columns=['val', 'tst'])
