@@ -43,7 +43,7 @@ hydra:
       prior_weight: 1.0
       consider_magic_clip: true
       consider_endpoints: false
-      n_startup_trials: 50
+      n_startup_trials: 25
       n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
@@ -51,6 +51,7 @@ hydra:
     # define range of hyperparameters
     params:
       danet.optimizer_lr: tag(log, interval(0.00001, 1))
+      danet.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
       danet.layer_num: int(range(8, 32, step=1))
       danet.base_outdim: choice(32, 64, 96)
       danet.k: choice(4, 5, 6)

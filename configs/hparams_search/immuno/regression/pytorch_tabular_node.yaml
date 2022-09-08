@@ -43,7 +43,7 @@ hydra:
       prior_weight: 1.0
       consider_magic_clip: true
       consider_endpoints: false
-      n_startup_trials: 50
+      n_startup_trials: 25
       n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
@@ -51,7 +51,7 @@ hydra:
     # define range of hyperparameters
     params:
       pytorch_tabular_node.optimizer_lr: tag(log, interval(0.1, 10))
-      pytorch_tabular_node.optimizer_weight_decay: tag(log, interval(0.00000001, 1))
+      pytorch_tabular_node.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
       pytorch_tabular_node.num_layers: choice(1)
       pytorch_tabular_node.num_trees: choice(256, 512, 1024) # choice(256, 512, 1024, 2048)
       pytorch_tabular_node.additional_tree_output_dim: choice(1, 2, 3, 4) # choice(3, 4, 5)

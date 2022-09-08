@@ -43,7 +43,7 @@ hydra:
       prior_weight: 1.0
       consider_magic_clip: true
       consider_endpoints: false
-      n_startup_trials: 50
+      n_startup_trials: 25
       n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
@@ -51,6 +51,7 @@ hydra:
     # define range of hyperparameters
     params:
       widedeep_ft_transformer.optimizer_lr: tag(log, interval(0.00001, 1))
+      widedeep_ft_transformer.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
       widedeep_ft_transformer.embed_dim: choice(16, 32, 64)
       widedeep_ft_transformer.n_heads: choice(2, 4, 8, 16)
       widedeep_ft_transformer.n_blocks: choice(2, 4, 6)
