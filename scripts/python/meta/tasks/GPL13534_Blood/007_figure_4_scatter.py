@@ -1,19 +1,7 @@
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.bar import add_bar_trace
 from scripts.python.routines.plot.layout import add_layout
-from scripts.python.routines.manifest import get_manifest
-from scripts.python.pheno.datasets.filter import filter_pheno, get_passed_fields
-from scripts.python.pheno.datasets.features import get_column_name, get_status_dict_default
-from scripts.python.preprocessing.serialization.routines.pheno_betas_checking import get_pheno_betas_with_common_subjects
-from scripts.python.routines.betas import betas_drop_na
-from scripts.python.routines.mvals import logit2
-from scripts.python.meta.tasks.GPL13534_Blood.routines import perform_test_for_controls
-from tqdm import tqdm
-import pathlib
-import plotly.express as px
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
 
