@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from scripts.python.pheno.datasets.features import get_column_name, get_sex_dict
 
-dataset = "GSE152026"
+dataset = "GSEUNN"
 tissue = 'Blood WB' # "Liver" "Brain FCTX" "Blood WB"
 path = f"E:/YandexDisk/Work/pydnameth/datasets"
 datasets_info = pd.read_excel(f"{path}/datasets.xlsx", index_col='dataset')
