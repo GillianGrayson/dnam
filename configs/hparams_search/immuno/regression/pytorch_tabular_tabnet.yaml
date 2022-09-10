@@ -43,19 +43,19 @@ hydra:
       prior_weight: 1.0
       consider_magic_clip: true
       consider_endpoints: false
-      n_startup_trials: 25
+      n_startup_trials: 50
       n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
 
     # define range of hyperparameters
     params:
-      pytorch_tabular_tabnet.optimizer_lr: tag(log, interval(0.00001, 1))
-      pytorch_tabular_tabnet.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
-      pytorch_tabular_tabnet.n_d: choice(8, 16)
-      pytorch_tabular_tabnet.n_a: choice(8, 16)
-      pytorch_tabular_tabnet.n_steps: choice(3, 4, 5)
-      pytorch_tabular_tabnet.gamma: interval(1.1, 1.5)
-      pytorch_tabular_tabnet.n_independent: choice(1, 2, 3)
-      pytorch_tabular_tabnet.n_shared: choice(1, 2, 3)
-      pytorch_tabular_tabnet.mask_type: choice(sparsemax, entmax)
+      pytorch_tabular_tabnet.optimizer_lr: tag(log, interval(0.01, 0.5)) # tag(log, interval(0.00001, 1))
+      pytorch_tabular_tabnet.optimizer_weight_decay: tag(log, interval(0.0000001, 0.001)) # tag(log, interval(0.00000001, 0.1))
+      pytorch_tabular_tabnet.n_d: choice(8, 12, 16) # pytorch_tabular_tabnet.n_d: choice(8, 16)
+      pytorch_tabular_tabnet.n_a: choice(12, 16, 20) # choice(8, 16)
+      pytorch_tabular_tabnet.n_steps: choice(2, 3) # choice(3, 4, 5)
+      pytorch_tabular_tabnet.gamma: interval(1.1, 1.22) # interval(1.1, 1.5)
+      pytorch_tabular_tabnet.n_independent: choice(3, 4) # choice(1, 2, 3)
+      pytorch_tabular_tabnet.n_shared: choice(1, 2) # choice(1, 2, 3)
+      pytorch_tabular_tabnet.mask_type: choice(sparsemax) # choice(sparsemax, entmax)
