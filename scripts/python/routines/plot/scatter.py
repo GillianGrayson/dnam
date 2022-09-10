@@ -12,9 +12,10 @@ def add_scatter_trace(fig, x, y, name, mode='markers', size=8):
             mode=mode,
             marker=dict(
                 size=size,
-                opacity=0.7,
+                opacity=0.75,
                 line=dict(
-                    width=0.0
+                    color="black",
+                    width=0.5
                 )
             )
         )
