@@ -49,11 +49,12 @@ hydra:
       warn_independent_sampling: true
 
     # define range of hyperparameters
+    # 'embed_dim' must be divisible by 'n_heads'
     params:
       widedeep_saint.optimizer_lr: tag(log, interval(0.0001, 0.05)) # tag(log, interval(0.00001, 1))
       widedeep_saint.optimizer_weight_decay: tag(log, interval(0.000001, 0.15)) # tag(log, interval(0.00000001, 0.1))
-      widedeep_saint.embed_dim: choice(4, 6, 8) # choice(2, 4)
-      widedeep_saint.n_heads: choice(2, 3) # choice(1, 2)
+      widedeep_saint.embed_dim: choice(4, 8, 12) # choice(2, 4)
+      widedeep_saint.n_heads: choice(2, 4) # choice(1, 2)
       widedeep_saint.n_blocks: choice(1) # choice(1, 2)
       widedeep_saint.attn_dropout: choice(0.0, 0.025, 0.05) # choice(0.05, 0.1, 0.2)
       widedeep_saint.ff_dropout: choice(0.075, 0.1) # choice(0.05, 0.1, 0.2)
