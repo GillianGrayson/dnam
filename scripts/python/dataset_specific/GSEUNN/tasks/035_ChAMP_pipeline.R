@@ -68,16 +68,6 @@ champ.SVD(
 corrrected_df <- data.frame(row.names(tmpCombat), tmpCombat)
 colnames(corrrected_df)[1] <- "CpG"
 write.table(corrrected_df, file = "corrrected.txt", row.names = F, sep = "\t", quote = F)
-save(corrrected, file="corrrected.RData")
-load("corrrected.RData")
-corrrected <- as.matrix(corrrected)
-corrrected <- read.table(
-  "regressed.txt",
-  header = TRUE,
-  sep = "\t",
-  dec = ".",
-  row.names = "CpG"
-)
 
 betas <- corrrected
 
@@ -86,7 +76,7 @@ dmp <- champ.DMP(
   beta = betas,
   pheno = pheno$Region,
   compare.group = NULL,
-  adjPVal = 0.05,
+  adjPVal = 1e-8,
   adjust.method = "BH",
   arraytype = "EPIC"
 )
@@ -96,17 +86,15 @@ DMP.GUI(
   pheno=pheno$Region
 )
 write.csv(dmp$Central_to_Yakutia, file = "dmp.csv")
-write.table(dmp$Central_to_Yakutia, file = "dmp.txt", row.names = F, sep = "\t", quote = F)
 
 # DMR ==================================================================================================================
 betas <- data.matrix(betas)
-pheno <- data.matrix(pheno)
 dmr <- champ.DMR(
-  beta = betas1,
+  beta = betas,
   pheno = pheno$Region,
   compare.group = NULL,
   arraytype = "EPIC",
-  method = "DMRcate", # "Bumphunter" "ProbeLasso" "DMRcate"
+  method = "Bumphunter", # "Bumphunter" "ProbeLasso" "DMRcate"
   minProbes = 10,
   adjPvalDmr = 0.05,
   cores = 4,
