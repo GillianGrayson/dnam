@@ -95,8 +95,8 @@ dmr <- champ.DMR(
   compare.group = NULL,
   arraytype = "EPIC",
   method = "Bumphunter", # "Bumphunter" "ProbeLasso" "DMRcate"
-  minProbes = 10,
-  adjPvalDmr = 0.05,
+  minProbes = 15,
+  adjPvalDmr = 0.01,
   cores = 4,
   ## following parameters are specifically for Bumphunter method.
   maxGap = 300,
@@ -111,7 +111,7 @@ dmr <- champ.DMR(
   ## following parameters are specifically for probe ProbeLasso method.
   meanLassoRadius=375,
   minDmrSep=1000,
-  minDmrSize=50,
+  minDmrSize=20,
   adjPvalProbe=0.05,
   Rplot=TRUE,
   PDFplot=TRUE,
@@ -135,15 +135,44 @@ DMR.GUI(
   arraytype = "EPIC"
 )
 
+RSobject <- RatioSet(betas, annotation = c(array = "IlluminaHumanMethylationEPIC", annotation = "ilm10b4.hg19"))
+RSanno <- getAnnotation(RSobject)[, c("chr", "pos", "Name", "UCSC_RefGene_Name")]
+loi.lv <- list()
+cpg.idx <- unique(unlist(apply(dmr[[1]], 1, function(x) rownames(RSanno)[which(RSanno$chr == x[1] & RSanno$pos >= as.numeric(x[2]) & RSanno$pos <= as.numeric(x[3]))])))
+loi.lv[["DMR"]] <- unique(unlist(sapply(RSanno[cpg.idx, "UCSC_RefGene_Name"], function(x) strsplit(x, split = ";")[[1]])))
+write.csv(data.frame(loi.lv$DMR), file = "dmr_genes.csv", row.names=FALSE)
 
-myGSEA <- champ.GSEA(beta = tmpCombat,
-                     DMP = NULL,
-                     DMR = tmpDMR,
-                     CpGlist = NULL,
-                     Genelist = NULL,
-                     pheno = pd$Dataset,
-                     method = "fisher",
-                     arraytype = "450K",
-                     Rplot = TRUE,
-                     adjPval = 0.05,
-                     cores = 4)
+gsea <- champ.GSEA(
+  beta = betas,
+  DMP = NULL,
+  DMR = dmr,
+  CpGlist = NULL,
+  Genelist = NULL,
+  pheno = pheno$Region,
+  method = "fisher",
+  arraytype = "EPIC",
+  Rplot = TRUE,
+  adjPval = 0.05,
+  cores = 4
+)
+write.csv(data.frame(gsea$DMR), file = "dmr_gsea.csv", row.names=FALSE)
+
+# DMB ==================================================================================================================
+dmb <- champ.Block(
+  beta = betas,
+  pheno = pheno$Region,
+  arraytype = "EPIC",
+  maxClusterGap = 250000,
+  B = 500,
+  bpSpan = 250000,
+  minNum = 10,
+)
+
+Block.GUI(
+  Block = dmb,
+  beta = betas,
+  pheno = pheno$Region,
+  runDMP = TRUE,
+  compare.group = NULL,
+  arraytype = "EPIC"
+)
