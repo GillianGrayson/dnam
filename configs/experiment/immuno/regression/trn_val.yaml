@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: stand_alone
+model_framework: pytorch
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -29,9 +29,10 @@ model_framework: stand_alone
 # nbm_spam_nam (pytorch)
 # nbm_spam_nbm (pytorch)
 # arm_net_models (pytorch)
+# danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: lightgbm
+model_type: pytorch_tabular_autoint
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -60,10 +61,10 @@ print_model: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 1000
-patience: 100
+max_epochs: 5000
+patience: 250
 
-base_dir: "C:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
@@ -326,7 +327,7 @@ widedeep_ft_transformer:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.0005
+  optimizer_lr: 0.009394510896784777
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
@@ -348,18 +349,19 @@ widedeep_ft_transformer:
   kv_compression_factor: 0.5
   kv_sharing: False
   use_qkv_bias: False
-  n_heads: 8
-  n_blocks: 4
+  n_heads: 16
+  n_blocks: 2
   attn_dropout: 0.2
-  ff_dropout: 0.1
+  ff_dropout: 0.2
   transformer_activation: "reglu"
   ff_factor: 1.33
   mlp_hidden_dims:
     - 200
     - 100
+    - 50
     - ${out_dim}
   mlp_activation: "relu"
-  mlp_dropout: 0.1
+  mlp_dropout: 0.05
   mlp_batchnorm: False
   mlp_batchnorm_last: False
   mlp_linear_first: True
@@ -496,31 +498,31 @@ widedeep_tab_perceiver:
 pytorch_tabular_autoint:
   _target_: src.models.tabular.pytorch_tabular.autoint.PTAutoIntModel
   task: ${task}
-  loss_type: "L1Loss"
+  loss_type: L1Loss
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.0005
-  optimizer_weight_decay: 0.0
+  optimizer_lr: 0.00992093303237566
+  optimizer_weight_decay: 2.472886647072828e-06
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
   continuous_cols: null
   categorical_cols: null
-  attn_embed_dim: 32
-  num_heads: 2
-  num_attn_blocks: 3
-  attn_dropouts: 0.0
-  has_residuals: True
-  embedding_dim: 16
-  embedding_dropout: 0.0
-  deep_layers: False
-  layers: "128-64-32"
-  activation: "ReLU"
+  attn_embed_dim: 64
+  num_heads: 1
+  num_attn_blocks: 1
+  attn_dropouts: 0.1
+  has_residuals: true
+  embedding_dim: 64
+  embedding_dropout: 0.1
+  deep_layers: true
+  layers: 128-64-32
+  activation: ReLU
   dropout: 0.0
-  use_batch_norm: False
-  batch_norm_continuous_input: False
-  attention_pooling: False
-  initialization: "kaiming"
+  use_batch_norm: false
+  batch_norm_continuous_input: false
+  attention_pooling: false
+  initialization: kaiming
 
 pytorch_tabular_tabnet:
   _target_: src.models.tabular.pytorch_tabular.tabnet.PTTabNetModel
@@ -755,12 +757,12 @@ danet:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.001
+  optimizer_lr: 0.08096868522207595
   optimizer_weight_decay: 0.0
   scheduler_step_size: 100
   scheduler_gamma: 0.8
-  layer_num: 20
-  base_outdim: 64
+  layer_num: 23
+  base_outdim: 32
   k: 5
   virtual_batch_size: 256
   drop_rate: 0.1
