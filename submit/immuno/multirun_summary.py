@@ -6,11 +6,10 @@ from omegaconf import OmegaConf
 path_models = f"/common/home/yusipov_i/data/unn/immuno/models"
 
 model = 'elastic_net'
-run_time = '2022-08-28_18-56-26'
 
-path_load = f"{path_models}/immuno_trn_val_{model}/multiruns/{run_time}"
+path_load = f"{path_models}/immuno_trn_val_{model}"
 
-files = glob(f"{path_load}/*/metrics_val_best_*.xlsx")
+files = glob(f"{path_load}/multiruns/*/*/metrics_val_best_*.xlsx")
 
 df_tmp = pd.read_excel(files[0], index_col="metric")
 head, tail = os.path.split(files[0])
