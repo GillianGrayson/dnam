@@ -757,15 +757,15 @@ danet:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.08402444884289456
-  optimizer_weight_decay: 3.395314126711823e-05
+  optimizer_lr: 0.062047232980216
+  optimizer_weight_decay: 5.856530209652199e-05
   scheduler_step_size: 100
   scheduler_gamma: 0.8
-  layer_num: 18
-  base_outdim: 96
+  layer_num: 24
+  base_outdim: 32
   k: 5
   virtual_batch_size: 256
-  drop_rate: 0.1
+  drop_rate: 0.15
 
 nam:
   _target_: src.models.tabular.nam.nam.NeuralAdditiveModel
