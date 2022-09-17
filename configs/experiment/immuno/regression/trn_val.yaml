@@ -32,7 +32,7 @@ model_framework: pytorch
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: pytorch_tabular_autoint
+model_type: danet
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -61,8 +61,8 @@ print_model: True
 ignore_warnings: True
 test_after_training: True
 
-max_epochs: 5000
-patience: 250
+max_epochs: 1000
+patience: 100
 
 base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
@@ -757,12 +757,12 @@ danet:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.08096868522207595
-  optimizer_weight_decay: 0.0
+  optimizer_lr: 0.08402444884289456
+  optimizer_weight_decay: 3.395314126711823e-05
   scheduler_step_size: 100
   scheduler_gamma: 0.8
-  layer_num: 23
-  base_outdim: 32
+  layer_num: 18
+  base_outdim: 96
   k: 5
   virtual_batch_size: 256
   drop_rate: 0.1
