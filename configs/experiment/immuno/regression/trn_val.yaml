@@ -57,7 +57,7 @@ is_shuffle: False
 
 debug: False
 print_config: False
-print_model: True
+print_model: False
 ignore_warnings: True
 test_after_training: True
 
@@ -251,8 +251,8 @@ widedeep_tab_net:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.01
-  optimizer_weight_decay: 0.0
+  optimizer_lr: 0.12476988667170572
+  optimizer_weight_decay: 1.216983116182198e-07
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   column_idx: null
@@ -267,17 +267,17 @@ widedeep_tab_net:
   cont_embed_dropout: 0.1
   use_cont_bias: True
   cont_embed_activation: null
-  n_steps: 3
-  attn_dim: 8
-  dropout: 0.0
-  n_glu_step_dependent: 2
-  n_glu_shared: 2
+  n_steps: 2
+  attn_dim: 20
+  dropout: 0.028354475497966526
+  n_glu_step_dependent: 1
+  n_glu_shared: 4
   ghost_bn: True
   virtual_batch_size: 128
-  momentum: 0.02
-  gamma: 1.3
+  momentum: 0.1068950240822053
+  gamma: 1.1677939635640748
   epsilon: 1e-15
-  mask_type: "sparsemax"
+  mask_type: "entmax"
 
 widedeep_tab_transformer:
   _target_: src.models.tabular.widedeep.tab_transformer.WDTabTransformerModel

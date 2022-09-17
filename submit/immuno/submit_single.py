@@ -21,7 +21,7 @@ model_dict = {
     # 'catboost': ('catboost', 'stand_alone'),
     # 'lightgbm': ('lightgbm', 'stand_alone'),
     # 'widedeep_tab_mlp': ('widedeep_tab_mlp', 'pytorch'),
-    # 'widedeep_tab_net': ('widedeep_tab_net', 'pytorch'),
+    'widedeep_tab_net': ('widedeep_tab_net', 'pytorch'),
     # 'widedeep_saint': ('widedeep_saint', 'pytorch'),
     # 'widedeep_ft_transformer': ('widedeep_ft_transformer', 'pytorch'),
     # 'pytorch_tabular_autoint': ('pytorch_tabular_autoint', 'pytorch'),
