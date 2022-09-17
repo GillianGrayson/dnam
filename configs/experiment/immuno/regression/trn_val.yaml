@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: pytorch
+model_framework: stand_alone
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -32,7 +32,7 @@ model_framework: pytorch
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: danet
+model_type: catboost
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -158,13 +158,13 @@ catboost:
 lightgbm:
   objective: regression
   boosting: gbdt
-  learning_rate: 0.10020980304900481
+  learning_rate: 0.0057359111735470905
   num_leaves: 31
   device: cpu
   max_depth: -1
-  min_data_in_leaf: 18
-  feature_fraction: 0.7083699026647442
-  bagging_fraction: 0.8045059035772489
+  min_data_in_leaf: 26
+  feature_fraction: 0.7047771702260579
+  bagging_fraction: 0.9904341139509735
   bagging_freq: 5
   verbose: -1
   metric: l1
