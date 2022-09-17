@@ -9,24 +9,15 @@ patience = 100
 progress_bar_refresh_rate = 0
 
 model_dict = {
-    'pytorch_tabular_node': ('pytorch_tabular_node', 'pytorch'),
-    'danet': ('danet', 'pytorch'),
-    'nam': ('nam', 'pytorch'),
-    'widedeep_tab_net': ('widedeep_tab_net', 'pytorch'),
-    'widedeep_saint': ('widedeep_saint', 'pytorch'),
-    'widedeep_ft_transformer': ('widedeep_ft_transformer', 'pytorch'),
-    'pytorch_tabular_autoint': ('pytorch_tabular_autoint', 'pytorch'),
-    'pytorch_tabular_tabnet': ('pytorch_tabular_tabnet', 'pytorch'),
-
     # 'elastic_net': ('elastic_net', 'stand_alone'),
     # 'xgboost': ('xgboost', 'stand_alone'),
     # 'catboost': ('catboost', 'stand_alone'),
     # 'lightgbm': ('lightgbm', 'stand_alone'),
     # 'widedeep_tab_mlp': ('widedeep_tab_mlp', 'pytorch'),
     # 'widedeep_tab_net': ('widedeep_tab_net', 'pytorch'),
-    # 'widedeep_saint': ('widedeep_saint', 'pytorch'),
-    # 'widedeep_ft_transformer': ('widedeep_ft_transformer', 'pytorch'),
-    # 'pytorch_tabular_autoint': ('pytorch_tabular_autoint', 'pytorch'),
+    'widedeep_saint': ('widedeep_saint', 'pytorch'),
+    'widedeep_ft_transformer': ('widedeep_ft_transformer', 'pytorch'),
+    'pytorch_tabular_autoint': ('pytorch_tabular_autoint', 'pytorch'),
     # 'pytorch_tabular_tabnet': ('pytorch_tabular_tabnet', 'pytorch'),
     # 'pytorch_tabular_node': ('pytorch_tabular_node', 'pytorch'),
     # 'nbm_spam_spam': ('nbm_spam_spam', 'pytorch'),
