@@ -8,6 +8,11 @@ max_epochs = 1000
 patience = 100
 progress_bar_refresh_rate = 0
 
+is_shap = True
+is_shap_save = True
+shap_explainer = "Kernel" # Tree Kernel Deep
+shap_bkgrd = "trn" # trn all tree_path_dependent
+
 model_dict = {
     # 'elastic_net': ('elastic_net', 'stand_alone'),
     # 'xgboost': ('xgboost', 'stand_alone'),
@@ -52,6 +57,10 @@ for model_name, (model_type, model_framework) in model_dict.items():
            f"max_epochs={max_epochs} " \
            f"patience={patience} " \
            f"print_config=False " \
+           f"is_shap={is_shap} " \
+           f"is_shap_save={is_shap_save} " \
+           f"shap_explainer={shap_explainer} " \
+           f"shap_bkgrd={shap_bkgrd} " \
            f"base_dir={base_dir} "
 
     os.system(f"sbatch run_{segment}.sh \"{args}\"")
