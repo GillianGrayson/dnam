@@ -2,7 +2,7 @@ import os
 
 segment = 'a100'
 
-features_file = "feats_con"
+features_file = "feats_con_top10"
 
 base_dir = f"/common/home/yusipov_i/data/unn/immuno"
 
@@ -66,7 +66,7 @@ for model_name, (model_type, model_framework) in model_dict.items():
            f"shap_explainer={shap_explainer} " \
            f"shap_bkgrd={shap_bkgrd} " \
            f"feature_importance={feature_importance} " \
-           f"datamodule.feats_con_fn={base_dir}/{features_file}.xlsx" \
+           f"datamodule.feats_con_fn={base_dir}/{features_file}.xlsx " \
            f"base_dir={base_dir} "
 
     os.system(f"sbatch run_{segment}.sh \"{args}\"")
