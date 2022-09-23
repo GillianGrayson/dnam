@@ -32,7 +32,7 @@ model_framework: stand_alone
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: catboost
+model_type: lightgbm
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -72,10 +72,10 @@ data_dir: "${base_dir}"
 feature_importance: none # none shap_deep shap_kernel shap_tree native
 
 # SHAP values
-is_shap: False # True False
+is_shap: True # True False
 is_shap_save: False
-shap_explainer: Deep # Tree Kernel Deep
-shap_bkgrd: trn # trn all tree_path_dependent
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
 
 # LIME weights
 is_lime: False # True False
@@ -85,7 +85,7 @@ lime_save_weights: True
 
 # Plot params
 num_top_features: 10
-num_examples: 10
+num_examples: 200
 
 # specify here default training configuration
 defaults:
@@ -158,13 +158,13 @@ catboost:
 lightgbm:
   objective: regression
   boosting: gbdt
-  learning_rate: 0.0057359111735470905
+  learning_rate: 0.042943516804783644
   num_leaves: 31
   device: cpu
   max_depth: -1
-  min_data_in_leaf: 26
-  feature_fraction: 0.7047771702260579
-  bagging_fraction: 0.9904341139509735
+  min_data_in_leaf: 9
+  feature_fraction: 0.973270293196495
+  bagging_fraction: 0.6189923756647909
   bagging_freq: 5
   verbose: -1
   metric: l1
@@ -757,15 +757,15 @@ danet:
   loss_type: "L1Loss"
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.062047232980216
-  optimizer_weight_decay: 5.856530209652199e-05
+  optimizer_lr: 0.09103819498050514
+  optimizer_weight_decay: 2.1396873600065802e-05
   scheduler_step_size: 100
   scheduler_gamma: 0.8
-  layer_num: 24
-  base_outdim: 32
-  k: 5
+  layer_num: 30
+  base_outdim: 64
+  k: 7
   virtual_batch_size: 256
-  drop_rate: 0.15
+  drop_rate: 0.03479968662869476
 
 nam:
   _target_: src.models.tabular.nam.nam.NeuralAdditiveModel

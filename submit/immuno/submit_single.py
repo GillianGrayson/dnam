@@ -10,12 +10,15 @@ max_epochs = 1000
 patience = 100
 progress_bar_refresh_rate = 0
 
-is_shap = False
-is_shap_save = False
+num_top_features = 10
+num_examples = 300
+
+is_shap = True
+is_shap_save = True
 shap_explainer = "Kernel" # Tree Kernel Deep
 shap_bkgrd = "trn" # trn all tree_path_dependent
 
-feature_importance = "shap_kernel" # none shap_deep shap_kernel shap_tree native
+feature_importance = "none" # none shap_deep shap_kernel shap_tree native
 
 model_dict = {
     # 'elastic_net': ('elastic_net', 'stand_alone'),
@@ -67,6 +70,8 @@ for model_name, (model_type, model_framework) in model_dict.items():
            f"shap_bkgrd={shap_bkgrd} " \
            f"feature_importance={feature_importance} " \
            f"datamodule.feats_con_fn={base_dir}/{features_file}.xlsx " \
+           f"num_top_features={num_top_features} "\
+           f"num_examples={num_examples} " \
            f"base_dir={base_dir} "
 
     os.system(f"sbatch run_{segment}.sh \"{args}\"")
