@@ -12,8 +12,8 @@ def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
+    from src.tasks.regression.inference import inference
     from src.utils import utils
-    from src.tasks import inference
     import torch
 
     # A couple of optional utilities:
@@ -23,16 +23,17 @@ def main(config: DictConfig):
     # You can safely get rid of this line if you don't want those
     utils.extras(config)
 
+    # Pretty print config using Rich library
+    if config.get("print_config"):
+        utils.print_config(config, resolve=True)
+
+
     use_cuda = torch.cuda.is_available()
     if use_cuda:
         print('CUDNN VERSION:', torch.backends.cudnn.version())
         print('Number CUDA Devices:', torch.cuda.device_count())
         print('CUDA Device Name:', torch.cuda.get_device_name(0))
         print('CUDA Device Total Memory [GB]:', torch.cuda.get_device_properties(0).total_memory / 1024**3)
-
-    # Pretty print config using Rich library
-    if config.get("print_config"):
-        utils.print_config(config, resolve=True)
 
     return inference(config)
 
