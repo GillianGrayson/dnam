@@ -284,3 +284,5 @@ def inference(config: DictConfig):
         explain_lime(config, expl_data)
     if config.is_shap == True:
         explain_shap(config, expl_data)
+
+    df.to_excel("df.xlsx", index=True)
