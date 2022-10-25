@@ -17,7 +17,7 @@ save_path = f"{path}/{platform}/{dataset}/calculator"
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
-pheno = pd.read_pickle(f"{path}/{platform}/{dataset}/pheno.pkl")
+pheno = pd.read_excel(f"{path}/{platform}/{dataset}/pheno.xlsx", index_col="Sample_Name")
 pheno = pheno[[age_col, sex_col]]
 pheno[sex_col] = pheno[sex_col].map({sex_dict["F"]: 1, sex_dict["M"]: 0})
 pheno.rename(columns={age_col: 'Age', sex_col: 'Female'}, inplace=True)
@@ -27,6 +27,7 @@ pheno.to_csv(f"{save_path}/pheno.csv", na_rep="NA")
 with open(f"{path}/lists/cpgs/cpgs_horvath_calculator.txt") as f:
     cpgs_h = f.read().splitlines()
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
+betas.set_index(pheno.index, inplace=True)
 cpgs_na = list(set(cpgs_h) - set(betas.columns.values))
 betas = betas[betas.columns.intersection(cpgs_h)]
 betas[cpgs_na] = np.nan
