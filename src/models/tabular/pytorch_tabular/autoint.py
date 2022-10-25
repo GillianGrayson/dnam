@@ -1,5 +1,5 @@
 from src.models.tabular.pytorch_tabular.base import PTBaseModel
-from pytorch_tabular.models.autoint.autoint import AutoIntModel
+from src.models.tabular.pytorch_tabular.repository.models.autoint.autoint import AutoIntModel
 from omegaconf import DictConfig
 
 

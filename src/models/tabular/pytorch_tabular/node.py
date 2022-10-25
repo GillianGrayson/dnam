@@ -1,5 +1,5 @@
 from src.models.tabular.pytorch_tabular.base import PTBaseModel
-from pytorch_tabular.models.node.node_model import NODEModel
+from src.models.tabular.pytorch_tabular.repository.models.node.node_model import NODEModel
 from omegaconf import DictConfig
 
 

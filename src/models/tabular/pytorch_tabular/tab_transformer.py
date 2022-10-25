@@ -1,5 +1,5 @@
 from src.models.tabular.pytorch_tabular.base import PTBaseModel
-from pytorch_tabular.models.tab_transformer.tab_transformer import TabTransformerModel
+from src.models.tabular.pytorch_tabular.repository.models.tab_transformer.tab_transformer import TabTransformerModel
 from omegaconf import DictConfig
 
 

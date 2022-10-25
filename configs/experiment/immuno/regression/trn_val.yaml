@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: stand_alone
+model_framework: pytorch
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -32,7 +32,7 @@ model_framework: stand_alone
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: lightgbm
+model_type: pytorch_tabular_node
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -72,7 +72,7 @@ data_dir: "${base_dir}"
 feature_importance: none # none shap_deep shap_kernel shap_tree native
 
 # SHAP values
-is_shap: True # True False
+is_shap: False # True False
 is_shap_save: False
 shap_explainer: Tree # Tree Kernel Deep
 shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
@@ -101,7 +101,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.tabular.TabularDataModule
   task: ${task}
-  feats_con_fn: "${data_dir}/feats_con.xlsx"
+  feats_con_fn: "${data_dir}/feats_con_top10.xlsx"
   feats_cat_fn: null
   feats_cat_encoding: label
   feats_cat_embed_dim: ${embed_dim}

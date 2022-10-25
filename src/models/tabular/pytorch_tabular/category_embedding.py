@@ -1,5 +1,5 @@
 from src.models.tabular.pytorch_tabular.base import PTBaseModel
-from pytorch_tabular.models.category_embedding.category_embedding_model import CategoryEmbeddingModel
+from src.models.tabular.pytorch_tabular.repository.models.category_embedding.category_embedding_model import CategoryEmbeddingModel
 from omegaconf import DictConfig
 
 
