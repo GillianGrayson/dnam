@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: pytorch
+model_framework: stand_alone
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -32,15 +32,15 @@ model_framework: pytorch
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: danet
+model_type: lightgbm
 target: Age
 
 project_name: ${data_type}_inference_${model_type}
 
 seed: 1337
 
-path_ckpt: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/immuno/models/small/danet/32/best_fold_0009.ckpt"
-path_parts: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/immuno/models/small/danet/32/predictions.xlsx"
+path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/lightgbm/846/epoch_46_best_0022.model"
+path_parts: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/immuno/205_new_imp(fast_knn)_replace(quarter)_parts.xlsx"
 
 in_dim: 1
 out_dim: 1
@@ -91,7 +91,7 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
+  data_fn: "${data_dir}/205_new_imp(fast_knn)_replace(quarter).xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val
@@ -122,3 +122,37 @@ danet:
   k: 7
   virtual_batch_size: 256
   drop_rate: 0.03479968662869476
+
+widedeep_tab_net:
+  _target_: src.models.tabular.widedeep.tab_net.WDTabNetModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.12476988667170572
+  optimizer_weight_decay: 1.216983116182198e-07
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  column_idx: null
+  cat_embed_input: null
+  cat_embed_dropout: 0.1
+  use_cat_bias: False
+  cat_embed_activation: null
+  continuous_cols: null
+  cont_norm_layer: "batchnorm"
+  embed_continuous: False
+  cont_embed_dim: 16
+  cont_embed_dropout: 0.1
+  use_cont_bias: True
+  cont_embed_activation: null
+  n_steps: 2
+  attn_dim: 20
+  dropout: 0.028354475497966526
+  n_glu_step_dependent: 1
+  n_glu_shared: 4
+  ghost_bn: True
+  virtual_batch_size: 128
+  momentum: 0.1068950240822053
+  gamma: 1.1677939635640748
+  epsilon: 1e-15
+  mask_type: "entmax"

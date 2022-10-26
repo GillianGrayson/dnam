@@ -8,7 +8,6 @@ from pytorch_lightning import (
     LightningDataModule,
     seed_everything,
 )
-from src.tasks import log_hyperparameters
 from pytorch_lightning.loggers import LightningLoggerBase
 from src.utils import utils
 from src.tasks.routines import eval_classification
