@@ -70,7 +70,7 @@ class RepeatedStratifiedKFoldCVSplitter(CVSplitter):
                     raise ValueError(f'Unsupported self.datamodule.task: {self.datamodule.task}')
 
                 for ids_trn, ids_val in splits:
-                    yield ids_trn, ids_val
+                    yield ids[ids_trn], ids[ids_val]
 
             else:
                 top_feat_vals = cross_validation_df[self.datamodule.split_top_feat].unique()

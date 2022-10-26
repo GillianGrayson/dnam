@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: pytorch
+model_framework: stand_alone
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -32,7 +32,7 @@ model_framework: pytorch
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: pytorch_tabular_node
+model_type: lightgbm
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -47,7 +47,7 @@ cv_n_splits: 5
 cv_n_repeats: 5
 
 optimized_metric: mean_absolute_error
-optimized_mean: cv_mean
+optimized_mean: cv_mean_val_tst # cv_mean
 optimized_part: val # tst
 direction: min
 
@@ -107,7 +107,7 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
+  data_fn: "${data_dir}/global_data/550_raw.xlsx" # "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val
