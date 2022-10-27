@@ -5,7 +5,7 @@ data_type: immuno
 # Available frameworks of models:
 # stand_alone
 # pytorch
-model_framework: stand_alone
+model_framework: pytorch
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)
@@ -32,15 +32,15 @@ model_framework: stand_alone
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: lightgbm
+model_type: danet
 target: Age
 
 project_name: ${data_type}_inference_${model_type}
 
 seed: 1337
 
-path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/lightgbm/846/epoch_46_best_0022.model"
-path_parts: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/immuno/205_new_imp(fast_knn)_replace(quarter)_parts.xlsx"
+path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
+path_parts: "${data_dir}/global_data/550_type(raw)_parts.xlsx"
 
 in_dim: 1
 out_dim: 1
@@ -91,7 +91,7 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/205_new_imp(fast_knn)_replace(quarter).xlsx"
+  data_fn: "${data_dir}/global_data/550_type(raw).xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val

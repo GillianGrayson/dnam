@@ -2,7 +2,7 @@ import os
 
 segment = 'a100'
 
-features_file = "feats_con_top10"
+features_file = "feats_con" # "feats_con_top10"
 
 base_dir = f"/common/home/yusipov_i/data/unn/immuno"
 
@@ -11,12 +11,12 @@ patience = 100
 progress_bar_refresh_rate = 0
 
 model_dict = {
-    # 'elastic_net': ('elastic_net', 'stand_alone'),
+    'elastic_net': ('elastic_net', 'stand_alone'),
     # 'xgboost': ('xgboost', 'stand_alone'),
     # 'catboost': ('catboost', 'stand_alone'),
-    'lightgbm': ('lightgbm', 'stand_alone'),
+    # 'lightgbm': ('lightgbm', 'stand_alone'),
     # 'widedeep_tab_mlp': ('widedeep_tab_mlp', 'pytorch'),
-    'widedeep_tab_net': ('widedeep_tab_net', 'pytorch'),
+    # 'widedeep_tab_net': ('widedeep_tab_net', 'pytorch'),
     # 'widedeep_saint': ('widedeep_saint', 'pytorch'),
     # 'widedeep_ft_transformer': ('widedeep_ft_transformer', 'pytorch'),
     # 'pytorch_tabular_autoint': ('pytorch_tabular_autoint', 'pytorch'),
@@ -25,7 +25,7 @@ model_dict = {
     # 'nbm_spam_spam': ('nbm_spam_spam', 'pytorch'),
     # 'nbm_spam_nam': ('nbm_spam_nam', 'pytorch'),
     # 'nbm_spam_nbm': ('nbm_spam_nbm', 'pytorch'),
-    'danet': ('danet', 'pytorch'),
+    # 'danet': ('danet', 'pytorch'),
     # 'nam': ('nam', 'pytorch'),
     # 'arm_net_models_armnet': ('arm_net_models', 'pytorch'),
     # 'arm_net_models_armnet_1h': ('arm_net_models', 'pytorch'),
