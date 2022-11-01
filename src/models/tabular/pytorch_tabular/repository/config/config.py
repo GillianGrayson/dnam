@@ -5,7 +5,7 @@
 import logging
 import os
 from dataclasses import MISSING, dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from omegaconf import OmegaConf
 

@@ -14,9 +14,9 @@ from torch import Tensor
 from torch.autograd import Variable
 from torch.distributions import Categorical
 
-from src.models.tabular.pytorch_tabular.repository.models.autoint import AutoIntBackbone
-from src.models.tabular.pytorch_tabular.repository.models.category_embedding import CategoryEmbeddingBackbone
-from src.models.tabular.pytorch_tabular.repository.models.node import NODEBackbone
+from src.models.tabular.pytorch_tabular.repository.models.autoint.autoint import AutoIntBackbone
+from src.models.tabular.pytorch_tabular.repository.models.category_embedding.category_embedding_model import CategoryEmbeddingBackbone
+from src.models.tabular.pytorch_tabular.repository.models.node.node_model import NODEBackbone
 from src.models.tabular.pytorch_tabular.repository.models.node import utils as utils
 
 from ..base_model import BaseModel

@@ -2,7 +2,6 @@ import torch
 from src.models.tabular.base import BaseModel
 from .repository.models.nam import NAM
 from .repository.config.base import Config
-from typing import Any, List, Dict
 
 
 class NeuralAdditiveModel(BaseModel):

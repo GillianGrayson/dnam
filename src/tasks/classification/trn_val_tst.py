@@ -8,7 +8,6 @@ from pytorch_lightning import (
     seed_everything,
 )
 from pytorch_lightning.loggers import LightningLoggerBase
-
 import xgboost as xgb
 from catboost import CatBoost
 import lightgbm
@@ -29,6 +28,7 @@ import pickle
 import wandb
 import glob
 import os
+from src.models.tabular.base import get_model_framework_dict
 
 
 log = utils.get_logger(__name__)
@@ -41,6 +41,9 @@ def process(config: DictConfig) -> Optional[float]:
 
     if 'wandb' in config.logger:
         config.logger.wandb["project"] = config.project_name
+
+    model_framework_dict = get_model_framework_dict()
+    model_framework = model_framework_dict[config.model_type]
 
     # Init lightning datamodule
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -99,7 +102,7 @@ def process(config: DictConfig) -> Optional[float]:
         if 'wandb' in config.logger:
             config.logger.wandb["version"] = f"fold_{fold_idx}_{start_time}"
 
-        if config.model_framework == "pytorch":
+        if model_framework == "pytorch":
             # Init lightning model
             config.model = config[config.model_type]
             widedeep = datamodule.get_widedeep()
@@ -139,7 +142,7 @@ def process(config: DictConfig) -> Optional[float]:
                     log.info(f"Instantiating logger <{lg_conf._target_}>")
                     loggers.append(hydra.utils.instantiate(lg_conf))
 
-        if config.model_framework == "pytorch":
+        if model_framework == "pytorch":
             # Init lightning trainer
             log.info(f"Instantiating trainer <{config.trainer._target_}>")
             trainer: Trainer = hydra.utils.instantiate(
@@ -154,17 +157,17 @@ def process(config: DictConfig) -> Optional[float]:
                 callbacks=callbacks,
                 logger=loggers,
             )
-        elif config.model_framework == "stand_alone":
+        elif model_framework == "stand_alone":
             log.info("Logging hyperparameters!")
             utils.log_hyperparameters_stand_alone(
                 config=config,
                 logger=loggers,
             )
         else:
-            raise ValueError(f"Unsupported model_framework: {config.model_framework}")
+            raise ValueError(f"Unsupported model_framework: {model_framework}")
 
         # Train the model
-        if config.model_framework == "pytorch":
+        if model_framework == "pytorch":
             log.info("Starting training!")
             trainer.fit(model=model, datamodule=datamodule)
 
@@ -209,7 +212,7 @@ def process(config: DictConfig) -> Optional[float]:
                 model.freeze()
             feature_importances = model.get_feature_importance(X_trn, feature_names, config.feature_importance)
 
-        elif config.model_framework == "stand_alone":
+        elif model_framework == "stand_alone":
             if config.model_type == "xgboost":
                 model_params = {
                     'num_class': config.xgboost.output_dim,
@@ -563,7 +566,7 @@ def process(config: DictConfig) -> Optional[float]:
                 raise ValueError(f"Model {config.model_type} is not supported")
 
         else:
-            raise ValueError(f"Unsupported model_framework: {config.model_framework}")
+            raise ValueError(f"Unsupported model_framework: {model_framework}")
 
         metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, loggers, 'trn', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
@@ -577,7 +580,7 @@ def process(config: DictConfig) -> Optional[float]:
                 metrics_cv.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
 
         # Make sure everything closed properly
-        if config.model_framework == "pytorch":
+        if model_framework == "pytorch":
             log.info("Finalizing!")
             utils.finish(
                 config=config,
@@ -587,7 +590,7 @@ def process(config: DictConfig) -> Optional[float]:
                 callbacks=callbacks,
                 logger=loggers,
             )
-        elif config.model_framework == "stand_alone":
+        elif model_framework == "stand_alone":
             if 'wandb' in config.logger:
                 wandb.define_metric(f"epoch")
                 wandb.define_metric(f"trn/loss")
@@ -598,7 +601,7 @@ def process(config: DictConfig) -> Optional[float]:
             if 'wandb' in config.logger:
                 wandb.finish()
         else:
-            raise ValueError(f"Unsupported model_framework: {config.model_framework}")
+            raise ValueError(f"Unsupported model_framework: {model_framework}")
 
         if config.optimized_part == "trn":
             metrics_main = metrics_trn
@@ -622,7 +625,7 @@ def process(config: DictConfig) -> Optional[float]:
 
         if is_renew:
             best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
-            if config.model_framework == "pytorch":
+            if model_framework == "pytorch":
                 if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
                     model = type(model).load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                     model.eval()
@@ -639,7 +642,7 @@ def process(config: DictConfig) -> Optional[float]:
                     tmp = best["model"](batch)
                     return tmp.cpu().detach().numpy()
 
-            elif config.model_framework == "stand_alone":
+            elif model_framework == "stand_alone":
                 best["model"] = model
                 best['loss_info'] = loss_info
 
@@ -668,7 +671,7 @@ def process(config: DictConfig) -> Optional[float]:
                     raise ValueError(f"Model {config.model_type} is not supported")
 
             else:
-                raise ValueError(f"Unsupported model_framework: {config.model_framework}")
+                raise ValueError(f"Unsupported model_framework: {model_framework}")
 
             best['predict_func'] = predict_func
             best['feature_importances'] = feature_importances
@@ -712,7 +715,7 @@ def process(config: DictConfig) -> Optional[float]:
 
     datamodule.plot_split(f"_best_{best['fold']:04d}")
 
-    if config.model_framework == "pytorch":
+    if model_framework == "pytorch":
         fns = glob.glob(f"{ckpt_name}*.ckpt")
         fns.remove(f"{ckpt_name}_fold_{best['fold']:04d}.ckpt")
         for fn in fns:
@@ -764,7 +767,7 @@ def process(config: DictConfig) -> Optional[float]:
         metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
         metrics_tst.to_excel(f"metrics_tst_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
-    elif config.model_framework == "stand_alone":
+    elif model_framework == "stand_alone":
         eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
         if config.model_type == "xgboost":
             best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")

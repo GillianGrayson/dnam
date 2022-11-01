@@ -1,10 +1,8 @@
 import logging
-import pandas as pd
 import torch.nn as nn
-from sklearn.cluster import KMeans
+
 
 logger = logging.getLogger(__name__)
-
 
 
 def _initialize_layers(activation, initialization, layers):

@@ -1,5 +1,4 @@
 from src.models.tabular.pytorch_tabular.base import PTBaseModel
-#from pytorch_tabular.models.tabnet.tabnet_model import TabNetModel
 from omegaconf import DictConfig
 from src.models.tabular.pytorch_tabular.repository.models.tabnet.tabnet_model import TabNetModel
 

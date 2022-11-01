@@ -9,6 +9,37 @@ import shap
 import pandas as pd
 
 
+def get_model_framework_dict():
+    model_framework = {
+        "elastic_net": "stand_alone",
+        "xgboost": "stand_alone",
+        "catboost": "stand_alone",
+        "lightgbm": "stand_alone",
+        "widedeep_tab_mlp": "pytorch",
+        "widedeep_tab_resnet": "pytorch",
+        "widedeep_tab_net": "pytorch",
+        "widedeep_tab_transformer": "pytorch",
+        "widedeep_ft_transformer": "pytorch",
+        "widedeep_saint": "pytorch",
+        "widedeep_tab_fastformer": "pytorch",
+        "widedeep_tab_perceiver": "pytorch",
+        "pytorch_tabular_autoint": "pytorch",
+        "pytorch_tabular_tabnet": "pytorch",
+        "pytorch_tabular_node": "pytorch",
+        "pytorch_tabular_category_embedding": "pytorch",
+        "pytorch_tabular_ft_transformer": "pytorch",
+        "pytorch_tabular_tab_transformer": "pytorch",
+        "nbm_spam_spam": "pytorch",
+        "nbm_spam_nam": "pytorch",
+        "nbm_spam_nbm": "pytorch",
+        "arm_net_models": "pytorch",
+        "danet": "pytorch",
+        "nam": "pytorch",
+        "stg": "pytorch",
+    }
+    return model_framework
+
+
 class BaseModel(pl.LightningModule):
 
     def __init__(self,  **kwargs):
@@ -169,8 +200,6 @@ class BaseModel(pl.LightningModule):
 
     def get_feature_importance(self, data, feature_names, method="shap_kernel"):
 
-
-
         if method.startswith("shap"):
 
             if self.hparams.task == "regression":
@@ -196,7 +225,6 @@ class BaseModel(pl.LightningModule):
                     raise ValueError(f"Unsupported feature importance method: {method}")
 
                 importance_values = np.mean(np.abs(shap_values), axis=0)
-
 
             elif self.hparams.task == "classification":
 

@@ -3,10 +3,6 @@
 task: classification
 data_type: 1st_day
 experiment_type: real
-# Available frameworks of models:
-# stand_alone
-# pytorch
-model_framework: pytorch
 # Available types of models (framework):
 # logistic_regression (stand_alone)
 # svm (stand_alone)

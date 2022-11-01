@@ -2,10 +2,6 @@
 
 task: regression
 data_type: immuno
-# Available frameworks of models:
-# stand_alone
-# pytorch
-model_framework: pytorch
 # Available types of models:
 # elastic_net (stand_alone)
 # xgboost (stand_alone)

@@ -1,8 +1,7 @@
 import torch
 from src.models.tabular.base import BaseModel
 from src.models.tabular.nbm_spam.repository.concept_nam import ConceptNAMNary
-from typing import Dict
-from torch import Tensor
+
 
 class NAMModel(BaseModel):
 
