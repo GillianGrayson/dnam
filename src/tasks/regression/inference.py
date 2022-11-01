@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 import lightgbm as lgb
 import hydra
@@ -14,11 +15,10 @@ from scripts.python.routines.plot.layout import add_layout
 from src.tasks.routines import eval_regression
 from catboost import CatBoost
 from scripts.python.routines.plot.scatter import add_scatter_trace
-import pandas as pd
+import plotly.express as px
 from src.tasks.regression.shap import explain_shap
 from src.tasks.regression.lime import explain_lime
 from scipy.stats import mannwhitneyu
-from scripts.python.routines.plot.p_value import add_p_value_annotation
 
 
 log = utils.get_logger(__name__)
@@ -34,35 +34,26 @@ def inference(config: DictConfig):
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: TabularDataModule = hydra.utils.instantiate(config.datamodule)
-    datamodule.perform_split()
     feature_names = datamodule.get_feature_names()
     num_features = len(feature_names['all'])
     config.in_dim = num_features
     target_name = datamodule.get_target()
     df = datamodule.get_data()
 
-    df_parts = pd.read_excel(config.path_parts, index_col="index").iloc[:, [0]]
-    df_parts.rename(columns={df_parts.columns.values[0]: "part"}, inplace=True)
-    indexes_trn = df_parts.loc[df_parts["part"] == "trn", :].index.values
-    indexes_val = df_parts.loc[df_parts["part"] == "val", :].index.values
-    indexes_tst = df_parts.loc[df_parts["part"] == "tst", :].index.values
-
-    is_trn = True if len(indexes_trn) > 0 else False
-    is_val = True if len(indexes_val) > 0 else False
-    is_tst = True if len(indexes_tst) > 0 else False
-
-    if is_trn:
-        X_trn = df.loc[indexes_trn, feature_names['all']].values
-        y_trn = df.loc[indexes_trn, target_name].values
-        df.loc[indexes_trn, "part"] = "trn"
-    if is_val:
-        X_val = df.loc[indexes_val, feature_names['all']].values
-        y_val = df.loc[indexes_val, target_name].values
-        df.loc[indexes_val, "part"] = "val"
-    if is_tst:
-        X_tst = df.loc[indexes_tst, feature_names['all']].values
-        y_tst = df.loc[indexes_tst, target_name].values
-        df.loc[indexes_tst, "part"] = "tst"
+    df = df[df[config.data_part_column].notna()]
+    data_parts = df[config.data_part_column].dropna().unique()
+    data_part_main = config.data_part_main
+    data_parts = [data_part_main] + list(set(data_parts) - set([data_part_main]))
+    indexes = {}
+    X = {}
+    y = {}
+    y_pred = {}
+    colors = {}
+    for data_part_id, data_part in enumerate(data_parts):
+        indexes[data_part] = df.loc[df[config.data_part_column] == data_part, :].index.values
+        X[data_part] = df.loc[indexes[data_part], feature_names['all']].values
+        y[data_part] = df.loc[indexes[data_part], target_name].values
+        colors[data_part] = px.colors.qualitative.Light24[data_part_id]
 
     if config.model_framework == "pytorch":
         config.model = config[config.model_type]
@@ -78,9 +69,8 @@ def inference(config: DictConfig):
             config.model.categorical_cols = feature_names['cat']
             config.model.embedding_dims = embedding_dims
         elif config.model_type == 'nam':
-            num_unique_vals = [len(np.unique(X_trn[:, i])) for i in range(X_trn.shape[1])]
-            num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in
-                         num_unique_vals]
+            num_unique_vals = [len(np.unique(X[data_part_main][:, i])) for i in range(X[data_part_main].shape[1])]
+            num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
             config.model.num_units = num_units
         log.info(f"Instantiating model <{config.model._target_}>")
         model = hydra.utils.instantiate(config.model)
@@ -89,12 +79,8 @@ def inference(config: DictConfig):
         model.eval()
         model.freeze()
 
-        if is_trn:
-            y_trn_pred = model(torch.from_numpy(X_trn)).cpu().detach().numpy().ravel()
-        if is_val:
-            y_val_pred = model(torch.from_numpy(X_val)).cpu().detach().numpy().ravel()
-        if is_tst:
-            y_tst_pred = model(torch.from_numpy(X_tst)).cpu().detach().numpy().ravel()
+        for data_part in data_parts:
+            y_pred[data_part] = model(torch.from_numpy(X[data_part])).cpu().detach().numpy().ravel()
 
         def predict_func(X):
             batch = {
@@ -110,15 +96,9 @@ def inference(config: DictConfig):
             model = xgb.Booster()
             model.load_model(config.path_ckpt)
 
-            if is_trn:
-                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=feature_names['all'])
-                y_trn_pred = model.predict(dmat_trn)
-            if is_val:
-                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names['all'])
-                y_val_pred = model.predict(dmat_val)
-            if is_tst:
-                dmat_tst = xgb.DMatrix(X_tst, y_tst, feature_names=feature_names['all'])
-                y_tst_pred = model.predict(dmat_tst)
+            for data_part in data_parts:
+                dmat = xgb.DMatrix(X[data_part], y[data_part], feature_names=feature_names['all'])
+                y_pred[data_part] = model.predict(dmat)
 
             def predict_func(X):
                 X = xgb.DMatrix(X, feature_names=feature_names['all'])
@@ -129,12 +109,8 @@ def inference(config: DictConfig):
             model = CatBoost()
             model.load_model(config.path_ckpt)
 
-            if is_trn:
-                y_trn_pred = model.predict(X_trn).astype('float32')
-            if is_val:
-                y_val_pred = model.predict(X_val).astype('float32')
-            if is_tst:
-                y_tst_pred = model.predict(X_tst).astype('float32')
+            for data_part in data_parts:
+                y_pred[data_part] = model.predict(X[data_part]).astype('float32')
 
             def predict_func(X):
                 y = model.predict(X)
@@ -143,12 +119,8 @@ def inference(config: DictConfig):
         elif config.model_type == "lightgbm":
             model = lgb.Booster(model_file=config.path_ckpt)
 
-            if is_trn:
-                y_trn_pred = model.predict(X_trn, num_iteration=model.best_iteration).astype('float32')
-            if is_val:
-                y_val_pred = model.predict(X_val, num_iteration=model.best_iteration).astype('float32')
-            if is_tst:
-                y_tst_pred = model.predict(X_tst, num_iteration=model.best_iteration).astype('float32')
+            for data_part in data_parts:
+                y_pred[data_part] = model.predict(X[data_part], num_iteration=model.best_iteration).astype('float32')
 
             def predict_func(X):
                 y = model.predict(X, num_iteration=model.best_iteration)
@@ -160,141 +132,82 @@ def inference(config: DictConfig):
     else:
         raise ValueError(f"Unsupported model_framework: {config.model_framework}")
 
-    if is_trn:
-        df.loc[indexes_trn, "Estimation"] = y_trn_pred
-    if is_val:
-        df.loc[indexes_val, "Estimation"] = y_val_pred
-    if is_tst:
-        df.loc[indexes_tst, "Estimation"] = y_tst_pred
+    for data_part in data_parts:
+        df.loc[indexes[data_part], "Estimation"] = y_pred[data_part]
+        eval_regression(config, y[data_part], y_pred[data_part], None, data_part, is_log=False, is_save=True, file_suffix=f"")
 
-    if is_trn:
-        eval_regression(config, y_trn, y_trn_pred, None, 'trn', is_log=False, is_save=True, file_suffix=f"")
-    if is_val:
-        eval_regression(config, y_val, y_val_pred, None, 'val', is_log=False, is_save=True, file_suffix=f"")
-    if is_tst:
-        eval_regression(config, y_tst, y_tst_pred, None, 'tst', is_log=False, is_save=True, file_suffix=f"")
-
-
-    if is_trn:
-        formula = f"Estimation ~ {target_name}"
-        model_linear = smf.ols(formula=formula, data=df.loc[indexes_trn, :]).fit()
-        df.loc[indexes_trn, "Estimation acceleration"] = df.loc[indexes_trn, "Estimation"].values - model_linear.predict(df.loc[indexes_trn, :])
-        if is_val:
-            df.loc[indexes_val, "Estimation acceleration"] = df.loc[indexes_val, "Estimation"].values - model_linear.predict(df.loc[indexes_val, :])
-        if is_tst:
-            df.loc[indexes_tst, "Estimation acceleration"] = df.loc[indexes_tst, "Estimation"].values - model_linear.predict(df.loc[indexes_tst, :])
+    formula = f"Estimation ~ {target_name}"
+    model_linear = smf.ols(formula=formula, data=df.loc[indexes[data_part_main], :]).fit()
     fig = go.Figure()
-    if is_trn:
-        add_scatter_trace(fig, df.loc[indexes_trn, target_name].values, df.loc[indexes_trn, "Estimation"].values, f"Train")
-        add_scatter_trace(fig, df.loc[indexes_trn, target_name].values, model_linear.fittedvalues.values, "", "lines")
-    if is_val:
-        add_scatter_trace(fig, df.loc[indexes_val, target_name].values, df.loc[indexes_val, "Estimation"].values, f"Val")
-    if is_tst:
-        add_scatter_trace(fig, df.loc[indexes_tst, target_name].values, df.loc[indexes_tst, "Estimation"].values, f"Test")
+    for data_part in data_parts:
+        df.loc[indexes[data_part], "Estimation acceleration"] = df.loc[indexes[data_part], "Estimation"].values - model_linear.predict(df.loc[indexes[data_part], :])
+        if data_part == data_part_main:
+            add_scatter_trace(fig, df.loc[indexes[data_part], target_name].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
+            add_scatter_trace(fig, df.loc[indexes[data_part], target_name].values, model_linear.fittedvalues.values, "", "lines")
+        else:
+            add_scatter_trace(fig, df.loc[indexes[data_part], target_name].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
     add_layout(fig, target_name, f"Estimation", f"")
-    fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
+    fig.update_layout({'colorway': [colors[data_part_main]] + [colors[data_part] for data_part in data_parts]})
     fig.update_layout(legend_font_size=20)
     fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
     save_figure(fig, f"scatter")
 
-    if is_trn:
-        dist_num_bins = 15
-        fig = go.Figure()
+    fig = go.Figure()
+    dist_num_bins = 15
+    df_mw = pd.DataFrame(data=np.zeros(shape=(len(data_parts) - 1, 2)),index=list(set(data_parts) - set([data_part_main])), columns=["stat", "pval"])
+    for data_part in data_parts:
         fig.add_trace(
             go.Violin(
-                y=df.loc[indexes_trn, "Estimation acceleration"].values,
-                name=f"Train",
+                y=df.loc[indexes[data_part], "Estimation acceleration"].values,
+                name=data_part,
                 box_visible=True,
                 meanline_visible=True,
                 showlegend=True,
                 line_color='black',
-                fillcolor='blue',
-                marker=dict(color='blue', line=dict(color='black', width=0.3), opacity=0.8),
+                fillcolor=colors[data_part],
+                marker=dict(color=colors[data_part], line=dict(color='black', width=0.3), opacity=0.8),
                 points='all',
-                bandwidth=np.ptp(df.loc[indexes_trn, "Estimation acceleration"].values) / dist_num_bins,
+                bandwidth=np.ptp(df.loc[indexes[data_part], "Estimation acceleration"].values) / dist_num_bins,
                 opacity=0.8
             )
         )
-        if is_val:
-            fig.add_trace(
-                go.Violin(
-                    y=df.loc[indexes_val, "Estimation acceleration"].values,
-                    name=f"Val",
-                    box_visible=True,
-                    meanline_visible=True,
-                    showlegend=True,
-                    line_color='black',
-                    fillcolor='red',
-                    marker=dict(color='red', line=dict(color='black', width=0.3), opacity=0.8),
-                    points='all',
-                    bandwidth=np.ptp(df.loc[indexes_val, "Estimation acceleration"].values) / dist_num_bins,
-                    opacity=0.8
-                )
-            )
-        if is_tst:
-            fig.add_trace(
-                go.Violin(
-                    y=df.loc[indexes_tst, "Estimation acceleration"].values,
-                    name=f"Test",
-                    box_visible=True,
-                    meanline_visible=True,
-                    showlegend=True,
-                    line_color='black',
-                    fillcolor='green',
-                    marker=dict(color='green', line=dict(color='black', width=0.3), opacity=0.8),
-                    points='all',
-                    bandwidth=np.ptp(df.loc[indexes_tst, "Estimation acceleration"].values) / 50,
-                    opacity=0.8
-                )
-            )
         add_layout(fig, "", "Estimation acceleration", f"")
-        fig.update_layout({'colorway': ['red', 'blue', 'green']})
-        if is_val:
-            stat_01, pval_01 = mannwhitneyu(
-                df.loc[indexes_trn, "Estimation acceleration"].values,
-                df.loc[indexes_val, "Estimation acceleration"].values,
+
+
+        if data_part != data_part_main:
+            df_mw.at[data_part, "stat"], df_mw.at[data_part, "pval"] = mannwhitneyu(
+                df.loc[indexes[data_part_main], "Estimation acceleration"].values,
+                df.loc[indexes[data_part], "Estimation acceleration"].values,
                 alternative='two-sided'
             )
-            if is_tst:
-                stat_02, pval_02 = mannwhitneyu(
-                    df.loc[indexes_trn, "Estimation acceleration"].values,
-                    df.loc[indexes_tst, "Estimation acceleration"].values,
-                    alternative='two-sided'
-                )
-                stat_12, pval_12 = mannwhitneyu(
-                    df.loc[indexes_val, "Estimation acceleration"].values,
-                    df.loc[indexes_tst, "Estimation acceleration"].values,
-                    alternative='two-sided'
-                )
-                fig = add_p_value_annotation(fig, {(0, 1): pval_01, (1, 2): pval_12, (0, 2): pval_02})
-            else:
-                fig = add_p_value_annotation(fig, {(0, 1): pval_01})
-        fig.update_layout(title_xref='paper')
-        fig.update_layout(legend_font_size=20)
-        fig.update_layout(
-            margin=go.layout.Margin(
-                l=110,
-                r=20,
-                b=50,
-                t=90,
-                pad=0
-            )
+
+    fig.update_layout(title_xref='paper')
+    fig.update_layout(legend_font_size=20)
+    fig.update_layout(
+        margin=go.layout.Margin(
+            l=110,
+            r=20,
+            b=50,
+            t=90,
+            pad=0
         )
-        fig.update_layout(
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.25,
-                xanchor="center",
-                x=0.5
-            )
+    )
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.25,
+            xanchor="center",
+            x=0.5
         )
-        save_figure(fig, f"violin")
+    )
+    save_figure(fig, f"violin")
+    df_mw.to_excel("df_mw.xlsx", index=True)
 
     df['ids'] = np.arange(df.shape[0])
-    ids_trn = df.loc[indexes_trn, 'ids'].values
-    ids_val = df.loc[indexes_val, 'ids'].values
-    ids_tst = df.loc[indexes_tst, 'ids'].values
+    ids = {'all': df['ids']}
+    for data_part in data_parts:
+        ids[data_part] = df.loc[indexes[data_part], 'ids'].values
 
     expl_data = {
         'model': model,
@@ -302,10 +215,7 @@ def inference(config: DictConfig):
         'df': df,
         'feature_names': feature_names['all'],
         'target_name': target_name,
-        'ids_all': np.arange(df.shape[0]),
-        'ids_trn': ids_trn,
-        'ids_val': ids_val,
-        'ids_tst': ids_tst
+        'ids': ids
     }
     if config.is_lime == True:
         explain_lime(config, expl_data)
@@ -313,3 +223,5 @@ def inference(config: DictConfig):
         explain_shap(config, expl_data)
 
     df.to_excel("df.xlsx", index=True)
+
+

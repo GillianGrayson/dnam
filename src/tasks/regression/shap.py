@@ -84,7 +84,7 @@ def explain_shap(config, expl_data):
     if config.shap_explainer == 'Tree' and config.shap_bkgrd == 'tree_path_dependent':
         explainer = shap.TreeExplainer(model)
     else:
-        ids_bkgrd = expl_data[f"ids_{config.shap_bkgrd}"]
+        ids_bkgrd = expl_data["ids"][config.shap_bkgrd]
         indexes_bkgrd = df.index[ids_bkgrd]
         X_bkgrd = df.loc[indexes_bkgrd, feature_names].values
         if config.shap_explainer == 'Tree':
@@ -96,11 +96,11 @@ def explain_shap(config, expl_data):
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
-    for part in ['val', 'trn', 'tst', 'all']:
-        if expl_data[f"ids_{part}"] is not None and len(expl_data[f"ids_{part}"]) > 0:
+    for part in expl_data["ids"]:
+        if expl_data["ids"][part] is not None and len(expl_data["ids"][part]) > 0:
             log.info(f"Calculating SHAP for {part}")
             Path(f"shap/{part}/global").mkdir(parents=True, exist_ok=True)
-            ids = expl_data[f"ids_{part}"]
+            ids = expl_data["ids"][part]
             indexes = df.index[ids]
             X = df.loc[indexes, feature_names].values
             y_pred = df.loc[indexes, "Estimation"].values

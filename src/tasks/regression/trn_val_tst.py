@@ -786,10 +786,12 @@ def process(config: DictConfig) -> Optional[float]:
         'df': df,
         'feature_names': feature_names['all'],
         'target_name': target_name,
-        'ids_all': np.arange(df.shape[0]),
-        'ids_trn': datamodule.ids_trn,
-        'ids_val': datamodule.ids_val,
-        'ids_tst': datamodule.ids_tst
+        'ids': {
+            'all': np.arange(df.shape[0]),
+            'trn': datamodule.ids_trn,
+            'val': datamodule.ids_val,
+            'tst': datamodule.ids_tst
+        }
     }
     if config.is_lime == True:
         explain_lime(config, expl_data)
