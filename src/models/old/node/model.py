@@ -3,7 +3,7 @@ from torch import nn
 import torch
 from .architecture_blocks import DenseODSTBlock
 from .utils import entmax15, entmoid15, Lambda
-from src.models.base import BaseModel
+from src.models.old.base import BaseModel
 
 
 class NodeModel(BaseModel):

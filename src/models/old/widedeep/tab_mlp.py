@@ -1,6 +1,6 @@
 from typing import Any, List
 import torch
-from src.models.base import BaseModel
+from src.models.old.base import BaseModel
 from pytorch_widedeep.models import TabMlp
 
 

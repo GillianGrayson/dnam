@@ -1,5 +1,5 @@
 import numpy as np
-from src.models.tabnet.model import TabNetModel
+from src.models.old.tabnet import TabNetModel
 import torch
 import lightgbm as lgb
 import hydra

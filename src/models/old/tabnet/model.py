@@ -1,7 +1,7 @@
 from typing import Any, List
 import torch
 from pytorch_tabnet.tab_network import TabNet
-from src.models.base import BaseModel
+from src.models.old.base import BaseModel
 
 
 class TabNetModel(BaseModel):

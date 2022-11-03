@@ -1,6 +1,6 @@
 from typing import Any, List
 from .blocks import *
-from src.models.base import BaseModel
+from src.models.old.base import BaseModel
 
 
 class SaintModel(BaseModel):
