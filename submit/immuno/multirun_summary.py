@@ -3,7 +3,7 @@ from glob import glob
 import os
 from omegaconf import OmegaConf
 
-path_models = f"/common/home/yusipov_i/data/unn/immuno/models"
+path_models = f"/common/home/{os.getlogin()}/data/unn/immuno/models"
 
 model = 'elastic_net'
 
@@ -31,6 +31,13 @@ for file in files:
     df_trn = pd.read_excel(f"{head}/{tail}", index_col="metric")
     for metric in df_trn.index.values:
         df_res.at[file, metric + "_trn"] = df_trn.at[metric, "trn"]
+
+    # Test
+    head, tail = os.path.split(file)
+    tail = tail.replace('val', 'tst')
+    df_tst = pd.read_excel(f"{head}/{tail}", index_col="metric")
+    for metric in df_trn.index.values:
+        df_res.at[file, metric + "_tst"] = df_tst.at[metric, "tst"]
 
     # Params
     cfg = OmegaConf.load(f"{head}/.hydra/overrides.yaml")

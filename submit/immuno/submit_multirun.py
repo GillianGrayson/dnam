@@ -4,7 +4,7 @@ segment = 'a100'
 
 features_file = "feats_con" # "feats_con_top10"
 
-base_dir = f"/common/home/yusipov_i/data/unn/immuno"
+base_dir = f"/common/home/{os.getlogin()}/data/unn/immuno"
 
 max_epochs = 1000
 patience = 100
