@@ -43,6 +43,9 @@ first_columns = [
     'mean_absolute_error_cv_mean_trn',
     'mean_absolute_error_val',
     'mean_absolute_error_cv_mean_val',
+    'mean_absolute_error_tst',
+    'mean_absolute_error_cv_mean_tst',
+    'mean_absolute_error_cv_mean_val_tst_val'
 ]
 df_res = df_res[first_columns + [col for col in df_res.columns if col not in first_columns]]
 df_res.to_excel(f"{path_load}/summary.xlsx", index=True, index_label="file")

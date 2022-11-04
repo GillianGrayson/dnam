@@ -11,7 +11,7 @@ patience = 100
 progress_bar_refresh_rate = 0
 
 model_dict = {
-    'elastic_net': ('elastic_net', 'stand_alone'),
+    # 'elastic_net': ('elastic_net', 'stand_alone'),
     # 'xgboost': ('xgboost', 'stand_alone'),
     # 'catboost': ('catboost', 'stand_alone'),
     # 'lightgbm': ('lightgbm', 'stand_alone'),
@@ -49,7 +49,6 @@ for model_name, (model_type, model_framework) in model_dict.items():
     args = f"--multirun " \
            f"hparams_search=immuno/regression/{model_name} " \
            f"experiment=immuno/regression/trn_val " \
-           f"model_framework={model_framework} "\
            f"model_type={model_type} " \
            f"logger=none " \
            f"trainer.progress_bar_refresh_rate={progress_bar_refresh_rate} " \

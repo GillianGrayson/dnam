@@ -35,7 +35,7 @@ model_dict = {
     # 'nbm_spam_spam': ('nbm_spam_spam', 'pytorch'),
     # 'nbm_spam_nam': ('nbm_spam_nam', 'pytorch'),
     # 'nbm_spam_nbm': ('nbm_spam_nbm', 'pytorch'),
-    'danet': ('danet', 'pytorch'),
+    # 'danet': ('danet', 'pytorch'),
     # 'nam': ('nam', 'pytorch'),
     # 'arm_net_models_armnet': ('arm_net_models', 'pytorch'),
     # 'arm_net_models_armnet_1h': ('arm_net_models', 'pytorch'),
@@ -57,7 +57,6 @@ model_dict = {
 for model_name, (model_type, model_framework) in model_dict.items():
 
     args = f"experiment=immuno/regression/trn_val " \
-           f"model_framework={model_framework} "\
            f"model_type={model_type} " \
            f"logger=none " \
            f"trainer.progress_bar_refresh_rate={progress_bar_refresh_rate} " \
