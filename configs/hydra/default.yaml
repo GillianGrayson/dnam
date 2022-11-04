@@ -2,7 +2,7 @@
 run:
     dir: ${work_dir}/runs/${now:%Y-%m-%d_%H-%M-%S}
 sweep:
-    dir: ${work_dir}/multiruns/${now:%Y-%m-%d_%H-%M-%S}
+    dir: ${work_dir}/multiruns/${now:%Y-%m-%d_%H-%M-%S}_${hydra.sweeper.sampler.seed}
     subdir: ${hydra.job.num}
 
 # you can set here environment variables that are universal for all users

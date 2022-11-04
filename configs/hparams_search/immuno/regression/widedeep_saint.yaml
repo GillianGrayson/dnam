@@ -51,13 +51,13 @@ hydra:
     # define range of hyperparameters
     # 'embed_dim' must be divisible by 'n_heads'
     params:
-      widedeep_saint.optimizer_lr: tag(log, interval(0.00005, 0.1)) # tag(log, interval(0.00001, 1))
-      widedeep_saint.optimizer_weight_decay: tag(log, interval(0.0000001, 0.001)) # tag(log, interval(0.00000001, 0.1))
+      widedeep_saint.optimizer_lr: tag(log, interval(0.00001, 1)) # tag(log, interval(0.00001, 1))
+      widedeep_saint.optimizer_weight_decay: tag(log, interval(0.0000001, 0.01)) # tag(log, interval(0.00000001, 0.1))
       widedeep_saint.embed_dim: choice(16, 32, 48) # choice(2, 4)
       widedeep_saint.n_heads: choice(2, 4, 8, 16) # choice(1, 2)
       widedeep_saint.n_blocks: choice(1, 2, 3, 4) # choice(1, 2)
       widedeep_saint.attn_dropout: interval(0.0, 0.3) # choice(0.05, 0.1, 0.2)
       widedeep_saint.ff_dropout: interval(0.0, 0.3) # choice(0.05, 0.1, 0.2)
-      widedeep_saint.mlp_hidden_dims: choice(null, [200, 100, 50, 1], [200, 100, 1], [100, 1]) # choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1])
+      widedeep_saint.mlp_hidden_dims: choice([200, 100, 50, 1], [200, 100, 1], [100, 50, 1], [100, 1]) # choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1])
       widedeep_saint.mlp_dropout: interval(0.0, 0.3) # choice(0.05, 0.1, 0.15)
 
