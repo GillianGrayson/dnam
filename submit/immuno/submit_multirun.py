@@ -10,6 +10,9 @@ max_epochs = 1000
 patience = 100
 progress_bar_refresh_rate = 0
 
+num_seeds = 5
+seeds = list(range(num_seeds))
+
 model_dict = {
     # 'elastic_net': ('elastic_net', 'stand_alone'),
     # 'xgboost': ('xgboost', 'stand_alone'),
@@ -46,16 +49,19 @@ model_dict = {
 
 for model_name, (model_type, model_framework) in model_dict.items():
 
-    args = f"--multirun " \
-           f"hparams_search=immuno/regression/{model_name} " \
-           f"experiment=immuno/regression/trn_val " \
-           f"model_type={model_type} " \
-           f"logger=none " \
-           f"trainer.progress_bar_refresh_rate={progress_bar_refresh_rate} " \
-           f"max_epochs={max_epochs} " \
-           f"patience={patience} " \
-           f"print_config=False " \
-           f"datamodule.feats_con_fn={base_dir}/{features_file}.xlsx " \
-           f"base_dir={base_dir}"
+    for seed in seeds:
 
-    os.system(f"sbatch run_{segment}.sh \"{args}\"")
+        args = f"--multirun " \
+               f"hparams_search=immuno/regression/{model_name} " \
+               f"experiment=immuno/regression/trn_val " \
+               f"model_type={model_type} " \
+               f"logger=none " \
+               f"trainer.progress_bar_refresh_rate={progress_bar_refresh_rate} " \
+               f"max_epochs={max_epochs} " \
+               f"patience={patience} " \
+               f"print_config=False " \
+               f"datamodule.feats_con_fn={base_dir}/{features_file}.xlsx " \
+               f"hydra.sweeper.sampler.seed={seed} " \
+               f"base_dir={base_dir}"
+
+        os.system(f"sbatch run_{segment}.sh \"{args}\"")
