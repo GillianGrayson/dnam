@@ -50,11 +50,11 @@ hydra:
 
     # define range of hyperparameters
     params:
-      nam.optimizer_lr: tag(log, interval(0.00001, 0.005)) # tag(log, interval(0.00001, 1))
-      nam.optimizer_weight_decay: tag(log, interval(0.00000001, 0.00001)) # tag(log, interval(0.00000001, 0.1))
+      nam.optimizer_lr: tag(log, interval(0.000001, 0.1)) # tag(log, interval(0.00001, 1))
+      nam.optimizer_weight_decay: tag(log, interval(0.00000001, 0.001)) # tag(log, interval(0.00000001, 0.1))
       nam.hidden_sizes: choice([64], [64, 32], [128, 64], [128, 64, 32], [256, 128]) # choice([], [32], [64, 32], [128, 64], [128, 64, 32])
       nam.activation: choice(relu) # choice(exu, relu)
       nam.dropout: interval(0.0, 0.5) # interval(0.0, 0.5)
-      nam.feature_dropout: interval(0.1, 0.7) # interval(0.0, 0.5)
-      nam.output_regularization: interval(0.1, 0.7) # interval(0.0, 0.5)
-      nam.l2_regularization: interval(0.0, 0.25) # interval(0.0, 0.5)
+      nam.feature_dropout: interval(0.0, 0.7) # interval(0.0, 0.5)
+      nam.output_regularization: interval(0.0, 0.7) # interval(0.0, 0.5)
+      nam.l2_regularization: interval(0.0, 0.3) # interval(0.0, 0.5)

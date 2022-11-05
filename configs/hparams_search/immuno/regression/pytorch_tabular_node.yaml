@@ -50,7 +50,7 @@ hydra:
 
     # define range of hyperparameters
     params:
-      pytorch_tabular_node.optimizer_lr: tag(log, interval(0.1, 10))
+      pytorch_tabular_node.optimizer_lr: tag(log, interval(0.0001, 100))
       pytorch_tabular_node.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
       pytorch_tabular_node.num_layers: choice(1)
       pytorch_tabular_node.num_trees: choice(256, 512, 1024) # choice(256, 512, 1024, 2048)
