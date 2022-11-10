@@ -19,6 +19,7 @@ import plotly.express as px
 from src.tasks.regression.shap import explain_shap
 from src.tasks.regression.lime import explain_lime
 from scipy.stats import mannwhitneyu
+from src.models.tabular.base import get_model_framework_dict
 
 
 log = utils.get_logger(__name__)
@@ -30,6 +31,9 @@ def inference(config: DictConfig):
 
     if 'wandb' in config.logger:
         config.logger.wandb["project"] = config.project_name
+
+    model_framework_dict = get_model_framework_dict()
+    model_framework = model_framework_dict[config.model_type]
 
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -55,7 +59,7 @@ def inference(config: DictConfig):
         y[data_part] = df.loc[indexes[data_part], target_name].values
         colors[data_part] = px.colors.qualitative.Light24[data_part_id]
 
-    if config.model_framework == "pytorch":
+    if model_framework == "pytorch":
         config.model = config[config.model_type]
 
         widedeep = datamodule.get_widedeep()
@@ -91,7 +95,7 @@ def inference(config: DictConfig):
             tmp = model(batch)
             return tmp.cpu().detach().numpy()
 
-    elif config.model_framework == "stand_alone":
+    elif model_framework == "stand_alone":
         if config.model_type == "xgboost":
             model = xgb.Booster()
             model.load_model(config.path_ckpt)
@@ -130,7 +134,7 @@ def inference(config: DictConfig):
             raise ValueError(f"Model {config.model_type} is not supported")
 
     else:
-        raise ValueError(f"Unsupported model_framework: {config.model_framework}")
+        raise ValueError(f"Unsupported model_framework: {model_framework}")
 
     for data_part in data_parts:
         df.loc[indexes[data_part], "Estimation"] = y_pred[data_part]
