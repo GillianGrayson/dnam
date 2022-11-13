@@ -44,7 +44,7 @@ champ.SVD(
   RGEffect = FALSE,
   PDFplot = TRUE,
   Rplot = TRUE,
-  resultsDir = "./SVD_0/"
+  resultsDir = "./SVD/"
 )
 
 # Correction with Combat ===============================================================================================
@@ -70,6 +70,18 @@ colnames(corrrected_df)[1] <- "CpG"
 write.table(corrrected_df, file = "corrrected.txt", row.names = F, sep = "\t", quote = F)
 
 betas <- corrrected
+
+
+# DMP Age ==============================================================================================================
+dmp <- champ.DMP(
+  beta = betas,
+  pheno = pheno$Age,
+  compare.group = NULL,
+  adjPVal = 1,
+  adjust.method = "BH",
+  arraytype = "EPIC"
+)
+write.csv(dmp$NumericVariable, file = "DMP_age.csv")
 
 # DMP ==================================================================================================================
 dmp <- champ.DMP(
