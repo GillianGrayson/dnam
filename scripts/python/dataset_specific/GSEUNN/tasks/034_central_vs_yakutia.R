@@ -32,7 +32,7 @@ setwd(path_work)
 # Init Data ============================================================================================================
 pheno <- pd$read_pickle(paste(path_load, "/pheno.pkl", sep=''))
 pheno$Region <- as.factor(pheno$Region)
-pheno$DNAmPart <- as.factor(pheno$DNAmPart)
+# pheno$DNAmPart <- as.factor(pheno$DNAmPart)
 pheno$Sentrix_ID <- as.factor(pheno$Sentrix_ID)
 pheno$Sentrix_Position <- as.factor(pheno$Sentrix_Position)
 
@@ -88,7 +88,7 @@ dmp <- champ.DMP(
   beta = betas,
   pheno = pheno$Region,
   compare.group = NULL,
-  adjPVal = 1e-8,
+  adjPVal = 1,
   adjust.method = "BH",
   arraytype = "EPIC"
 )
@@ -97,7 +97,7 @@ DMP.GUI(
   beta=betas,
   pheno=pheno$Region
 )
-write.csv(dmp$Central_to_Yakutia, file = "dmp.csv")
+write.csv(dmp$Yakutia_to_Central, file = "DMP_region.csv")
 
 # DMR ==================================================================================================================
 betas <- data.matrix(betas)
@@ -107,7 +107,7 @@ dmr <- champ.DMR(
   compare.group = NULL,
   arraytype = "EPIC",
   method = "Bumphunter", # "Bumphunter" "ProbeLasso" "DMRcate"
-  minProbes = 15,
+  minProbes = 10,
   adjPvalDmr = 0.01,
   cores = 4,
   ## following parameters are specifically for Bumphunter method.
