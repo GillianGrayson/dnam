@@ -28,16 +28,16 @@ data_type: immuno
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: widedeep_tab_net
+model_type: danet
 target: Age
 
 project_name: ${data_type}_inference_${model_type}
 
 seed: 1337
 
-path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/baseline/k_5/widedeep_tab_net/1/30/best_fold_0015.ckpt"
+path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
 data_part_column: data_part
-data_part_main: trn
+data_part_main: trn_val
 
 in_dim: 1
 out_dim: 1
@@ -53,7 +53,7 @@ work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 
 # SHAP values
-is_shap: True # True False
+is_shap: False # True False
 is_shap_save: True
 shap_explainer: Kernel # Tree Kernel Deep
 shap_bkgrd: trn # trn all tree_path_dependent
@@ -82,13 +82,13 @@ defaults:
 datamodule:
   _target_: src.datamodules.tabular.TabularDataModule
   task: ${task}
-  feats_con_fn: "${data_dir}/feats_con.xlsx"
+  feats_con_fn: "${data_dir}/feats_con_top10.xlsx"
   feats_cat_fn: null
   feats_cat_encoding: label
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/global_data/inference_tai_2_report.xlsx"
+  data_fn: "${data_dir}/global_data/inference.xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val
