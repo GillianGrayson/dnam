@@ -32,7 +32,6 @@ setwd(path_work)
 # Init Data ============================================================================================================
 pheno <- pd$read_pickle(paste(path_load, "/pheno.pkl", sep=''))
 pheno$Region <- as.factor(pheno$Region)
-# pheno$DNAmPart <- as.factor(pheno$DNAmPart)
 pheno$Sentrix_ID <- as.factor(pheno$Sentrix_ID)
 pheno$Sentrix_Position <- as.factor(pheno$Sentrix_Position)
 
@@ -83,7 +82,7 @@ dmp <- champ.DMP(
 )
 write.csv(dmp$NumericVariable, file = "DMP_age.csv")
 
-# DMP ==================================================================================================================
+# DMP Region ===========================================================================================================
 dmp <- champ.DMP(
   beta = betas,
   pheno = pheno$Region,
@@ -93,7 +92,7 @@ dmp <- champ.DMP(
   arraytype = "EPIC"
 )
 DMP.GUI(
-  DMP=dmp$Central_to_Yakutia,
+  DMP=dmp$Yakutia_to_Central,
   beta=betas,
   pheno=pheno$Region
 )

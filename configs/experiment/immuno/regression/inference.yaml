@@ -36,8 +36,8 @@ project_name: ${data_type}_inference_${model_type}
 seed: 1337
 
 path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
-data_part_column: data_part
-data_part_main: trn_val
+data_part_column: Region
+data_part_main: Central
 
 in_dim: 1
 out_dim: 1
@@ -88,7 +88,7 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/global_data/inference.xlsx"
+  data_fn: "${data_dir}/global_data/inference_central_yakutia_raw.xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val

@@ -177,7 +177,7 @@ def volcano(df="dataframe", lfc=None, pv=None, lfc_thr=(1, 1), pv_thr=(0.05, 0.0
     df.loc[(df[lfc] >= lfc_thr[0]) & (df[pv] < pv_thr[0]), 'color_add_axy'] = color[0]  # upregulated
     df.loc[(df[lfc] <= -lfc_thr[1]) & (df[pv] < pv_thr[1]), 'color_add_axy'] = color[2]  # downregulated
     df['color_add_axy'].fillna(color[1], inplace=True)  # intermediate
-    df['logpv_add_axy'] = -(np.log10(df[pv]))
+    df['logpv_add_axy'] = -(np.log10(np.array(df[pv].values.astype(float))))
     # plot
     assign_values = {col: i for i, col in enumerate(color)}
     color_result_num = [assign_values[i] for i in df['color_add_axy']]
