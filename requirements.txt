@@ -63,3 +63,5 @@ category_encoders           # necessary for pytorch_tabular
 
 missingno>=0.5.1
 pyod>=1.0.6
+suod>=0.0.8
+tensorflow
