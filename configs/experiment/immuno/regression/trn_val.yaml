@@ -97,7 +97,7 @@ defaults:
 datamodule:
   _target_: src.datamodules.tabular.TabularDataModule
   task: ${task}
-  feats_con_fn: "${data_dir}/feats_con_top10.xlsx"
+  feats_con_fn: "${data_dir}/feats_con.xlsx"
   feats_cat_fn: null
   feats_cat_encoding: label
   feats_cat_embed_dim: ${embed_dim}
