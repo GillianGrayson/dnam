@@ -97,6 +97,7 @@ def process(config: DictConfig) -> Optional[float]:
             y_tst = df.loc[df.index[ids_tst], target_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "tst"
 
+        ckpt_curr = ckpt_name + f"_fold_{fold_idx:04d}"
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
         if 'wandb' in config.logger:
@@ -126,7 +127,7 @@ def process(config: DictConfig) -> Optional[float]:
                 print(model)
 
             # Init lightning callbacks
-            config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
+            config.callbacks.model_checkpoint.filename = ckpt_curr
             callbacks: List[Callback] = []
             if "callbacks" in config:
                 for _, cb_conf in config.callbacks.items():
@@ -176,7 +177,7 @@ def process(config: DictConfig) -> Optional[float]:
                 log.info("Starting testing!")
                 test_dataloader = datamodule.test_dataloader()
                 if test_dataloader is not None and len(test_dataloader) > 0:
-                    trainer.test(model, test_dataloader, ckpt_path="best")
+                    trainer.test(model, test_dataloader, ckpt_path=ckpt_curr)
                 else:
                     log.info("Test data is empty!")
 
@@ -189,18 +190,18 @@ def process(config: DictConfig) -> Optional[float]:
             model.produce_probabilities = True
             y_trn = df.loc[df.index[ids_trn], target_name].values
             y_val = df.loc[df.index[ids_val], target_name].values
-            y_trn_pred_prob = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
-            y_val_pred_prob = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_trn_pred_prob = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy()
+            y_val_pred_prob = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy()
             if is_tst:
                 y_tst = df.loc[df.index[ids_tst], target_name].values
-                y_tst_pred_prob = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+                y_tst_pred_prob = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy()
             model.produce_probabilities = False
-            y_trn_pred_raw = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
-            y_val_pred_raw = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_trn_pred_raw = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy()
+            y_val_pred_raw = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy()
             y_trn_pred = np.argmax(y_trn_pred_prob, 1)
             y_val_pred = np.argmax(y_val_pred_prob, 1)
             if is_tst:
-                y_tst_pred_raw = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+                y_tst_pred_raw = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy()
                 y_tst_pred = np.argmax(y_tst_pred_prob, 1)
             model.produce_probabilities = True
 

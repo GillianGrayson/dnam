@@ -28,7 +28,7 @@ data_type: immuno
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: lightgbm
+model_type: widedeep_tab_mlp
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}

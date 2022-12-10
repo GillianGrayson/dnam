@@ -102,6 +102,7 @@ def process(config: DictConfig) -> Optional[float]:
             y_tst = df.loc[df.index[ids_tst], target_name].values
             df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "tst"
 
+        ckpt_curr = ckpt_name + f"_fold_{fold_idx:04d}"
         if 'csv' in config.logger:
             config.logger.csv["version"] = f"fold_{fold_idx}"
         if 'wandb' in config.logger:
@@ -131,7 +132,7 @@ def process(config: DictConfig) -> Optional[float]:
                 print(model)
 
             # Init lightning callbacks
-            config.callbacks.model_checkpoint.filename = ckpt_name + f"_fold_{fold_idx:04d}"
+            config.callbacks.model_checkpoint.filename = ckpt_curr
             callbacks: List[Callback] = []
             if "callbacks" in config:
                 for _, cb_conf in config.callbacks.items():
@@ -181,7 +182,7 @@ def process(config: DictConfig) -> Optional[float]:
                 log.info("Starting testing!")
                 test_dataloader = datamodule.test_dataloader()
                 if test_dataloader is not None and len(test_dataloader) > 0:
-                    trainer.test(model, test_dataloader, ckpt_path="best")
+                    trainer.test(model, test_dataloader, ckpt_path=ckpt_curr)
                 else:
                     log.info("Test data is empty!")
 
@@ -196,10 +197,10 @@ def process(config: DictConfig) -> Optional[float]:
             if is_tst:
                 y_tst = df.loc[df.index[ids_tst], target_name].values
 
-            y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
-            y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+            y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy().ravel()
+            y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy().ravel()
             if is_tst:
-                y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+                y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path=ckpt_curr)).cpu().detach().numpy().ravel()
 
             # Feature importance
             if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
