@@ -28,7 +28,7 @@ data_type: immuno
 # danet (pytorch)
 # nam (pytorch)
 # stg (pytorch)
-model_type: widedeep_tab_mlp
+model_type: pytorch_tabular_autoint
 target: Age
 
 project_name: ${data_type}_trn_val_${model_type}
@@ -103,7 +103,7 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/global_data/df_type(minmax_left(0.05)_right(0.95)_combat)_ctrl(550)_imp(fast_knn)_replace(quarter).xlsx" # "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
+  data_fn: "${data_dir}/global_data/df_samples(ctrl_wo_outliers_multi_510_from_all_1052_status)_proc(minmax_left(0.0)_right(1.0)_combat)_imp(fast_knn)_replace(quarter).xlsx" # "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val
@@ -121,7 +121,7 @@ trainer:
   min_epochs: 1
   max_epochs: ${max_epochs}
   weights_summary: null
-  progress_bar_refresh_rate: 0 #10
+  progress_bar_refresh_rate: 10 #10
   resume_from_checkpoint: null
 
 model:
@@ -497,22 +497,22 @@ pytorch_tabular_autoint:
   loss_type: L1Loss
   input_dim: ${in_dim}
   output_dim: ${out_dim}
-  optimizer_lr: 0.00992093303237566
-  optimizer_weight_decay: 2.472886647072828e-06
+  optimizer_lr: 0.0497648554645056
+  optimizer_weight_decay: 2.582935298068456e-06
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
   continuous_cols: null
   categorical_cols: null
-  attn_embed_dim: 64
-  num_heads: 1
-  num_attn_blocks: 1
-  attn_dropouts: 0.1
-  has_residuals: true
-  embedding_dim: 64
-  embedding_dropout: 0.1
+  attn_embed_dim: 32
+  num_heads: 8
+  num_attn_blocks: 5
+  attn_dropouts: 0.044129638939947105
+  has_residuals: false
+  embedding_dim: 32
+  embedding_dropout: 0.14340572563935186
   deep_layers: true
-  layers: 128-64-32
+  layers: "100-50"
   activation: ReLU
   dropout: 0.0
   use_batch_norm: false
@@ -810,9 +810,11 @@ callbacks:
     dirpath: ""
     filename: "best"
     auto_insert_metric_name: False
+    every_n_epochs: 10
 
   early_stopping:
     monitor: "val/${optimized_metric}_pl" # name of the logged metric which determines when model is improving
     mode: ${direction} # can be "max" or "min"
     patience: ${patience} # how many epochs of not improving until training stops
     min_delta: 0 # minimum change in the monitored metric needed to qualify as an improvement
+    check_finite: False
