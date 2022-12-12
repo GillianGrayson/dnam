@@ -36,8 +36,8 @@ project_name: ${data_type}_inference_${model_type}
 seed: 1337
 
 path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
-data_part_column: Region
-data_part_main: Central
+data_part_column: Status # Region
+data_part_main: Control # Central
 
 in_dim: 1
 out_dim: 1
@@ -65,7 +65,7 @@ lime_num_features: all # 10 all
 lime_save_weights: True
 
 # Plot params
-num_top_features: 11
+num_top_features: 10
 num_examples: 300
 
 # specify here default training configuration
@@ -88,7 +88,7 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/global_data/inference_central_yakutia_raw.xlsx"
+  data_fn: "${data_dir}/global_data/inference_samples(all_1052_status)_proc(raw)_imp(fast_knn)_replace(quarter).xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val
