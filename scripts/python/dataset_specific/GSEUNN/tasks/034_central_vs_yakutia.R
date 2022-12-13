@@ -96,7 +96,7 @@ DMP.GUI(
   beta=betas,
   pheno=pheno$Region
 )
-write.csv(dmp$Yakutia_to_Central, file = "DMP_region.csv")
+write.csv(dmp$Central_to_Yakutia, file = "DMP_region.csv")
 
 # DMR ==================================================================================================================
 betas <- data.matrix(betas)

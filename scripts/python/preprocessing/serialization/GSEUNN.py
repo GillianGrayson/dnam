@@ -12,18 +12,17 @@ forbidden_types = ["NoCG", "SNP", "MultiHit", "XY"]
 
 manifest = get_manifest(platform)
 
-fn = f"{path}/{platform}/{dataset}/pheno.xlsx"
+fn = f"{path}/{platform}/{dataset}/part(passed_408).xlsx"
 df = pd.read_excel(fn)
-df['Sample_Name'] = 'X' + df['Sample_Name']
-df['index'] = df['Sample_Name']
-pheno = df.set_index('index')
-pheno.index.name = "subject_id"
+df['tmp'] = df['Sample_Name']
+pheno = df.set_index('tmp')
+pheno.index.name = "index"
 
 fn = f"{path}/{platform}/{dataset}/beta_funnorm_filtered.txt"
 df = pd.read_csv(fn, delimiter="\t", index_col='CpG')
 df.index.name = 'CpG'
 betas = df.T
-betas.index.name = "subject_id"
+betas.index.name = "index"
 betas = manifest_filter(betas, manifest)
 forbidden_cpgs = get_forbidden_cpgs(f"{path}/{platform}/manifest/forbidden_cpgs", forbidden_types)
 betas = betas.loc[:, ~betas.columns.isin(forbidden_cpgs)]
@@ -31,8 +30,8 @@ betas = betas.loc[:, ~betas.columns.isin(forbidden_cpgs)]
 pheno, betas = get_pheno_betas_with_common_subjects(pheno, betas)
 if list(pheno.index.values) == list(betas.index.values):
     print("Change index")
-    pheno.set_index('ID', inplace=True, verify_integrity=False)
-    pheno.index.name = "subject_id"
+    pheno.set_index('index', inplace=True, verify_integrity=False)
+    pheno.index.name = "index"
     betas.set_index(pheno.index, inplace=True, verify_integrity=False)
-    betas.index.name = "subject_id"
+    betas.index.name = "index"
 save_pheno_betas_to_pkl(pheno, betas, f"{path}/{platform}/{dataset}")
