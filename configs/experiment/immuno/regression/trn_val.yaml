@@ -103,14 +103,14 @@ datamodule:
   feats_cat_embed_dim: ${embed_dim}
   target: ${target}
   target_classes_fn: null
-  data_fn: "${data_dir}/global_data/df_samples(ctrl_wo_outliers_multi_510_from_all_1052_status)_proc(minmax_left(0.0)_right(1.0)_combat)_imp(fast_knn)_replace(quarter).xlsx" # "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
+  data_fn: "${data_dir}/global_data/all_1052_121222/df_samples(ctrl_wo_outliers_multi_514_from_all_1052_121222)_proc(minmax_left(0.0)_right(1.0)_combat)_imp(fast_knn)_replace(quarter).xlsx" # "${data_dir}/260_imp(fast_knn)_replace(quarter).xlsx"
   data_index: index
   data_imputation: fast_knn
   split_by: trn_val
   split_trn_val: [0.80, 0.20]
   split_top_feat: null
   split_explicit_feat: Split
-  batch_size: 512
+  batch_size: 1024
   num_workers: 0
   pin_memory: False
   seed: ${seed}
