@@ -26,7 +26,7 @@ pheno.to_csv(f"{save_path}/pheno.csv", na_rep="NA")
 
 with open(f"{path}/lists/cpgs/cpgs_horvath_calculator.txt") as f:
     cpgs_h = f.read().splitlines()
-betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
+betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas_harm.pkl")
 betas.set_index(pheno.index, inplace=True)
 cpgs_na = list(set(cpgs_h) - set(betas.columns.values))
 betas = betas[betas.columns.intersection(cpgs_h)]
