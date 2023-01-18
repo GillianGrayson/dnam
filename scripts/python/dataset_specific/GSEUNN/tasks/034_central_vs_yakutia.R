@@ -12,7 +12,13 @@ install.packages(c( "foreach", "doParallel"))
 install.packages('reticulate')
 
 library("ChAMP")
+py_config()
+Sys.which('python')
+Sys.setenv(RETICULATE_PYTHON = "C:/Users/user/anaconda3/envs/py39/python.exe")
 library("reticulate")
+use_condaenv('py39')
+py_config()
+py_run_string('print(1+1)')
 
 library(devtools)
 library(minfi)
@@ -24,8 +30,8 @@ library("doParallel")
 detectCores()
 
 pd <- import("pandas")
-path_load <- "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/data_for_R"
-path_work <- "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/data_for_R"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/data_for_R"
 setwd(path_work)
 
 

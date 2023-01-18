@@ -35,7 +35,7 @@ project_name: ${data_type}_inference_${model_type}
 
 seed: 1337
 
-path_ckpt: "E:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
 data_part_column: Status # Region
 data_part_main: Control # Central
 
@@ -48,7 +48,7 @@ ignore_warnings: True
 
 embed_dim: 16
 
-base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
 work_dir: "${base_dir}/models/${project_name}"
 data_dir: "${base_dir}"
 

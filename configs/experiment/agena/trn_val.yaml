@@ -153,13 +153,13 @@ catboost:
 lightgbm:
   objective: regression
   boosting: gbdt
-  learning_rate: 0.042943516804783644
-  num_leaves: 31
+  learning_rate: 0.05295282600009959
+  num_leaves: 30
   device: cpu
   max_depth: -1
-  min_data_in_leaf: 9
-  feature_fraction: 0.973270293196495
-  bagging_fraction: 0.6189923756647909
+  min_data_in_leaf: 5
+  feature_fraction: 0.8003743898101706
+  bagging_fraction: 0.7254767191165139
   bagging_freq: 5
   verbose: -1
   metric: l1
