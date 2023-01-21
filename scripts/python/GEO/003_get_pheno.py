@@ -7,13 +7,14 @@ import re
 from scripts.python.GEO.routines import get_gse_gsm_info, process_characteristics_ch1
 
 
-gpl = 'GPL13534'
-gse = 'GSE116379'
+gse = 'GSE55763'
+datasets_info = pd.read_excel(f"D:/YandexDisk/Work/pydnameth/datasets/datasets.xlsx", index_col='dataset')
+gpl = datasets_info.loc[gse, 'platform']
 
 characteristics_ch1_regex_findall = ';*([a-zA-Z0-9\^\/\=\-\:\,\.\s_\(\)]+): '
 characteristics_ch1_regex_split = '(;*[a-zA-Z0-9\^\/\=\-\,\:\.\s_\(\)]+: )'
 
-path = "E:/YandexDisk/Work/pydnameth/datasets"
+path = "D:/YandexDisk/Work/pydnameth/datasets"
 
 gsm_df, gse_gsms_dict = get_gse_gsm_info(f"{path}/GEO", gpl)
 
@@ -23,7 +24,7 @@ gse_df_1 = gsm_df.loc[gsm_df.index.isin(gsms), :]
 
 while True:
     try:
-        gse_data = GEOparse.get_GEO(geo=gse, destdir=f"{path}/{gpl}/{gse}/raw/GEO", include_data=False, how="quick", silent=True)
+        gse_data = GEOparse.get_GEO(geo=gse, destdir=f"{path}/{gpl}/{gse}/raw/GEO", include_data=False, how="quick", silent=False)
     except ValueError:
         continue
     except ConnectionError:
