@@ -322,7 +322,7 @@ python run.py -m datamodule.batch_size=32,64,128 model.lr=0.001,0.0005
 <details>
 <summary><b>Create a sweep over hyperparameters with Optuna</b></summary>
 
-> Using [Optuna Sweeper](https://hydra.cc/docs/next/plugins/optuna_sweeper) plugin doesn't require you to code any boilerplate into your pipeline, everything is defined in a [single config file](configs/hparams_search/to_delete/mnist_optuna.yaml)!
+> Using [Optuna Sweeper](https://hydra.cc/docs/next/plugins/optuna_sweeper) plugin doesn't require you to code any boilerplate into your pipeline, everything is defined in a [single config file](configs/hparams_search/_legacy/mnist_optuna.yaml)!
 ```yaml
 # this will run hyperparameter search defined in `configs/hparams_search/mnist_optuna.yaml`
 # over chosen experiment config

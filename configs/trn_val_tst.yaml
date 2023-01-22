@@ -1,0 +1,18 @@
+# @package _global_
+
+# specify here defaults
+defaults:
+  - _self_
+  - experiment: agena/trn_val_tst         # Global parameters of experiment
+  - datamodule: agena/tabular             # Information about dataset
+  - trainer: gpu                          # Run configuration for DNN models
+  - callbacks: default                    # Callbacks for DNN models
+  - logger: none                          # Loggers for DNN models
+  - hydra: default.yaml                   # Output paths for logs
+
+  - model: agena/lightgbm                 # Model
+  - hparams_search: agena/lightgbm        # Model-specific hyperparameters
+
+  # Enable color logging
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog

@@ -12,7 +12,7 @@ def main(config: DictConfig):
 
     # Imports should be nested inside @hydra.main to optimize tab completion
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
-    from src.tasks.classification.trn_val_tst import process
+    from src.tasks.classification.trn_val_tst import trn_val_tst_classification
     from src.utils import utils
     import torch
 
@@ -34,7 +34,7 @@ def main(config: DictConfig):
         print('CUDA Device Name:', torch.cuda.get_device_name(0))
         print('CUDA Device Total Memory [GB]:', torch.cuda.get_device_properties(0).total_memory / 1024**3)
 
-    return process(config)
+    return trn_val_tst_classification(config)
 
 
 if __name__ == "__main__":

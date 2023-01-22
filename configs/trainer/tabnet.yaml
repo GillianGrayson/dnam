@@ -1,5 +1,0 @@
-# TabNet trainer
-max_epochs: 500
-patience: 100
-batch_size: 128
-virtual_batch_size: 64

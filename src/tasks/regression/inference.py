@@ -24,7 +24,7 @@ from src.models.tabular.base import get_model_framework_dict
 
 log = utils.get_logger(__name__)
 
-def inference(config: DictConfig):
+def inference_regression(config: DictConfig):
 
     if "seed" in config:
         seed_everything(config.seed)
@@ -33,7 +33,7 @@ def inference(config: DictConfig):
         config.logger.wandb["project"] = config.project_name
 
     model_framework_dict = get_model_framework_dict()
-    model_framework = model_framework_dict[config.model_type]
+    model_framework = model_framework_dict[config.model.name]
 
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
@@ -60,19 +60,17 @@ def inference(config: DictConfig):
         colors[data_part] = px.colors.qualitative.Light24[data_part_id]
 
     if model_framework == "pytorch":
-        config.model = config[config.model_type]
-
         widedeep = datamodule.get_widedeep()
         embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
-        if config.model_type.startswith('widedeep'):
+        if config.model.name.startswith('widedeep'):
             config.model.column_idx = widedeep['column_idx']
             config.model.cat_embed_input = widedeep['cat_embed_input']
             config.model.continuous_cols = widedeep['continuous_cols']
-        elif config.model_type.startswith('pytorch_tabular'):
+        elif config.model.name.startswith('pytorch_tabular'):
             config.model.continuous_cols = feature_names['con']
             config.model.categorical_cols = feature_names['cat']
             config.model.embedding_dims = embedding_dims
-        elif config.model_type == 'nam':
+        elif config.model.name == 'nam':
             num_unique_vals = [len(np.unique(X[data_part_main][:, i])) for i in range(X[data_part_main].shape[1])]
             num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
             config.model.num_units = num_units
@@ -96,7 +94,7 @@ def inference(config: DictConfig):
             return tmp.cpu().detach().numpy()
 
     elif model_framework == "stand_alone":
-        if config.model_type == "xgboost":
+        if config.model.name == "xgboost":
             model = xgb.Booster()
             model.load_model(config.path_ckpt)
 
@@ -109,7 +107,7 @@ def inference(config: DictConfig):
                 y = model.predict(X)
                 return y
 
-        elif config.model_type == "catboost":
+        elif config.model.name == "catboost":
             model = CatBoost()
             model.load_model(config.path_ckpt)
 
@@ -120,7 +118,7 @@ def inference(config: DictConfig):
                 y = model.predict(X)
                 return y
 
-        elif config.model_type == "lightgbm":
+        elif config.model.name == "lightgbm":
             model = lgb.Booster(model_file=config.path_ckpt)
 
             for data_part in data_parts:
@@ -131,7 +129,7 @@ def inference(config: DictConfig):
                 return y
 
         else:
-            raise ValueError(f"Model {config.model_type} is not supported")
+            raise ValueError(f"Model {config.model.name} is not supported")
 
     else:
         raise ValueError(f"Unsupported model_framework: {model_framework}")
@@ -227,5 +225,3 @@ def inference(config: DictConfig):
         explain_shap(config, expl_data)
 
     df.to_excel("df.xlsx", index=True)
-
-
