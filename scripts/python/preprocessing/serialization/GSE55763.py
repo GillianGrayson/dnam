@@ -21,7 +21,7 @@ pheno.index.name = "subject_id"
 fn = f"{path}/{platform}/{dataset}/raw/GSE55763_normalized_betas.txt"
 df = pd.read_csv(fn, delimiter="\t")
 df.rename(columns={df.columns[0]: 'CpG'}, inplace=True)
-df.set_index('CpG', inplace=True)
+df.set_index('CpG', inplace=True, verify_integrity=True)
 betas = df.iloc[:, 0::2]
 pvals = df.iloc[:, 1::2]
 betas = betas.T

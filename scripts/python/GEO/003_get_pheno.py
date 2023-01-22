@@ -77,6 +77,8 @@ chars_all = chars_df_1.union(chars_df_2)
 
 if chars_df_2 != chars_df_1:
     print(f"Chars from GEOmetadb ({len(chars_df_1)}) and GEOparse ({len(chars_df_2)}) differs!")
+    print(f"GEOmetadb: \n {chars_df_1}")
+    print(f"GEOparse: \n {chars_df_2}")
 
 if not gse_df['supplementary_file'].isnull().all():
     supp_files_split = gse_df['supplementary_file'].str.split('[,;]\s*', expand=True, regex=True)

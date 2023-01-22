@@ -219,9 +219,9 @@ def get_status_dict(dataset: str):
     elif dataset == "GSE116379":
         d = {"Control": [Field('Control', 'CTR_Non_Famine'), Field('Control', 'CTR_Famine')], "Case": [Field('Schizophrenia', 'SCZ_Non_Famine'), Field('Schizophrenia', 'SCZ_Famine')]}
     elif dataset == "GSE40279":
-        d = {"Control": [Field('Control', 'C')]}
+        d = {"Control": [Field('Control', 'Control')]}
     elif dataset == "GSE55763":
-        d = {"Control": [Field('Control', 'population study'), Field('Duplicate0', 'population study; technical replication study'), Field('Duplicate1', 'technical replication study')]}
+        d = {"Control": [Field('Control', 'population study')], "Case": [Field('Duplicate0', 'population study; technical replication study'), Field('Duplicate1', 'technical replication study')]}
 
     return d
 
@@ -278,7 +278,7 @@ def get_default_statuses_ids(dataset: str):
     elif dataset == "GSE40279":
         statuses = {"Control": [0]}
     elif dataset == "GSE55763":
-        statuses = {"Control": [0]}
+        statuses = {"Control": [0], 'Case': [0]}
 
     return statuses
 

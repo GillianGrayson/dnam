@@ -27,10 +27,10 @@ pheno.to_csv(f"{save_path}/pheno.csv", na_rep="NA")
 with open(f"{path}/lists/cpgs/cpgs_horvath_calculator.txt") as f:
     cpgs_h = f.read().splitlines()
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
-betas.set_index(pheno.index, inplace=True)
 cpgs_na = list(set(cpgs_h) - set(betas.columns.values))
 betas = betas[betas.columns.intersection(cpgs_h)]
 betas[cpgs_na] = np.nan
+betas = betas.astype('float32')
 betas = betas.T
 betas.index.name = 'ProbeID'
 betas.to_csv(f"{save_path}/betas.csv", na_rep="NA")
