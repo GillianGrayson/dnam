@@ -4,3 +4,4 @@ _target_: pytorch_lightning.Trainer   # Instantiated object
 gpus: 1                               # Number of GPUs to train on
 min_epochs: 1                         # Force training for at least these many epochs
 max_epochs: ${max_epochs}             # Stop training once this number of epochs is reached
+enable_progress_bar: False            # Whether to enable or disable the progress bar
