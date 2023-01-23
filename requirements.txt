@@ -55,3 +55,4 @@ pyod>=1.0.6
 suod>=0.0.8
 gseapy
 GEOparse>=2.0.3
+patchworklib>=0.5.0
