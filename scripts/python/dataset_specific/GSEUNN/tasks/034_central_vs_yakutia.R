@@ -12,12 +12,11 @@ install.packages(c( "foreach", "doParallel"))
 install.packages('reticulate')
 
 library("ChAMP")
-py_config()
-Sys.which('python')
 Sys.setenv(RETICULATE_PYTHON = "C:/Users/user/anaconda3/envs/py39/python.exe")
 library("reticulate")
-use_condaenv('py39')
 py_config()
+Sys.which('python')
+use_condaenv('py39')
 py_run_string('print(1+1)')
 
 library(devtools)
@@ -30,8 +29,8 @@ library("doParallel")
 detectCores()
 
 pd <- import("pandas")
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/data_for_R"
-path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/dnam/data_for_R"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/dnam/data_for_R"
 setwd(path_work)
 
 
@@ -43,16 +42,17 @@ pheno$Sentrix_Position <- as.factor(pheno$Sentrix_Position)
 
 betas <- pd$read_pickle(paste(path_load, "/betas.pkl", sep=''))
 
+
+
+# Correction with Combat ===============================================================================================
 champ.SVD(
   beta = betas,
   pd = pheno,
   RGEffect = FALSE,
   PDFplot = TRUE,
   Rplot = TRUE,
-  resultsDir = "./SVD/"
+  resultsDir = "./SVD_before/"
 )
-
-# Correction with Combat ===============================================================================================
 corrrected <- champ.runCombat(
   beta = betas,
   pd = pheno,
@@ -60,22 +60,18 @@ corrrected <- champ.runCombat(
   batchname = c("Age"),
   logitTrans = TRUE
 )
-
 champ.SVD(
   beta = corrrected,
   pd = pheno,
   RGEffect = FALSE,
   PDFplot = TRUE,
   Rplot = TRUE,
-  resultsDir = "./SVD_1/"
+  resultsDir = "./SVD_after/"
 )
-
 corrrected_df <- data.frame(row.names(tmpCombat), tmpCombat)
 colnames(corrrected_df)[1] <- "CpG"
 write.table(corrrected_df, file = "corrrected.txt", row.names = F, sep = "\t", quote = F)
-
 betas <- corrrected
-
 
 # DMP Age ==============================================================================================================
 dmp <- champ.DMP(
@@ -193,3 +189,17 @@ Block.GUI(
   compare.group = NULL,
   arraytype = "EPIC"
 )
+
+# Residence ============================================================================================================
+pheno_yakutia <- pd$read_pickle(paste(path_load, "/pheno_yakutia.pkl", sep=''))
+pheno_yakutia$Residence <- as.factor(pheno_yakutia$Residence)
+betas_yakutia <- pd$read_pickle(paste(path_load, "/betas_yakutia.pkl", sep=''))
+dmp_yakutia <- champ.DMP(
+  beta = betas_yakutia,
+  pheno = pheno_yakutia$Residence,
+  compare.group = NULL,
+  adjPVal = 1,
+  adjust.method = "BH",
+  arraytype = "EPIC"
+)
+write.csv(dmp_yakutia$Village_to_City, file = "DMP_yakutia_residence.csv")
