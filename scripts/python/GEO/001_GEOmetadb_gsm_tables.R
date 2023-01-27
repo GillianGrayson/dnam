@@ -1,14 +1,17 @@
 rm(list=ls())
-path <- "E:/YandexDisk/Work/pydnameth/datasets/GEO"
+path <- "D:/YandexDisk/Work/pydnameth/datasets/GEO"
 setwd(path)
+
+.libPaths()
+install.packages("vctrs")
 
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 BiocManager::install("GEOmetadb")
 BiocManager::install("GEOquery")
 
+library(GEOquery)
 library(GEOmetadb)
-library("xlsx")
 
 getSQLiteFile(destdir = getwd(), destfile = "GEOmetadb.sqlite.gz")
 
@@ -62,7 +65,7 @@ sql <- paste("SELECT DISTINCT",
              "gsm",
              "WHERE",
              "gsm.organism_ch1 LIKE '%Homo sapiens%' AND",
-             "gsm.gpl LIKE '%GPL13534%'",sep=" ") # there the GPL of interest should be added. For example GPL8490 contain Human Methylation 27k Beadchip data (HM27k); but we can use GPL13534 (HM450k) or GPL21145 (EPIC Beadchip) to access other Illumina DNA methylation data platforms.
+             "gsm.gpl LIKE '%GPL21145%'",sep=" ") # there the GPL of interest should be added. For example GPL8490 contain Human Methylation 27k Beadchip data (HM27k); but we can use GPL13534 (HM450k) or GPL21145 (EPIC Beadchip) to access other Illumina DNA methylation data platforms.
 
 #############################
 #Creating the GEO base table#

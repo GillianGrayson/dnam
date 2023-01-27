@@ -24,7 +24,7 @@ n_gses = 300
 characteristics_ch1_regex_findall = ';*([a-zA-Z0-9\^\/\=\-\:\,\.\s_\(\)]+): '
 characteristics_ch1_regex_split = '(;*[a-zA-Z0-9\^\/\=\-\,\:\.\s_\(\)]+: )'
 
-path = "E:/YandexDisk/Work/pydnameth/datasets/GEO"
+path = "D:/YandexDisk/Work/pydnameth/datasets/GEO"
 
 if Path(f"{path}/{GPL}_gsm.pkl").is_file():
     gsm_df = pd.read_pickle(f"{path}/{GPL}_gsm.pkl")
