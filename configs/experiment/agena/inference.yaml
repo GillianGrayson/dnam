@@ -6,14 +6,9 @@ target: "Age"       # Target column name
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/042_agena/ml_data/models/lightgbm_trn_val_tst/runs/2023-01-22_16-02-02/epoch_71_best_0023.model"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/042_agena/ml_data/models/xgboost_trn_val_tst/multiruns/2023-01-23_11-54-05_1337/55/epoch_647_best_0003.model"
 data_part_column: Part
-data_part_main: "UNN Agena Controls"
-
-# Cross-validation params
-cv_is_split: True   # Perform cross-validation?
-cv_n_splits: 5      # Number of splits in cross-validation
-cv_n_repeats: 5     # Number of repeats in cross-validation
+data_part_main: "UNN MassARRAY"
 
 # Data params
 in_dim: 8       # Number of input features

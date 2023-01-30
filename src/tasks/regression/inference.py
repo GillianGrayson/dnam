@@ -20,6 +20,7 @@ from src.tasks.regression.shap import explain_shap
 from src.tasks.regression.lime import explain_lime
 from scipy.stats import mannwhitneyu
 from src.models.tabular.base import get_model_framework_dict
+import pickle
 
 
 log = utils.get_logger(__name__)
@@ -126,6 +127,15 @@ def inference_regression(config: DictConfig):
 
             def predict_func(X):
                 y = model.predict(X, num_iteration=model.best_iteration)
+                return y
+
+        elif config.model.name == "elastic_net":
+            model = pickle.load(open(config.path_ckpt, 'rb'))
+
+            for data_part in data_parts:
+                y_pred[data_part] = model.predict(X[data_part]).astype('float32')
+            def predict_func(X):
+                y = model.predict(X)
                 return y
 
         else:
