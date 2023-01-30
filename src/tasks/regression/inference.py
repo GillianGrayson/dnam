@@ -217,9 +217,10 @@ def inference_regression(config: DictConfig):
     df_mw.to_excel("df_mw.xlsx", index=True)
 
     df['ids'] = np.arange(df.shape[0])
-    ids = {'all': df['ids']}
+    ids = {}
     for data_part in data_parts:
         ids[data_part] = df.loc[indexes[data_part], 'ids'].values
+    ids['all'] = df['ids']
 
     expl_data = {
         'model': model,

@@ -29,8 +29,8 @@ library("doParallel")
 detectCores()
 
 pd <- import("pandas")
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/dnam/data_for_R"
-path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/dnam(_harm)_immuno(all_1052_121222_raw_fast_knn_quarter)_select(dnam_chronology_0_immuno_260_ml_draft)/dnam/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/tmp/dnam/data_for_R"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/034_central_vs_yakutia/tmp/dnam/data_for_R"
 setwd(path_work)
 
 
@@ -41,8 +41,6 @@ pheno$Sentrix_ID <- as.factor(pheno$Sentrix_ID)
 pheno$Sentrix_Position <- as.factor(pheno$Sentrix_Position)
 
 betas <- pd$read_pickle(paste(path_load, "/betas.pkl", sep=''))
-
-
 
 # Correction with Combat ===============================================================================================
 champ.SVD(

@@ -25,3 +25,10 @@ pheno["Tissue"] = tissue
 pheno.to_pickle(f"{path_save}/pheno.pkl")
 
 cpgs = pd.read_excel(f"{path}/lists/cpgs/PC_clocks.xlsx")["CpG"].values
+betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas_harm.pkl")
+betas = betas[betas.columns.intersection(cpgs)]
+betas = betas.astype('float32')
+betas = betas.T
+betas.index.name = 'ProbeID'
+betas.to_pickle(f"{path_save}/betas.pkl")
+

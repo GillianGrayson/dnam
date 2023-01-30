@@ -93,13 +93,17 @@ def explain_shap(config, expl_data):
             explainer = shap.KernelExplainer(predict_func, X_bkgrd)
         elif config.shap_explainer == "Deep":
             explainer = shap.DeepExplainer(model, torch.from_numpy(X_bkgrd))
+        elif config.shap_explainer == "Sampling":
+            explainer = shap.SamplingExplainer(predict_func, X_bkgrd)
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
     for part in expl_data["ids"]:
+        print(f"part: {part}")
         if expl_data["ids"][part] is not None and len(expl_data["ids"][part]) > 0:
             log.info(f"Calculating SHAP for {part}")
             Path(f"shap/{part}/global").mkdir(parents=True, exist_ok=True)
+
             ids = expl_data["ids"][part]
             indexes = df.index[ids]
             X = df.loc[indexes, feature_names].values
@@ -108,7 +112,7 @@ def explain_shap(config, expl_data):
             if config.shap_explainer == "Tree":
                 shap_values = explainer.shap_values(X)
                 expected_value = explainer.expected_value
-            elif config.shap_explainer == "Kernel":
+            elif config.shap_explainer in ["Kernel", "Sampling"]:
                 shap_values = explainer.shap_values(X)
                 if isinstance(shap_values, list):
                     shap_values = shap_values[0]
@@ -125,6 +129,9 @@ def explain_shap(config, expl_data):
                 df_shap = pd.DataFrame(index=indexes, columns=feature_names, data=shap_values)
                 df_shap.index.name = 'index'
                 df_shap.to_excel(f"shap/{part}/shap.xlsx", index=True)
+                df_expected_value = pd.DataFrame()
+                df_expected_value.at["expected_value", part] = expected_value
+                df_expected_value.to_excel(f"shap/{part}/expected_value.xlsx", index=True)
 
             shap.summary_plot(
                 shap_values=shap_values,

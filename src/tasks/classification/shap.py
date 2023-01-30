@@ -225,6 +225,8 @@ def explain_shap(config, expl_data):
             explainer = shap.KernelExplainer(predict_func, X_bkgrd)
         elif config.shap_explainer == "Deep":
             explainer = shap.DeepExplainer(model, torch.from_numpy(X_bkgrd))
+        elif config.shap_explainer == "Sampling":
+            explainer = shap.SamplingExplainer(predict_func, X_bkgrd)
         else:
             raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
@@ -290,7 +292,7 @@ def explain_shap(config, expl_data):
 
                 shap_values = shap_values_prob
                 expected_value = base_prob
-            elif config.shap_explainer == "Kernel":
+            elif config.shap_explainer in ["Kernel", "Sampling"]:
                 shap_values = explainer.shap_values(X)
                 expected_value = explainer.expected_value
                 log.info(f"Base probability check: {np.linalg.norm(np.mean(y_pred_prob, axis=0) - np.array(expected_value))}")
@@ -307,6 +309,9 @@ def explain_shap(config, expl_data):
                     df_shap = pd.DataFrame(index=indexes,  columns=feature_names, data=shap_values[cl_id])
                     df_shap.index.name = 'index'
                     df_shap.to_excel(f"shap/{part}/shap_{cl}.xlsx", index=True)
+                    df_expected_value = pd.DataFrame()
+                    df_expected_value["expected_value"] = np.array(expected_value)
+                    df_expected_value.to_excel(f"shap/{part}/expected_value.xlsx", index=True)
 
             shap.summary_plot(
                 shap_values=shap_values,
