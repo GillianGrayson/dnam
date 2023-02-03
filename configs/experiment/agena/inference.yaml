@@ -6,7 +6,7 @@ target: "Age"       # Target column name
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/042_agena/ml_data/models/widedeep_tab_net_trn_val_tst/multiruns/2023-02-02_13-00-56_1337/241/best_fold_0000.ckpt"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/042_agena/ml_data/models/widedeep_tab_net_trn_val_tst/multiruns/2023-02-03_09-49-24_4090/40/best_fold_0000.ckpt"
 data_part_column: Part
 data_part_main: "UNN MassARRAY"
 
