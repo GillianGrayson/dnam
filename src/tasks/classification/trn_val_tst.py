@@ -57,10 +57,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     df = datamodule.get_data()
     df['pred'] = 0
     ids_tst = datamodule.ids_tst
-    if len(ids_tst) > 0:
-        is_tst = True
-    else:
-        is_tst = False
+
+    colors = datamodule.colors
 
     cv_splitter = RepeatedStratifiedKFoldCVSplitter(
         datamodule=datamodule,
@@ -92,10 +90,13 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         X_val = df.loc[df.index[ids_val], feature_names['all']].values
         y_val = df.loc[df.index[ids_val], target_name].values
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
-        if is_tst:
-            X_tst = df.loc[df.index[ids_tst], feature_names['all']].values
-            y_tst = df.loc[df.index[ids_tst], target_name].values
-            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "tst"
+        X_tst = {}
+        y_tst = {}
+        for tst_set_name in ids_tst:
+            X_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], feature_names['all']].values
+            y_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], target_name].values
+            if tst_set_name != 'tst_all':
+                df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_idx:04d}"] = tst_set_name
 
         ckpt_curr = ckpt_name + f"_fold_{fold_idx:04d}"
         if 'csv' in config.logger:
@@ -174,34 +175,38 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
             # Evaluate model on test set, using the best model achieved during training
             if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
                 log.info("Starting testing!")
-                test_dataloader = datamodule.test_dataloader()
-                if test_dataloader is not None and len(test_dataloader) > 0:
-                    trainer.test(model, test_dataloader, ckpt_path="best")
+                tst_dataloaders = datamodule.test_dataloaders()
+                if 'tst_all' in tst_dataloaders:
+                    tst_dataloader = tst_dataloaders['tst_all']
+                else:
+                    tst_dataloader = tst_dataloaders[list(tst_dataloaders.keys())[0]]
+                if tst_dataloader is not None and len(tst_dataloader) > 0:
+                    trainer.test(model, tst_dataloader, ckpt_path="best")
                 else:
                     log.info("Test data is empty!")
 
             datamodule.dataloaders_evaluate = True
             trn_dataloader = datamodule.train_dataloader()
             val_dataloader = datamodule.val_dataloader()
-            tst_dataloader = datamodule.test_dataloader()
+            tst_dataloaders = datamodule.test_dataloaders()
             datamodule.dataloaders_evaluate = False
 
             model.produce_probabilities = True
-            y_trn = df.loc[df.index[ids_trn], target_name].values
-            y_val = df.loc[df.index[ids_val], target_name].values
             y_trn_pred_prob = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
             y_val_pred_prob = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
-            if is_tst:
-                y_tst = df.loc[df.index[ids_tst], target_name].values
-                y_tst_pred_prob = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_tst_pred_prob = {}
+            for tst_set_name in ids_tst:
+                y_tst_pred_prob[tst_set_name] = torch.cat(trainer.predict(model, dataloaders=tst_dataloaders[tst_set_name], return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
             model.produce_probabilities = False
             y_trn_pred_raw = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
             y_val_pred_raw = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+            y_tst_pred_raw = {}
             y_trn_pred = np.argmax(y_trn_pred_prob, 1)
             y_val_pred = np.argmax(y_val_pred_prob, 1)
-            if is_tst:
-                y_tst_pred_raw = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
-                y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+            y_tst_pred = {}
+            for tst_set_name in ids_tst:
+                y_tst_pred_raw[tst_set_name] = torch.cat(trainer.predict(model, dataloaders=tst_dataloaders[tst_set_name], return_predictions=True, ckpt_path="best")).cpu().detach().numpy()
+                y_tst_pred[tst_set_name] = np.argmax(y_tst_pred_prob[tst_set_name], 1)
             model.produce_probabilities = True
 
             # Feature importance
@@ -229,8 +234,9 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=feature_names['all'])
                 dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names['all'])
-                if is_tst:
-                    dmat_tst = xgb.DMatrix(X_tst, y_tst, feature_names=feature_names['all'])
+                dmat_tst = {}
+                for tst_set_name in ids_tst:
+                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=feature_names['all'])
 
                 evals_result = {}
                 model = xgb.train(
@@ -245,14 +251,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred_prob = model.predict(dmat_trn)
                 y_val_pred_prob = model.predict(dmat_val)
+                y_tst_pred_prob = {}
                 y_trn_pred_raw = model.predict(dmat_trn, output_margin=True)
                 y_val_pred_raw = model.predict(dmat_val, output_margin=True)
+                y_tst_pred_raw = {}
                 y_trn_pred = np.argmax(y_trn_pred_prob, 1)
                 y_val_pred = np.argmax(y_val_pred_prob, 1)
-                if is_tst:
-                    y_tst_pred_prob = model.predict(dmat_tst)
-                    y_tst_pred_raw = model.predict(dmat_tst, output_margin=True)
-                    y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred_prob[tst_set_name] = model.predict(dmat_tst[tst_set_name])
+                    y_tst_pred_raw[tst_set_name] = model.predict(dmat_tst[tst_set_name], output_margin=True)
+                    y_tst_pred[tst_set_name] = np.argmax(y_tst_pred_prob[tst_set_name], 1)
 
                 loss_info = {
                     'epoch': list(range(len(evals_result['train'][config.model.eval_metric]))),
@@ -314,14 +323,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred_prob = model.predict(X_trn, prediction_type="Probability")
                 y_val_pred_prob = model.predict(X_val, prediction_type="Probability")
+                y_tst_pred_prob = {}
                 y_trn_pred_raw = model.predict(X_trn, prediction_type="RawFormulaVal")
                 y_val_pred_raw = model.predict(X_val, prediction_type="RawFormulaVal")
+                y_tst_pred_raw = {}
                 y_trn_pred = np.argmax(y_trn_pred_prob, 1)
                 y_val_pred = np.argmax(y_val_pred_prob, 1)
-                if is_tst:
-                    y_tst_pred_prob = model.predict(X_tst, prediction_type="Probability")
-                    y_tst_pred_raw = model.predict(X_tst, prediction_type="RawFormulaVal")
-                    y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred_prob[tst_set_name] = model.predict(X_tst[tst_set_name], prediction_type="Probability")
+                    y_tst_pred_raw[tst_set_name] = model.predict(X_tst[tst_set_name], prediction_type="RawFormulaVal")
+                    y_tst_pred[tst_set_name] = np.argmax(y_tst_pred_prob[tst_set_name], 1)
 
                 metrics_trn = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
                 metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
@@ -397,14 +409,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred_prob = model.predict(X_trn, num_iteration=model.best_iteration)
                 y_val_pred_prob = model.predict(X_val, num_iteration=model.best_iteration)
+                y_tst_pred_prob = {}
                 y_trn_pred_raw = model.predict(X_trn, num_iteration=model.best_iteration, raw_score=True)
                 y_val_pred_raw = model.predict(X_val, num_iteration=model.best_iteration, raw_score=True)
+                y_tst_pred_raw = {}
                 y_trn_pred = np.argmax(y_trn_pred_prob, 1)
                 y_val_pred = np.argmax(y_val_pred_prob, 1)
-                if is_tst:
-                    y_tst_pred_prob = model.predict(X_tst, num_iteration=model.best_iteration)
-                    y_tst_pred_raw = model.predict(X_tst, num_iteration=model.best_iteration, raw_score=True)
-                    y_tst_pred = np.argmax(y_tst_pred_prob, 1)
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred_prob[tst_set_name] = model.predict(X_tst[tst_set_name], num_iteration=model.best_iteration)
+                    y_tst_pred_raw[tst_set_name] = model.predict(X_tst[tst_set_name], num_iteration=model.best_iteration, raw_score=True)
+                    y_tst_pred[tst_set_name] = np.argmax(y_tst_pred_prob[tst_set_name], 1)
 
                 loss_info = {
                     'epoch': list(range(len(evals_result['train'][config.model.metric]))),
@@ -458,14 +473,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred_prob = model.predict_proba(X_trn)
                 y_val_pred_prob = model.predict_proba(X_val)
+                y_tst_pred_prob = {}
                 y_trn_pred_raw = model.predict_proba(X_trn)
                 y_val_pred_raw = model.predict_proba(X_val)
+                y_tst_pred_raw = {}
                 y_trn_pred = model.predict(X_trn)
                 y_val_pred = model.predict(X_val)
-                if is_tst:
-                    y_tst_pred_prob = model.predict_proba(X_tst)
-                    y_tst_pred_raw = model.predict_proba(X_tst)
-                    y_tst_pred = model.predict(X_tst)
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred_prob[tst_set_name] = model.predict_proba(X_tst[tst_set_name])
+                    y_tst_pred_raw[tst_set_name] = model.predict_proba(X_tst[tst_set_name])
+                    y_tst_pred[tst_set_name] = model.predict(X_tst[tst_set_name])
 
                 loss_info = {
                     'epoch': [0],
@@ -518,14 +536,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred_prob = model.predict_proba(X_trn)
                 y_val_pred_prob = model.predict_proba(X_val)
+                y_tst_pred_prob = {}
                 y_trn_pred_raw = model.predict_proba(X_trn)
                 y_val_pred_raw = model.predict_proba(X_val)
+                y_tst_pred_raw = {}
                 y_trn_pred = model.predict(X_trn)
                 y_val_pred = model.predict(X_val)
-                if is_tst:
-                    y_tst_pred_prob = model.predict_proba(X_tst)
-                    y_tst_pred_raw = model.predict_proba(X_tst)
-                    y_tst_pred = model.predict(X_tst)
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred_prob[tst_set_name] = model.predict_proba(X_tst[tst_set_name])
+                    y_tst_pred_raw[tst_set_name] = model.predict_proba(X_tst[tst_set_name])
+                    y_tst_pred[tst_set_name] = model.predict(X_tst[tst_set_name])
 
                 loss_info = {
                     'epoch': [0],
@@ -574,10 +595,11 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=False)
         for m in metrics_val.index.values:
             metrics_cv.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
-        if is_tst:
-            metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, loggers, 'tst', is_log=True, is_save=False)
-            for m in metrics_tst.index.values:
-                metrics_cv.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
+        metrics_tst = {}
+        for tst_set_name in ids_tst:
+            metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name], y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], loggers, tst_set_name, is_log=True, is_save=False)
+            for m in metrics_tst[tst_set_name].index.values:
+                metrics_cv.at[fold_idx, f"{tst_set_name}_{m}"] = metrics_tst[tst_set_name].at[m, tst_set_name]
 
         # Make sure everything closed properly
         if model_framework == "pytorch":
@@ -607,8 +629,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
             metrics_main = metrics_trn
         elif config.optimized_part == "val":
             metrics_main = metrics_val
-        elif config.optimized_part == "tst":
-            metrics_main = metrics_tst
+        elif config.optimized_part.startwith("tst"):
+            metrics_main = metrics_tst[config.optimized_part]
         else:
             raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
@@ -685,11 +707,12 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 df.loc[df.index[ids_val], f"pred_prob_{cl_id}"] = y_val_pred_prob[:, cl_id]
                 df.loc[df.index[ids_trn], f"pred_raw_{cl_id}"] = y_trn_pred_raw[:, cl_id]
                 df.loc[df.index[ids_val], f"pred_raw_{cl_id}"] = y_val_pred_raw[:, cl_id]
-            if is_tst:
-                df.loc[df.index[ids_tst], "pred"] = y_tst_pred
-                for cl_id, cl in enumerate(class_names):
-                    df.loc[df.index[ids_tst], f"pred_prob_{cl_id}"] = y_tst_pred_prob[:, cl_id]
-                    df.loc[df.index[ids_tst], f"pred_raw_{cl_id}"] = y_tst_pred_raw[:, cl_id]
+            for tst_set_name in ids_tst:
+                if tst_set_name != 'tst_all':
+                    df.loc[df.index[ids_tst[tst_set_name]], "pred"] = y_tst_pred[tst_set_name]
+                    for cl_id, cl in enumerate(class_names):
+                        df.loc[df.index[ids_tst[tst_set_name]], f"pred_prob_{cl_id}"] = y_tst_pred_prob[tst_set_name][:, cl_id]
+                        df.loc[df.index[ids_tst[tst_set_name]], f"pred_raw_{cl_id}"] = y_tst_pred_raw[tst_set_name][:, cl_id]
 
         metrics_cv.at[fold_idx, 'fold'] = fold_idx
         metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
@@ -741,10 +764,13 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     y_val = df.loc[df.index[datamodule.ids_val], target_name].values
     y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
     y_val_pred_prob = df.loc[df.index[datamodule.ids_val], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
-    if is_tst:
-        y_tst = df.loc[df.index[datamodule.ids_tst], target_name].values
-        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "pred"].values
-        y_tst_pred_prob = df.loc[df.index[datamodule.ids_tst], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
+    y_tst = {}
+    y_tst_pred = {}
+    y_tst_pred_prob = {}
+    for tst_set_name in ids_tst:
+        y_tst[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], target_name].values
+        y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "pred"].values
+        y_tst_pred_prob[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
     metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
@@ -763,30 +789,33 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     metrics_val = pd.concat([metrics_val, metrics_val_cv])
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
-    if is_tst:
-        metrics_tst = eval_classification(config, class_names, y_tst, y_tst_pred, y_tst_pred_prob, None, 'tst', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
-        metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['tst'])
+    metrics_tst = {}
+    metrics_tst_cv = {}
+    metrics_val_tst_cv_mean = {}
+    for tst_set_name in ids_tst:
+        metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name], y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], None, tst_set_name, is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst_cv[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=[tst_set_name])
         for metric in metrics_names:
-            metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = metrics_cv[f"tst_{metric}"].mean()
-            metrics_tst_cv.at[f"{metric}_cv_std", 'tst'] = metrics_cv[f"tst_{metric}"].std()
-        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
+            metrics_tst_cv[tst_set_name].at[f"{metric}_cv_mean", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].mean()
+            metrics_tst_cv[tst_set_name].at[f"{metric}_cv_std", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].std()
+        metrics_tst[tst_set_name] = pd.concat([metrics_tst[tst_set_name], metrics_tst_cv[tst_set_name]])
 
-        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_tst" for x in metrics_names],columns=['val', 'tst'])
+        metrics_val_tst_cv_mean[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean_val_{tst_set_name}" for x in metrics_names],columns=['val', tst_set_name])
         for metric in metrics_names:
-            val_tst_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst.at[f"{metric}_cv_mean", 'tst'])
-            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_tst", 'val'] = val_tst_value
-            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_tst", 'tst'] = val_tst_value
-        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean.loc[:, ['val']]])
-        metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, ['tst']]])
+            val_tst_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst[tst_set_name].at[f"{metric}_cv_mean", tst_set_name])
+            metrics_val_tst_cv_mean[tst_set_name].at[f"{metric}_cv_mean_val_{tst_set_name}", 'val'] = val_tst_value
+            metrics_val_tst_cv_mean[tst_set_name].at[f"{metric}_cv_mean_val_{tst_set_name}", tst_set_name] = val_tst_value
+        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean[tst_set_name].loc[:, ['val']]])
+        metrics_tst[tst_set_name] = pd.concat([metrics_tst[tst_set_name], metrics_val_tst_cv_mean[tst_set_name].loc[:, [tst_set_name]]])
         metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
-        metrics_tst.to_excel(f"metrics_tst_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
+        metrics_tst[tst_set_name].to_excel(f"metrics_{tst_set_name}_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     if config.optimized_part == "trn":
         metrics_main = metrics_trn
     elif config.optimized_part == "val":
         metrics_main = metrics_val
-    elif config.optimized_part == "tst":
-        metrics_main = metrics_tst
+    elif config.optimized_part.startwith("tst"):
+        metrics_main = metrics_tst[config.optimized_part]
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
@@ -803,9 +832,11 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
             'all': np.arange(df.shape[0]),
             'trn': datamodule.ids_trn,
             'val': datamodule.ids_val,
-            'tst': datamodule.ids_tst
         }
     }
+    for tst_set_name in ids_tst:
+        expl_data['ids'][tst_set_name] = ids_tst[tst_set_name]
+
     if config.is_lime == True:
         explain_lime(config, expl_data)
     if config.is_shap == True:

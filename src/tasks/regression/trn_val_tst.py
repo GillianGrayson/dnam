@@ -24,8 +24,6 @@ from src.tasks.regression.shap import explain_shap
 from src.tasks.regression.lime import explain_lime
 from scripts.python.routines.plot.scatter import add_scatter_trace
 from scripts.python.routines.plot.save import save_figure
-from scipy.stats import mannwhitneyu
-from scripts.python.routines.plot.p_value import add_p_value_annotation
 from scripts.python.routines.plot.layout import add_layout
 from src.tasks.routines import eval_regression, eval_loss, save_feature_importance
 from datetime import datetime
@@ -62,10 +60,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     target_name = datamodule.get_target()
     df = datamodule.get_data()
     ids_tst = datamodule.ids_tst
-    if len(ids_tst) > 0:
-        is_tst = True
-    else:
-        is_tst = False
+
+    colors = datamodule.colors
 
     cv_splitter = RepeatedStratifiedKFoldCVSplitter(
         datamodule=datamodule,
@@ -97,10 +93,13 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         X_val = df.loc[df.index[ids_val], feature_names['all']].values
         y_val = df.loc[df.index[ids_val], target_name].values
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
-        if is_tst:
-            X_tst = df.loc[df.index[ids_tst], feature_names['all']].values
-            y_tst = df.loc[df.index[ids_tst], target_name].values
-            df.loc[df.index[ids_tst], f"fold_{fold_idx:04d}"] = "tst"
+        X_tst = {}
+        y_tst = {}
+        for tst_set_name in ids_tst:
+            X_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], feature_names['all']].values
+            y_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], target_name].values
+            if tst_set_name != 'tst_all':
+                df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_idx:04d}"] = tst_set_name
 
         ckpt_curr = ckpt_name + f"_fold_{fold_idx:04d}"
         if 'csv' in config.logger:
@@ -179,27 +178,27 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             # Evaluate model on test set, using the best model achieved during training
             if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
                 log.info("Starting testing!")
-                test_dataloader = datamodule.test_dataloader()
-                if test_dataloader is not None and len(test_dataloader) > 0:
-                    trainer.test(model, test_dataloader, ckpt_path="best")
+                tst_dataloaders = datamodule.test_dataloaders()
+                if 'tst_all' in tst_dataloaders:
+                    tst_dataloader = tst_dataloaders['tst_all']
+                else:
+                    tst_dataloader = tst_dataloaders[list(tst_dataloaders.keys())[0]]
+                if tst_dataloader is not None and len(tst_dataloader) > 0:
+                    trainer.test(model, tst_dataloader, ckpt_path="best")
                 else:
                     log.info("Test data is empty!")
 
             datamodule.dataloaders_evaluate = True
             trn_dataloader = datamodule.train_dataloader()
             val_dataloader = datamodule.val_dataloader()
-            tst_dataloader = datamodule.test_dataloader()
+            tst_dataloaders = datamodule.test_dataloaders()
             datamodule.dataloaders_evaluate = False
-
-            y_trn = df.loc[df.index[ids_trn], target_name].values
-            y_val = df.loc[df.index[ids_val], target_name].values
-            if is_tst:
-                y_tst = df.loc[df.index[ids_tst], target_name].values
 
             y_trn_pred = torch.cat(trainer.predict(model, dataloaders=trn_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
             y_val_pred = torch.cat(trainer.predict(model, dataloaders=val_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
-            if is_tst:
-                y_tst_pred = torch.cat(trainer.predict(model, dataloaders=tst_dataloader, return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
+            y_tst_pred = {}
+            for tst_set_name in ids_tst:
+                y_tst_pred[tst_set_name] = torch.cat(trainer.predict(model, dataloaders=tst_dataloaders[tst_set_name], return_predictions=True, ckpt_path="best")).cpu().detach().numpy().ravel()
 
             # Feature importance
             if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
@@ -225,8 +224,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
                 dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=feature_names['all'])
                 dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names['all'])
-                if is_tst:
-                    dmat_tst = xgb.DMatrix(X_tst, y_tst, feature_names=feature_names['all'])
+                dmat_tst = {}
+                for tst_set_name in ids_tst:
+                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=feature_names['all'])
 
                 evals_result = {}
                 model = xgb.train(
@@ -241,8 +241,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred = model.predict(dmat_trn)
                 y_val_pred = model.predict(dmat_val)
-                if is_tst:
-                    y_tst_pred = model.predict(dmat_tst)
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred[tst_set_name] = model.predict(dmat_tst[tst_set_name])
 
                 loss_info = {
                     'epoch': list(range(len(evals_result['train'][config.model.eval_metric]))),
@@ -302,8 +303,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred = model.predict(X_trn).astype('float32')
                 y_val_pred = model.predict(X_val).astype('float32')
-                if is_tst:
-                    y_tst_pred = model.predict(X_tst).astype('float32')
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred[tst_set_name] = model.predict(X_tst[tst_set_name]).astype('float32')
 
                 metrics_train = pd.read_csv(f"catboost_info/learn_error.tsv", delimiter="\t")
                 metrics_val = pd.read_csv(f"catboost_info/test_error.tsv", delimiter="\t")
@@ -377,8 +379,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred = model.predict(X_trn, num_iteration=model.best_iteration).astype('float32')
                 y_val_pred = model.predict(X_val, num_iteration=model.best_iteration).astype('float32')
-                if is_tst:
-                    y_tst_pred = model.predict(X_tst, num_iteration=model.best_iteration).astype('float32')
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred[tst_set_name] = model.predict(X_tst[tst_set_name], num_iteration=model.best_iteration).astype('float32')
 
                 loss_info = {
                     'epoch': list(range(len(evals_result['train'][config.model.metric]))),
@@ -427,8 +430,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
                 y_trn_pred = model.predict(X_trn).astype('float32')
                 y_val_pred = model.predict(X_val).astype('float32')
-                if is_tst:
-                    y_tst_pred = model.predict(X_tst).astype('float32')
+                y_tst_pred = {}
+                for tst_set_name in ids_tst:
+                    y_tst_pred[tst_set_name] = model.predict(X_tst[tst_set_name]).astype('float32')
 
                 loss_info = {
                     'epoch': [0],
@@ -479,10 +483,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False)
         for m in metrics_val.index.values:
             metrics_cv.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
-        if is_tst:
-            metrics_tst = eval_regression(config, y_tst, y_tst_pred, loggers, 'tst', is_log=True, is_save=False)
-            for m in metrics_tst.index.values:
-                metrics_cv.at[fold_idx, f"tst_{m}"] = metrics_tst.at[m, 'tst']
+        metrics_tst = {}
+        for tst_set_name in ids_tst:
+            metrics_tst[tst_set_name] = eval_regression(config, y_tst[tst_set_name], y_tst_pred[tst_set_name], loggers, tst_set_name, is_log=True, is_save=False)
+            for m in metrics_tst[tst_set_name].index.values:
+                metrics_cv.at[fold_idx, f"{tst_set_name}_{m}"] = metrics_tst[tst_set_name].at[m, tst_set_name]
 
         # Make sure everything closed properly
         if model_framework == "pytorch":
@@ -512,8 +517,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             metrics_main = metrics_trn
         elif config.optimized_part == "val":
             metrics_main = metrics_val
-        elif config.optimized_part == "tst":
-            metrics_main = metrics_tst
+        elif config.optimized_part.startwith("tst"):
+            metrics_main = metrics_tst[config.optimized_part]
         else:
             raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
@@ -580,8 +585,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             best['ids_val'] = ids_val
             df.loc[df.index[ids_trn], "Estimation"] = y_trn_pred
             df.loc[df.index[ids_val], "Estimation"] = y_val_pred
-            if is_tst:
-                df.loc[df.index[ids_tst], "Estimation"] = y_tst_pred
+            for tst_set_name in ids_tst:
+                if tst_set_name != 'tst_all':
+                    df.loc[df.index[ids_tst[tst_set_name]], "Estimation"] = y_tst_pred[tst_set_name]
 
         metrics_cv.at[fold_idx, 'fold'] = fold_idx
         metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
@@ -624,9 +630,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Estimation"].values
     y_val = df.loc[df.index[datamodule.ids_val], target_name].values
     y_val_pred = df.loc[df.index[datamodule.ids_val], "Estimation"].values
-    if is_tst:
-        y_tst = df.loc[df.index[datamodule.ids_tst], target_name].values
-        y_tst_pred = df.loc[df.index[datamodule.ids_tst], "Estimation"].values
+    y_tst = {}
+    y_tst_pred = {}
+    for tst_set_name in ids_tst:
+        y_tst[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], target_name].values
+        y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values
 
     metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
@@ -645,30 +653,33 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     metrics_val = pd.concat([metrics_val, metrics_val_cv])
     metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
-    if is_tst:
-        metrics_tst = eval_regression(config, y_tst, y_tst_pred, None, 'tst', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
-        metrics_tst_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['tst'])
+    metrics_tst = {}
+    metrics_tst_cv = {}
+    metrics_val_tst_cv_mean = {}
+    for tst_set_name in ids_tst:
+        metrics_tst[tst_set_name] = eval_regression(config, y_tst[tst_set_name], y_tst_pred[tst_set_name], None, tst_set_name, is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst_cv[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=[tst_set_name])
         for metric in metrics_names:
-            metrics_tst_cv.at[f"{metric}_cv_mean", 'tst'] = metrics_cv[f"tst_{metric}"].mean()
-            metrics_tst_cv.at[f"{metric}_cv_std", 'tst'] = metrics_cv[f"tst_{metric}"].std()
-        metrics_tst = pd.concat([metrics_tst, metrics_tst_cv])
+            metrics_tst_cv[tst_set_name].at[f"{metric}_cv_mean", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].mean()
+            metrics_tst_cv[tst_set_name].at[f"{metric}_cv_std", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].std()
+        metrics_tst[tst_set_name] = pd.concat([metrics_tst[tst_set_name], metrics_tst_cv[tst_set_name]])
 
-        metrics_val_tst_cv_mean = pd.DataFrame(index=[f"{x}_cv_mean_val_tst" for x in metrics_names],columns=['val', 'tst'])
+        metrics_val_tst_cv_mean[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean_val_{tst_set_name}" for x in metrics_names],columns=['val', tst_set_name])
         for metric in metrics_names:
-            val_tst_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst.at[f"{metric}_cv_mean", 'tst'])
-            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_tst", 'val'] = val_tst_value
-            metrics_val_tst_cv_mean.at[f"{metric}_cv_mean_val_tst", 'tst'] = val_tst_value
-        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean.loc[:, ['val']]])
-        metrics_tst = pd.concat([metrics_tst, metrics_val_tst_cv_mean.loc[:, ['tst']]])
+            val_tst_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst[tst_set_name].at[f"{metric}_cv_mean", tst_set_name])
+            metrics_val_tst_cv_mean[tst_set_name].at[f"{metric}_cv_mean_val_{tst_set_name}", 'val'] = val_tst_value
+            metrics_val_tst_cv_mean[tst_set_name].at[f"{metric}_cv_mean_val_{tst_set_name}", tst_set_name] = val_tst_value
+        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean[tst_set_name].loc[:, ['val']]])
+        metrics_tst[tst_set_name] = pd.concat([metrics_tst[tst_set_name], metrics_val_tst_cv_mean[tst_set_name].loc[:, [tst_set_name]]])
         metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
-        metrics_tst.to_excel(f"metrics_tst_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
+        metrics_tst[tst_set_name].to_excel(f"metrics_{tst_set_name}_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     if config.optimized_part == "trn":
         metrics_main = metrics_trn
     elif config.optimized_part == "val":
         metrics_main = metrics_val
-    elif config.optimized_part == "tst":
-        metrics_main = metrics_tst
+    elif config.optimized_part.startwith("tst"):
+        metrics_main = metrics_tst[config.optimized_part]
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
@@ -678,32 +689,33 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     model_linear = smf.ols(formula=formula, data=df.loc[df.index[datamodule.ids_trn], :]).fit()
     df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_trn], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_trn], :])
     df.loc[df.index[datamodule.ids_val], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_val], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_val], :])
-    if is_tst:
-        df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_tst], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_tst], :])
+    for tst_set_name in ids_tst:
+        df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_tst[tst_set_name]], :])
     fig = go.Figure()
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, df.loc[df.index[datamodule.ids_trn], "Estimation"].values, f"Train")
+    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, df.loc[df.index[datamodule.ids_trn], "Estimation"].values, f"trn")
     add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, model_linear.fittedvalues.values, "", "lines")
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_val], target_name].values, df.loc[df.index[datamodule.ids_val], "Estimation"].values, f"Val")
-    if is_tst:
-        add_scatter_trace(fig, df.loc[df.index[datamodule.ids_tst], target_name].values, df.loc[df.index[datamodule.ids_tst], "Estimation"].values, f"Test")
+    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_val], target_name].values, df.loc[df.index[datamodule.ids_val], "Estimation"].values, f"val")
+    for tst_set_name in ids_tst:
+        if tst_set_name != 'tst_all':
+            add_scatter_trace(fig, df.loc[df.index[datamodule.ids_tst[tst_set_name]], target_name].values, df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values, tst_set_name)
     add_layout(fig, target_name, f"Estimation", f"")
-    fig.update_layout({'colorway': ['blue', 'blue', 'red', 'green']})
+    fig.update_layout({'colorway': list(colors.values())})
     fig.update_layout(legend_font_size=20)
     fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
     save_figure(fig, f"scatter")
 
-    dist_num_bins = 15
+    dist_num_bins = 20
     fig = go.Figure()
     fig.add_trace(
         go.Violin(
             y=df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-            name=f"Train",
+            name=f"trn",
             box_visible=True,
             meanline_visible=True,
             showlegend=True,
             line_color='black',
-            fillcolor='blue',
-            marker=dict(color='blue', line=dict(color='black', width=0.3), opacity=0.8),
+            fillcolor=colors['trn'],
+            marker=dict(color=colors['trn'], line=dict(color='black', width=0.3), opacity=0.8),
             points='all',
             bandwidth=np.ptp(df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values) / dist_num_bins,
             opacity=0.8
@@ -712,55 +724,36 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     fig.add_trace(
         go.Violin(
             y=df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-            name=f"Val",
+            name=f"val",
             box_visible=True,
             meanline_visible=True,
             showlegend=True,
             line_color='black',
-            fillcolor='red',
-            marker=dict(color='red', line=dict(color='black', width=0.3), opacity=0.8),
+            fillcolor=colors['val'],
+            marker=dict(color=colors['val'], line=dict(color='black', width=0.3), opacity=0.8),
             points='all',
             bandwidth=np.ptp(df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values) / dist_num_bins,
             opacity=0.8
         )
     )
-    if is_tst:
-        fig.add_trace(
-            go.Violin(
-                y=df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
-                name=f"Test",
-                box_visible=True,
-                meanline_visible=True,
-                showlegend=True,
-                line_color='black',
-                fillcolor='green',
-                marker=dict(color='green', line=dict(color='black', width=0.3), opacity=0.8),
-                points='all',
-                bandwidth=np.ptp(df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values) / 50,
-                opacity=0.8
+    for tst_set_name in ids_tst:
+        if tst_set_name != 'tst_all':
+            fig.add_trace(
+                go.Violin(
+                    y=df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"].values,
+                    name=tst_set_name,
+                    box_visible=True,
+                    meanline_visible=True,
+                    showlegend=True,
+                    line_color='black',
+                    fillcolor=colors[tst_set_name],
+                    marker=dict(color=colors[tst_set_name], line=dict(color='black', width=0.3), opacity=0.8),
+                    points='all',
+                    bandwidth=np.ptp(df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"].values) / dist_num_bins,
+                    opacity=0.8
+                )
             )
-        )
     add_layout(fig, "", "Estimation acceleration", f"")
-    fig.update_layout({'colorway': ['red', 'blue', 'green']})
-    stat_01, pval_01 = mannwhitneyu(
-        df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-        df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-        alternative='two-sided'
-    )
-    if is_tst:
-        stat_02, pval_02 = mannwhitneyu(
-            df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-            df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
-            alternative='two-sided'
-        )
-        stat_12, pval_12 = mannwhitneyu(
-            df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-            df.loc[df.index[datamodule.ids_tst], "Estimation acceleration"].values,
-            alternative='two-sided'
-        )
-        fig = add_p_value_annotation(fig, {(0, 1): pval_01, (1, 2): pval_12, (0, 2): pval_02})
-    else:
-        fig = add_p_value_annotation(fig, {(0, 1): pval_01})
     fig.update_layout(title_xref='paper')
     fig.update_layout(legend_font_size=20)
     fig.update_layout(
@@ -793,9 +786,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             'all': np.arange(df.shape[0]),
             'trn': datamodule.ids_trn,
             'val': datamodule.ids_val,
-            'tst': datamodule.ids_tst
         }
     }
+    for tst_set_name in ids_tst:
+        expl_data['ids'][tst_set_name] = ids_tst[tst_set_name]
+
     if config.is_lime == True:
         explain_lime(config, expl_data)
     if config.is_shap == True:

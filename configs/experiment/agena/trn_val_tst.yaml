@@ -17,7 +17,7 @@ embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
 optimized_metric: mean_absolute_error     # All metrics listed in src.tasks.metrics
-optimized_mean: cv_mean                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]
+optimized_mean: cv_mean_val_tst_all                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]
 optimized_part: val                       # Optimized data partition. Options: ["val", "tst"]
 direction: min                            # Direction of metrics optimization. Options ["min", "max"]
 

@@ -13,6 +13,8 @@ import plotly.graph_objects as go
 import impyute.imputation.cs as imp
 import pathlib
 from typing import List, Optional, Tuple
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 log = utils.get_logger(__name__)
@@ -177,7 +179,17 @@ class TabularDataModule(LightningDataModule):
 
         self.data_all['ids'] = self.data_all.index.values
         self.ids_trn_val = self.data_all.index[self.data_all[self.split_explicit_feat].isin(["trn_val", "trn", "val"])].values
-        self.ids_tst = self.data_all.index[self.data_all[self.split_explicit_feat].isin(["tst"])].values
+
+        self.ids_tst = {}
+        tst_set_names = [x for x in self.data_all[self.split_explicit_feat].unique() if x.startswith("tst")]
+        for tst_set_name in tst_set_names:
+            self.ids_tst[tst_set_name] = self.data_all.index[self.data_all[self.split_explicit_feat] == tst_set_name].values
+        if len(tst_set_names) > 1:
+            self.ids_tst['tst_all'] = self.data_all.index[self.data_all[self.split_explicit_feat].str.startswith("tst")].values
+
+        self.colors = {'trn': px.colors.qualitative.Dark24[0], 'val': px.colors.qualitative.Dark24[1]}
+        for tst_set_name_index, tst_set_name in enumerate(self.ids_tst):
+            self.colors[tst_set_name] = px.colors.qualitative.Dark24[tst_set_name_index + 2]
 
         self.data_all.set_index(self.data_index, inplace=True)
 
@@ -196,11 +208,13 @@ class TabularDataModule(LightningDataModule):
 
     def refresh_datasets(self):
         self.dataset_trn = Subset(self.dataset, self.ids_trn)
+        log.info(f"trn count: {len(self.dataset_trn)}")
         self.dataset_val = Subset(self.dataset, self.ids_val)
-        self.dataset_tst = Subset(self.dataset, self.ids_tst)
-        log.info(f"trn_count: {len(self.dataset_trn)}")
-        log.info(f"val_count: {len(self.dataset_val)}")
-        log.info(f"tst_count: {len(self.dataset_tst)}")
+        log.info(f"val count: {len(self.dataset_val)}")
+        self.dataset_tst = {}
+        for tst_set_name in self.ids_tst:
+            self.dataset_tst[tst_set_name] = Subset(self.dataset, self.ids_tst[tst_set_name])
+            log.info(f"{tst_set_name} count: {len(self.dataset_tst[tst_set_name])}")
 
     def perform_split(self):
         if self.split_by == "explicit_feat":
@@ -238,12 +252,17 @@ class TabularDataModule(LightningDataModule):
         self.refresh_datasets()
 
     def plot_split(self, suffix: str = ''):
-        dict_to_plot = {
-            "trn": self.ids_trn,
-            "val": self.ids_val,
-            "tst": self.ids_tst
-        }
+
         if self.task == 'classification':
+
+            dict_to_plot = {
+                "trn": self.ids_trn,
+                "val": self.ids_val,
+            }
+            for tst_set_name in self.ids_tst:
+                if tst_set_name != 'tst_all':
+                    dict_to_plot[tst_set_name] = tst_set_name
+
             for name, ids in dict_to_plot.items():
                 if len(ids) > 0:
                     classes_counts = pd.DataFrame(Counter(self.data_all.loc[self.data_all.index[ids], f"{self.target}_origin"].values), index=[0])
@@ -275,30 +294,42 @@ class TabularDataModule(LightningDataModule):
                         )
                     )
                     save_figure(fig, f"bar_{name}{suffix}")
+
         elif self.task == 'regression':
-            ptp = np.ptp(self.data_all.loc[:, self.target].values)
-            bin_size = ptp / 15
-            fig = go.Figure()
-            for name, ids in dict_to_plot.items():
-                fig.add_trace(
-                    go.Histogram(
-                        x=self.data_all.loc[self.data_all.index[ids], self.target].values,
-                        name=name,
-                        showlegend=True,
-                        marker=dict(
-                            opacity=0.7,
-                            line=dict(
-                                width=1
-                            ),
-                        ),
-                        xbins=dict(size=bin_size)
-                    )
-                )
-            add_layout(fig, f"{self.target}", "Count", "")
-            fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=75, t=50, pad=0))
-            fig.update_layout(legend_font_size=20)
-            fig.update_layout({'colorway': ["blue", "red", "green"]}, barmode='overlay')
-            save_figure(fig, f"hist{suffix}")
+
+            df_fig = self.data_all.loc[:, [self.target, self.split_explicit_feat]].copy()
+            df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
+            df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
+            for tst_set_name in self.ids_tst:
+                if tst_set_name != 'tst_all':
+                    df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
+
+            hist_min = df_fig.loc[:, self.target].min()
+            hist_max = df_fig.loc[:, self.target].max()
+            hist_width = hist_max - hist_min
+            hist_n_bins = 20
+            hist_bin_width = hist_width / hist_n_bins
+
+            hue_order = ['trn', 'val'] + [x for x in self.ids_tst.keys() if x != 'tst_all']
+
+            fig = plt.figure()
+            sns.set_theme(style='whitegrid')
+            sns.histplot(
+                data=df_fig,
+                bins=hist_n_bins,
+                binrange=(hist_min, hist_max),
+                binwidth=hist_bin_width,
+                discrete=False,
+                edgecolor='k',
+                linewidth=1,
+                x=self.target,
+                hue="Part",
+                hue_order=hue_order,
+                palette=self.colors
+            )
+            plt.savefig(f"hist{suffix}.png", bbox_inches='tight', dpi=400)
+            plt.savefig(f"hist{suffix}.pdf", bbox_inches='tight')
+            plt.close(fig)
 
     def get_cross_validation_df(self):
         columns = ['ids', self.target]
@@ -352,14 +383,17 @@ class TabularDataModule(LightningDataModule):
             shuffle=False,
         )
 
-    def test_dataloader(self):
-        return DataLoader(
-            dataset=self.dataset_tst,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            shuffle=False,
-        )
+    def test_dataloaders(self):
+        dataloaders = {}
+        for tst_set_name in self.dataset_tst:
+            dataloaders[tst_set_name] = DataLoader(
+                dataset=self.dataset_tst[tst_set_name],
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                pin_memory=self.pin_memory,
+                shuffle=False,
+            )
+        return dataloaders
 
     def get_feature_names(self):
         feature_names = {
