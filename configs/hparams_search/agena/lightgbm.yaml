@@ -12,7 +12,7 @@ hydra:
     study_name: null      # Name of the study to persist optimization results
     n_jobs: 1             # Number of parallel workers
     direction: minimize   # Objective: 'minimize' or 'maximize'
-    n_trials: 200         # Total number of runs that will be executed
+    n_trials: 500         # Total number of runs that will be executed
 
     # Choose Optuna hyperparameter sampler
     # Documentation: [https://optuna.readthedocs.io/en/stable/reference/samplers/index.html]

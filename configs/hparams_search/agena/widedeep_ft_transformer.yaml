@@ -24,7 +24,7 @@ hydra:
     direction: minimize
 
     # total number of runs that will be executed
-    n_trials: 1000
+    n_trials: 500
 
     # choose Optuna hyperparameter sampler
     # docs: https://optuna.readthedocs.io/en/stable/reference/samplers/index.html
