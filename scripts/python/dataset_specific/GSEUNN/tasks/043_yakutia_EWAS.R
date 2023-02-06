@@ -17,7 +17,7 @@ Sys.which('python')
 use_condaenv('py39')
 py_run_string('print(1+1)')
 
-dmp_pval <- 1
+dmp_pval <- 1e-20
 dmr_pval <- 0.05
 dmr_min_probes <- 10
 
@@ -40,11 +40,50 @@ dmp <- champ.DMP(
   arraytype = "EPIC"
 )
 write.csv(dmp$Central_to_Yakutia, file = "DMP_all_region.csv")
-DMP.GUI(
-  DMP=dmp$Yakutia_to_Central,
-  beta=betas,
-  pheno=pheno$Region
+
+gsea <- champ.GSEA(
+  beta = betas,
+  DMP = dmp[[1]],
+  DMR = NULL,
+  CpGlist = NULL,
+  Genelist = NULL,
+  pheno = pheno$Region,
+  method = "fisher",
+  arraytype = "EPIC",
+  Rplot = TRUE,
+  adjPval = dmp_pval,
+  cores = 12
 )
+write.csv(data.frame(gsea$DMP), file = "DMP_GSEA(fisher)_all_region.csv", row.names=FALSE)
+gsea <- champ.GSEA(
+  beta = betas,
+  DMP = dmp[[1]],
+  DMR = NULL,
+  CpGlist = NULL,
+  Genelist = NULL,
+  pheno = pheno$Region,
+  method = "gometh",
+  arraytype = "EPIC",
+  Rplot = TRUE,
+  adjPval = dmp_pval,
+  cores = 12
+)
+write.csv(data.frame(gsea$DMP), file = "DMP_GSEA(gometh)_all_region.csv", row.names=FALSE)
+gsea <- champ.GSEA(
+  beta = betas,
+  DMP = NULL,
+  DMR = NULL,
+  CpGlist = NULL,
+  Genelist = NULL,
+  pheno = pheno$Region,
+  method = "ebayes",
+  arraytype = "EPIC",
+  Rplot = TRUE,
+  adjPval = dmp_pval,
+  cores = 12
+)
+write.csv(data.frame(gsea$DMR), file = "DMP_GSEA(ebayes)_all_region.csv", row.names=FALSE)
+
 
 dmr <- champ.DMR(
   beta = data.matrix(betas),

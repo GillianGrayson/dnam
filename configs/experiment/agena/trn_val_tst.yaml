@@ -3,7 +3,7 @@
 # Global params
 task: regression    # Task type. Options: ["regression", "classification"]
 target: "Age"       # Target column name
-seed: 42          # Random seed
+seed: 1111          # Random seed
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?

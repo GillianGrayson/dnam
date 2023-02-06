@@ -6,7 +6,7 @@ target: "Age"       # Target column name
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/draft/08_agena/models/xgboost/epoch_499_best_0001.model"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/draft/08_agena/models/widedeep_tab_net/best_fold_0002.ckpt"
 data_part_column: Part
 data_part_main: "UNN MassARRAY"
 
@@ -25,7 +25,7 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: False                       # Calculate SHAP values?
+is_shap: True                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Sampling                # Type of explainer. Options: ["Tree", "Kernel", "Deep"]
 shap_bkgrd: all     # Type of background data. Options: ["trn", "all", "tree_path_dependent"]
@@ -37,5 +37,5 @@ lime_bkgrd: trn                     # Type of background data. Options: ["trn", 
 lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
-num_top_features: 10  # Number of most important features to plot
+num_top_features: 8  # Number of most important features to plot
 num_examples: 10      # Number of samples to plot some SHAP figures
