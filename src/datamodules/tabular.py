@@ -113,9 +113,9 @@ class TabularDataModule(LightningDataModule):
         elif file_ext == ".pkl":
             self.data_all = pd.read_pickle(f"{self.data_fn}")
 
-        self.feats_con = pd.read_excel(self.feats_con_fn).loc[:, 'features'].values.tolist()
+        self.feats_con = pd.read_excel(self.feats_con_fn).iloc[:, 0].values.tolist()
         if self.feats_cat_fn is not None:
-            self.feats_cat = pd.read_excel(self.feats_cat_fn).loc[:, 'features'].values.tolist()
+            self.feats_cat = pd.read_excel(self.feats_cat_fn).iloc[:, 0].values.tolist()
         else:
             self.feats_cat = []
 
@@ -140,9 +140,9 @@ class TabularDataModule(LightningDataModule):
                     self.data_all[f] = self.data_all[f].astype('category').cat.codes
                     self.widedeep['cat_embed_input'].append((f, len(self.data_all[f].astype('category').cat.codes), self.feats_cat_embed_dim))
             elif self.feats_cat_encoding == "one_hot":
-                one_hot = pd.get_dummies(self.data_all.loc[:, self.feats_cat])
+                one_hot = pd.get_dummies(self.data_all.loc[:, self.feats_cat], columns=self.feats_cat)
                 self.data_all = self.data_all.join(one_hot)
-                self.feats_con += one_hot.columns.values
+                self.feats_con += one_hot.columns.values.tolist()
                 self.feats_cat = []
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.feats_cat_encoding}")

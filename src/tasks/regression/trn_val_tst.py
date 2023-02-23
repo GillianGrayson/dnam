@@ -692,12 +692,84 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     for tst_set_name in ids_tst:
         df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_tst[tst_set_name]], :])
     fig = go.Figure()
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, df.loc[df.index[datamodule.ids_trn], "Estimation"].values, f"trn")
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_trn], target_name].values, model_linear.fittedvalues.values, "", "lines")
-    add_scatter_trace(fig, df.loc[df.index[datamodule.ids_val], target_name].values, df.loc[df.index[datamodule.ids_val], "Estimation"].values, f"val")
+    fig.add_trace(
+        go.Scatter(
+            x=df.loc[df.index[datamodule.ids_trn], target_name].values,
+            y=df.loc[df.index[datamodule.ids_trn], "Estimation"].values,
+            showlegend=True,
+            name=f"trn",
+            mode="markers",
+            line_color=colors['trn'],
+            marker_color=colors['trn'],
+            marker=dict(
+                size=8,
+                opacity=0.75,
+                line=dict(
+                    color="black",
+                    width=0.5
+                )
+            )
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df.loc[df.index[datamodule.ids_trn], target_name].values,
+            y=model_linear.fittedvalues.values,
+            showlegend=False,
+            name=f"",
+            mode="lines",
+            line_color=colors['trn'],
+            marker_color=colors['trn'],
+            marker=dict(
+                size=8,
+                opacity=0.75,
+                line=dict(
+                    color="black",
+                    width=0.5
+                )
+            )
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df.loc[df.index[datamodule.ids_val], target_name].values,
+            y=df.loc[df.index[datamodule.ids_val], "Estimation"].values,
+            showlegend=True,
+            name=f"val",
+            mode="markers",
+            line_color=colors['val'],
+            marker_color=colors['val'],
+            marker=dict(
+                size=8,
+                opacity=0.75,
+                line=dict(
+                    color="black",
+                    width=0.5
+                )
+            )
+        )
+    )
     for tst_set_name in ids_tst:
         if tst_set_name != 'tst_all':
-            add_scatter_trace(fig, df.loc[df.index[datamodule.ids_tst[tst_set_name]], target_name].values, df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values, tst_set_name)
+            fig.add_trace(
+                go.Scatter(
+                    x=df.loc[df.index[datamodule.ids_tst[tst_set_name]], target_name].values,
+                    y=df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values,
+                    showlegend=True,
+                    name=f"{tst_set_name}",
+                    mode="markers",
+                    line_color=colors[tst_set_name],
+                    marker_color=colors[tst_set_name],
+                    marker=dict(
+                        size=8,
+                        opacity=0.75,
+                        line=dict(
+                            color="black",
+                            width=0.5
+                        )
+                    )
+                )
+            )
     add_layout(fig, target_name, f"Estimation", f"")
     fig.update_layout({'colorway': list(colors.values())})
     fig.update_layout(legend_font_size=20)
