@@ -200,7 +200,7 @@ class BaseModel(pl.LightningModule):
             self.metrics_val_prob[m].reset()
             self.metrics_tst_prob[m].reset()
 
-    def get_feature_importance(self, data, feature_names, method="shap_kernel"):
+    def get_feature_importance(self, data, features, method="shap_kernel"):
 
         if method.startswith("shap"):
 
@@ -208,15 +208,20 @@ class BaseModel(pl.LightningModule):
 
                 def predict_func(X):
                     batch = {
-                        'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
-                        'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
-                        'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                        'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
+                        'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
+                        'categorical': torch.from_numpy(np.int32(X[:, features['cat_ids']])),
                     }
                     tmp = self.forward(batch)
                     return tmp.cpu().detach().numpy()
 
                 if method == "shap_kernel":
                     explainer = shap.KernelExplainer(predict_func, data)
+                    shap_values = explainer.shap_values(data)
+                    if isinstance(shap_values, list):
+                        shap_values = shap_values[0]
+                if method == "shap_sampling":
+                    explainer = shap.SamplingExplainer(predict_func, data)
                     shap_values = explainer.shap_values(data)
                     if isinstance(shap_values, list):
                         shap_values = shap_values[0]
@@ -233,9 +238,9 @@ class BaseModel(pl.LightningModule):
                 def predict_func(X):
                     self.produce_probabilities = True
                     batch = {
-                        'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
-                        'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
-                        'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                        'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
+                        'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
+                        'categorical': torch.from_numpy(np.int32(X[:, features['cat_ids']])),
                     }
                     tmp = self.forward(batch)
                     return tmp.cpu().detach().numpy()
@@ -243,13 +248,16 @@ class BaseModel(pl.LightningModule):
                 if method == "shap_kernel":
                     explainer = shap.KernelExplainer(predict_func, data)
                     shap_values = explainer.shap_values(data)
+                if method == "shap_sampling":
+                    explainer = shap.SamplingExplainer(predict_func, data)
+                    shap_values = explainer.shap_values(data)
                 elif method == "shap_deep":
                     explainer = shap.DeepExplainer(self, torch.from_numpy(data))
                     shap_values = explainer.shap_values(torch.from_numpy(data))
                 else:
                     raise ValueError(f"Unsupported feature importance method: {method}")
 
-                importance_values = np.zeros(len(feature_names['all']))
+                importance_values = np.zeros(len(features['all']))
                 for cl_id in range(len(shap_values)):
                     importance_values += np.mean(np.abs(shap_values[cl_id]), axis=0)
 
@@ -257,13 +265,13 @@ class BaseModel(pl.LightningModule):
                 raise ValueError("Unsupported task")
 
         elif method == "none":
-            importance_values = np.zeros(len(feature_names['all']))
+            importance_values = np.zeros(len(features['all']))
         else:
             raise ValueError(f"Unsupported feature importance method: {method}")
 
         feature_importances = pd.DataFrame.from_dict(
             {
-                'feature': feature_names['all'],
+                'feature': features['all'],
                 'importance': importance_values
             }
         )

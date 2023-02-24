@@ -24,7 +24,7 @@ direction: min                            # Direction of metrics optimization. O
 # Run params
 max_epochs: 500            # Maximum number of epochs
 patience: 50               # Number of early stopping epochs
-feature_importance: none    # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "native"]
+feature_importance: shap_sampling    # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 
 # Info params
 debug: False                # Is Debug?
@@ -40,10 +40,10 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: False                       # Calculate SHAP values?
+is_shap: True                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
-shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep"]
-shap_bkgrd: tree_path_dependent     # Type of background data. Options: ["trn", "all", "tree_path_dependent"]
+shap_explainer: Deep                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
+shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
 
 # LIME weights
 is_lime: False                      # Calculate LIME?
@@ -52,5 +52,5 @@ lime_bkgrd: trn                     # Type of background data. Options: ["trn", 
 lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
-num_top_features: 10  # Number of most important features to plot
-num_examples: 10      # Number of samples to plot some SHAP figures
+num_top_features: 15  # Number of most important features to plot
+num_examples: 5      # Number of samples to plot some SHAP figures

@@ -89,7 +89,7 @@ def inference_regression(config: DictConfig):
             batch = {
                 'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
                 'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
-                'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                'categorical': torch.from_numpy(np.int32(X[:, feature_names['cat_ids']])),
             }
             tmp = model(batch)
             return tmp.cpu().detach().numpy()

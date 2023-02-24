@@ -156,7 +156,6 @@ class TabularDataModule(LightningDataModule):
             if self.feats_cat_encoding == "keep_cat": # pytorch doesn't work with strings
                 self.widedeep['cat_embed_input'] = []
                 for f in self.feats_cat:
-                    self.data_all[f"{f}_origin"] = self.data_all[f]
                     self.data_all[f] = self.data_all[f].astype('category').cat.codes.astype('int32')
                     self.widedeep['cat_embed_input'].append((f, self.data_all[f].value_counts().shape[0], self.feats_cat_embed_dim))
                     if self.feats_labels_col in df_feats_cat.columns:

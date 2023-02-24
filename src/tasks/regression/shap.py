@@ -14,7 +14,7 @@ import plotly.express as px
 log = utils.get_logger(__name__)
 
 
-def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, features, feature_names, path):
+def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, X, feature_names, features_labels, path):
     Path(f"{path}").mkdir(parents=True, exist_ok=True)
     y_diff = np.array(y_pred) - np.array(y_real)
     order = np.argsort(y_diff)
@@ -28,17 +28,17 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, fe
         diff = y_diff[m_id]
         log.info(f"Plotting sample {m_id}: {indexes[m_id]} (real = {y_real[m_id]:0.4f}, estimated = {y_pred[m_id]:0.4f}) with diff = {diff:0.4f}")
 
-        ind_save = indexes[m_id].replace('/', '_')
+        ind_save = indexes[m_id]
         Path(f"{path}/{ind_save}_{diff:0.4f}").mkdir(parents=True, exist_ok=True)
 
         shap.plots.waterfall(
             shap.Explanation(
                 values=shap_values[m_id],
                 base_values=base_value,
-                data=features[m_id],
-                feature_names=feature_names
+                data=X[m_id],
+                feature_names=features_labels
             ),
-            # max_display=config.num_top_features,
+            max_display=config.num_top_features,
             show=False,
         )
         fig = plt.gcf()
@@ -50,8 +50,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, fe
         shap.plots.decision(
             base_value=base_value,
             shap_values=shap_values[m_id],
-            features=features[m_id],
-            feature_names=feature_names,
+            features=X[m_id],
+            feature_names=features_labels,
             show=False,
         )
         fig = plt.gcf()
@@ -63,8 +63,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, fe
         shap.plots.force(
             base_value=base_value,
             shap_values=shap_values[m_id],
-            features=features[m_id],
-            feature_names=feature_names,
+            features=X[m_id],
+            feature_names=features_labels,
             show=False,
             matplotlib=True
         )
@@ -78,25 +78,24 @@ def explain_shap(config, expl_data):
     model = expl_data['model']
     predict_func = expl_data['predict_func']
     df = expl_data['df']
-    feature_names = expl_data['feature_names']
-    target_name = expl_data['target_name']
+    features_info = expl_data['features']
+    features = features_info['all']
+    features_labels = [features_info['labels'][f] for f in features_info['all']]
+    target = expl_data['target']
 
-    if config.shap_explainer == 'Tree' and config.shap_bkgrd == 'tree_path_dependent':
+    ids_bkgrd = expl_data["ids"][config.shap_bkgrd]
+    indexes_bkgrd = df.index[ids_bkgrd]
+    X_bkgrd = df.loc[indexes_bkgrd, features].values
+    if config.shap_explainer == 'Tree':
         explainer = shap.TreeExplainer(model)
+    elif config.shap_explainer == "Kernel":
+        explainer = shap.KernelExplainer(predict_func, X_bkgrd)
+    elif config.shap_explainer == "Deep":
+        explainer = shap.DeepExplainer(model, torch.from_numpy(X_bkgrd))
+    elif config.shap_explainer == "Sampling":
+        explainer = shap.SamplingExplainer(predict_func, X_bkgrd)
     else:
-        ids_bkgrd = expl_data["ids"][config.shap_bkgrd]
-        indexes_bkgrd = df.index[ids_bkgrd]
-        X_bkgrd = df.loc[indexes_bkgrd, feature_names].values
-        if config.shap_explainer == 'Tree':
-            explainer = shap.TreeExplainer(model, data=X_bkgrd, feature_perturbation='interventional')
-        elif config.shap_explainer == "Kernel":
-            explainer = shap.KernelExplainer(predict_func, X_bkgrd)
-        elif config.shap_explainer == "Deep":
-            explainer = shap.DeepExplainer(model, torch.from_numpy(X_bkgrd))
-        elif config.shap_explainer == "Sampling":
-            explainer = shap.SamplingExplainer(predict_func, X_bkgrd)
-        else:
-            raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
+        raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
     for part in expl_data["ids"]:
         print(f"part: {part}")
@@ -106,11 +105,13 @@ def explain_shap(config, expl_data):
 
             ids = expl_data["ids"][part]
             indexes = df.index[ids]
-            X = df.loc[indexes, feature_names].values
+            X = df.loc[indexes, features].values
             y_pred = df.loc[indexes, "Estimation"].values
 
             if config.shap_explainer == "Tree":
-                shap_values = explainer.shap_values(X)
+                df_X = pd.DataFrame(data=X, columns=features_info["all"])
+                df_X[features_info["cat"]] = df_X[features_info["cat"]].astype('int32')
+                shap_values = explainer.shap_values(df_X)
                 expected_value = explainer.expected_value
             elif config.shap_explainer in ["Kernel", "Sampling"]:
                 shap_values = explainer.shap_values(X)
@@ -126,7 +127,7 @@ def explain_shap(config, expl_data):
                 raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
             if config.is_shap_save:
-                df_shap = pd.DataFrame(index=indexes, columns=feature_names, data=shap_values)
+                df_shap = pd.DataFrame(index=indexes, columns=features, data=shap_values)
                 df_shap.index.name = 'index'
                 df_shap.to_excel(f"shap/{part}/shap.xlsx", index=True)
                 df_expected_value = pd.DataFrame()
@@ -136,8 +137,8 @@ def explain_shap(config, expl_data):
             shap.summary_plot(
                 shap_values=shap_values,
                 features=X,
-                feature_names=feature_names,
-                # max_display=config.num_top_features,
+                feature_names=features_labels,
+                max_display=config.num_top_features,
                 plot_type="bar",
                 show=False,
             )
@@ -148,8 +149,8 @@ def explain_shap(config, expl_data):
             shap.summary_plot(
                 shap_values=shap_values,
                 features=X,
-                feature_names=feature_names,
-                # max_display=config.num_top_features,
+                feature_names=features_labels,
+                max_display=config.num_top_features,
                 plot_type="violin",
                 show=False,
             )
@@ -161,12 +162,12 @@ def explain_shap(config, expl_data):
                 values=shap_values,
                 base_values=np.array([expected_value] * len(ids)),
                 data=X,
-                feature_names=feature_names
+                feature_names=features_labels
             )
             shap.plots.heatmap(
                 explanation,
                 show=False,
-                # max_display=config.num_top_features,
+                max_display=config.num_top_features,
                 instance_order=explanation.sum(1)
             )
             plt.savefig(f"shap/{part}/global/heatmap.png", bbox_inches='tight')
@@ -178,12 +179,13 @@ def explain_shap(config, expl_data):
             features_order = np.argsort(mean_abs_impact)[::-1]
             feat_ids_to_plot = features_order[0:config.num_top_features]
             for rank, feat_id in enumerate(feat_ids_to_plot):
-                feat = feature_names[feat_id]
+                feat = features[feat_id]
+                feat_label = features_labels[feat_id]
                 shap.dependence_plot(
                     ind=feat_id,
                     shap_values=shap_values,
                     features=X,
-                    feature_names=feature_names,
+                    feature_names=features_labels,
                     show=False,
                 )
                 plt.savefig(f"shap/{part}/features/{rank}_{feat}.png", bbox_inches='tight')
@@ -211,7 +213,7 @@ def explain_shap(config, expl_data):
                         )
                     )
                 )
-                add_layout(fig, feat, f"SHAP value for<br>{feat}", f"", font_size=20)
+                add_layout(fig, feat_label, f"SHAP value for<br>{feat_label}", f"", font_size=20)
                 fig.update_layout(legend_font_size=20)
                 fig.update_layout(
                     margin=go.layout.Margin(
@@ -226,12 +228,13 @@ def explain_shap(config, expl_data):
 
             explain_samples(
                 config,
-                df.loc[indexes, target_name].values,
+                df.loc[indexes, target].values,
                 df.loc[indexes, "Estimation"].values,
                 indexes,
                 shap_values,
                 expected_value,
                 X,
-                feature_names,
+                features,
+                features_labels,
                 f"shap/{part}/samples"
             )

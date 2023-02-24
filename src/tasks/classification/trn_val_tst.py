@@ -9,7 +9,7 @@ from pytorch_lightning import (
 )
 from pytorch_lightning.loggers import LightningLoggerBase
 import xgboost as xgb
-from catboost import CatBoost
+from catboost import CatBoost, Pool
 import lightgbm
 from sklearn.linear_model import LogisticRegression
 from sklearn import svm
@@ -216,7 +216,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 model.eval()
                 model.freeze()
-            feature_importances = model.get_feature_importance(X_trn, features, config.feature_importance)
+            feature_importances = model.get_feature_importance(X_trn.values.astype('float32'), features, config.feature_importance)
 
         elif model_framework == "stand_alone":
             if config.model.name == "xgboost":
@@ -233,11 +233,11 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     'eval_metric': config.model.eval_metric,
                 }
 
-                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=features['all'])
-                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=features['all'])
+                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=features['all'], enable_categorical=True)
+                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=features['all'], enable_categorical=True)
                 dmat_tst = {}
                 for tst_set_name in ids_tst:
-                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=features['all'])
+                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=features['all'], enable_categorical=True)
 
                 evals_result = {}
                 model = xgb.train(
@@ -271,9 +271,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 }
 
                 if config.feature_importance.startswith("shap"):
-
                     def predict_func(X):
-                        X = xgb.DMatrix(X, feature_names=features['all'])
+                        X = xgb.DMatrix(X, feature_names=features['all'], enable_categorical=True)
                         y = model.predict(X)
                         return y
 
@@ -284,7 +283,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': features
+                        'features': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -318,8 +317,11 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     'early_stopping_rounds': config.model.patience
                 }
 
+                trn_pool = Pool(X_trn, label=y_trn, feature_names=features['all'], cat_features=features['cat'])
+                val_pool = Pool(X_val, label=y_val, feature_names=features['all'], cat_features=features['cat'])
+
                 model = CatBoost(params=model_params)
-                model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
+                model.fit(trn_pool, eval_set=val_pool, use_best_model=True)
                 model.set_feature_names(features['all'])
 
                 y_trn_pred_prob = model.predict(X_trn, prediction_type="Probability")
@@ -345,8 +347,9 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 }
 
                 if config.feature_importance.startswith("shap"):
-
                     def predict_func(X):
+                        X = pd.DataFrame(data=X, columns=features["all"])
+                        X[features["cat"]] = X[features["cat"]].astype('int32')
                         y = model.predict(X)
                         return y
 
@@ -357,7 +360,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': features
+                        'features': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -429,7 +432,6 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 }
 
                 if config.feature_importance.startswith("shap"):
-
                     def predict_func(X):
                         y = model.predict(X, num_iteration=model.best_iteration)
                         return y
@@ -441,7 +443,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': features
+                        'features': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -493,7 +495,6 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 }
 
                 if config.feature_importance.startswith("shap"):
-
                     def predict_func(X):
                         y = model.predict_proba(X)
                         return y
@@ -505,7 +506,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': features
+                        'features': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -556,7 +557,6 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 }
 
                 if config.feature_importance.startswith("shap"):
-
                     def predict_func(X):
                         y = model.predict_proba(X)
                         return y
@@ -568,7 +568,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': features
+                        'features': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -660,7 +660,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     batch = {
                         'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
                         'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
-                        'categorical': torch.from_numpy(np.float32(X[:, features['cat_ids']])),
+                        'categorical': torch.from_numpy(np.int32(X[:, features['cat_ids']])),
                     }
                     tmp = best["model"](batch)
                     return tmp.cpu().detach().numpy()
@@ -671,11 +671,13 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 if config.model.name == "xgboost":
                     def predict_func(X):
-                        X = xgb.DMatrix(X, feature_names=features['all'])
+                        X = xgb.DMatrix(X, feature_names=features['all'], enable_categorical=True)
                         y = best["model"].predict(X)
                         return y
                 elif config.model.name == "catboost":
                     def predict_func(X):
+                        X = pd.DataFrame(data=X, columns=features["all"])
+                        X[features["cat"]] = X[features["cat"]].astype('int32')
                         y = best["model"].predict(X)
                         return y
                 elif config.model.name == "lightgbm":
@@ -830,9 +832,9 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         'model': best["model"],
         'predict_func': best['predict_func'],
         'df': df,
-        'feature_names': features['all'],
+        'feature': features,
         'class_names': class_names,
-        'target_name': target,
+        'target': target,
         'ids': {
             'all': np.arange(df.shape[0]),
             'trn': datamodule.ids_trn,

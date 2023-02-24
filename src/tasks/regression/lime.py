@@ -66,21 +66,22 @@ def explain_lime(config, expl_data):
 
     predict_func = expl_data['predict_func']
     df = expl_data['df']
-    feature_names = expl_data['feature_names']
-    target_name = expl_data['target_name']
+    features_info = expl_data['features']
+    features = features_info['all']
+    target = expl_data['target']
 
     num_features = config.lime_num_features
     if num_features == 'all':
-        num_features = len(feature_names)
+        num_features = len(features)
 
     ids_bkgrd = expl_data[f"ids_{config.lime_bkgrd}"]
     indexes_bkgrd = df.index[ids_bkgrd]
-    X_bkgrd = df.loc[indexes_bkgrd, feature_names].values
+    X_bkgrd = df.loc[indexes_bkgrd, features].values
 
     explainer = lime.lime_tabular.LimeTabularExplainer(
         training_data=X_bkgrd,
-        feature_names=feature_names,
-        class_names=[target_name],
+        feature_names=features,
+        class_names=[target],
         verbose=False,
         mode='regression'
     )
@@ -91,7 +92,7 @@ def explain_lime(config, expl_data):
             Path(f"lime/{part}/samples").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
-            y_real = df.loc[indexes, target_name].values
+            y_real = df.loc[indexes, target].values
             y_pred = df.loc[indexes, "Estimation"].values
             y_diff = np.array(y_pred) - np.array(y_real)
             order = np.argsort(y_diff)
@@ -106,10 +107,10 @@ def explain_lime(config, expl_data):
 
     ids_all = expl_data[f"ids_all"]
     indexes_all = df.index[ids_all]
-    df_weights = pd.DataFrame(index=df.index, columns=feature_names)
+    df_weights = pd.DataFrame(index=df.index, columns=features)
     for ind in tqdm(indexes_all, desc=f'Calculating LIME explanations'):
-        X = df.loc[ind, feature_names].values
-        y_real = df.at[ind, target_name]
+        X = df.loc[ind, features].values
+        y_real = df.at[ind, target]
         y_pred = df.at[ind, "Estimation"]
         y_diff = y_pred - y_real
 
@@ -124,12 +125,12 @@ def explain_lime(config, expl_data):
 
         exp_map = explanation.as_map()[1]
         for elem in exp_map:
-            df_weights.at[ind, feature_names[elem[0]]] = elem[1]
+            df_weights.at[ind, features[elem[0]]] = elem[1]
 
         if ind in samples_to_plot:
             for part in samples_to_plot[ind]:
                 ind_save = ind.replace('/', '_')
-                fig = get_figure_for_sample_explanation(exp_map, feature_names)
+                fig = get_figure_for_sample_explanation(exp_map, features)
                 fig.update_layout(
                     title_font_size=25,
                     title_text=f"{ind}: Real: {y_real:0.2f}, Pred: {y_pred:0.2f}, LIME: {explanation.local_pred[0]:0.2f}",
@@ -183,7 +184,7 @@ def explain_lime(config, expl_data):
             features_order = np.argsort(mean_abs_impact)[::-1]
             feat_ids_to_plot = features_order[0:config.num_top_features]
             for rank, feat_id in enumerate(feat_ids_to_plot):
-                feat = feature_names[feat_id]
+                feat = features[feat_id]
                 fig = go.Figure()
                 fig.add_trace(
                     go.Scatter(

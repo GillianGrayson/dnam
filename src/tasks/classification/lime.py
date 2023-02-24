@@ -136,21 +136,22 @@ def explain_lime(config, expl_data):
 
     predict_func = expl_data['predict_func']
     df = expl_data['df']
-    feature_names = expl_data['feature_names']
+    features_info = expl_data['features']
+    features = features_info['all']
     class_names = expl_data['class_names']
-    target_name = expl_data['target_name']
+    target = expl_data['target']
 
     num_features = config.lime_num_features
     if num_features == 'all':
-        num_features = len(feature_names)
+        num_features = len(features)
 
     ids_bkgrd = expl_data[f"ids_{config.lime_bkgrd}"]
     indexes_bkgrd = df.index[ids_bkgrd]
-    X_bkgrd = df.loc[indexes_bkgrd, feature_names].values
+    X_bkgrd = df.loc[indexes_bkgrd, features].values
 
     explainer = lime.lime_tabular.LimeTabularExplainer(
         training_data=X_bkgrd,
-        feature_names=feature_names,
+        feature_names=features,
         class_names=class_names,
         verbose=False,
         mode='classification'
@@ -163,7 +164,7 @@ def explain_lime(config, expl_data):
             Path(f"lime/{part}/samples/corrects").mkdir(parents=True, exist_ok=True)
             ids = expl_data[f"ids_{part}"]
             indexes = df.index[ids]
-            y_real = df.loc[indexes, target_name].values
+            y_real = df.loc[indexes, target].values
             y_pred = df.loc[indexes, "pred"].values
             is_correct_pred = (np.array(y_real) == np.array(y_pred))
             mistakes_ids = np.where(is_correct_pred == False)[0]
@@ -189,10 +190,10 @@ def explain_lime(config, expl_data):
     indexes_all = df.index[ids_all]
     df_weights = {}
     for cl_id, cl in enumerate(class_names):
-        df_weights[cl] = pd.DataFrame(index=df.index, columns=feature_names)
+        df_weights[cl] = pd.DataFrame(index=df.index, columns=features)
     for ind in tqdm(indexes_all, desc=f'Calculating LIME explanations'):
-        X = df.loc[ind, feature_names].values
-        y_real = df.at[ind, target_name]
+        X = df.loc[ind, features].values
+        y_real = df.at[ind, target]
         y_pred = df.at[ind, "pred"]
 
         explanation = explainer.explain_instance(
@@ -206,14 +207,14 @@ def explain_lime(config, expl_data):
         exp_map = explanation.as_map()
         for cl_id, cl in enumerate(class_names):
             for elem in exp_map[cl_id]:
-                df_weights[cl].at[ind, feature_names[elem[0]]] = elem[1]
+                df_weights[cl].at[ind, features[elem[0]]] = elem[1]
 
         if ind in samples_to_plot_mistakes:
             for part in samples_to_plot_mistakes[ind]:
                 path_curr = f"lime/{part}/samples/mistakes/real({class_names[y_real]})_pred({class_names[y_pred]})"
                 Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
                 ind_save = ind.replace('/', '_')
-                fig = get_figure_for_sample_explanation(exp_map, class_names, feature_names)
+                fig = get_figure_for_sample_explanation(exp_map, class_names, features)
                 save_figure(fig, f"{path_curr}/{ind_save}")
 
         if ind in samples_to_plot_corrects:
@@ -221,10 +222,10 @@ def explain_lime(config, expl_data):
                 path_curr = f"lime/{part}/samples/corrects/real({class_names[y_real]})_pred({class_names[y_pred]})"
                 Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
                 ind_save = ind.replace('/', '_')
-                fig = get_figure_for_sample_explanation(exp_map, class_names, feature_names)
+                fig = get_figure_for_sample_explanation(exp_map, class_names, features)
                 save_figure(fig, f"{path_curr}/{ind_save}")
 
-    features_common = set(feature_names)
+    features_common = set(features)
     with pd.ExcelWriter(f"lime/weights.xlsx") as writer:
         for cl_id, cl in enumerate(class_names):
             df_weights[cl].dropna(axis=1, how='all', inplace=True)
@@ -290,7 +291,7 @@ def explain_lime(config, expl_data):
 
             mean_abs_lime_weights = np.sum([np.mean(np.absolute(lime_weights_all[cl_id]), axis=0) for cl_id, cl in enumerate(class_names)], axis=0)
             order = np.argsort(mean_abs_lime_weights)[::-1]
-            features = np.asarray(feature_names)[order]
+            features = np.asarray(features)[order]
             features_best = features[0:config.num_top_features]
             for feat_id, feat in enumerate(features_best):
                 fig = go.Figure()
@@ -336,7 +337,7 @@ def explain_lime(config, expl_data):
 
                 fig = go.Figure()
                 for cl_id, cl in enumerate(class_names):
-                    vals = df.loc[(df.index.isin(indexes)) & (df[target_name] == cl_id), feat].values
+                    vals = df.loc[(df.index.isin(indexes)) & (df[target] == cl_id), feat].values
                     fig.add_trace(
                         go.Violin(
                             y=vals,

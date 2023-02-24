@@ -43,7 +43,7 @@ work_dir: "${base_dir}/models/${project_name}"
 is_shap: False                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep"]
-shap_bkgrd: tree_path_dependent     # Type of background data. Options: ["trn", "all", "tree_path_dependent"]
+shap_bkgrd: all     # Type of background data. Options: ["trn", "all"]
 
 # LIME weights
 is_lime: False                      # Calculate LIME?

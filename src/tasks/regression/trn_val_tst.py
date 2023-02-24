@@ -11,7 +11,7 @@ import statsmodels.formula.api as smf
 from pytorch_lightning.loggers import LightningLoggerBase
 import plotly.graph_objects as go
 import xgboost as xgb
-from catboost import CatBoost
+from catboost import CatBoost, Pool
 import lightgbm
 from sklearn.linear_model import ElasticNet
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
@@ -208,7 +208,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 model.eval()
                 model.freeze()
-            feature_importances = model.get_feature_importance(X_trn, features, config.feature_importance)
+            feature_importances = model.get_feature_importance(X_trn.values.astype('float32'), features, config.feature_importance)
 
         elif model_framework == "stand_alone":
             if config.model.name == "xgboost":
@@ -224,11 +224,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     'eval_metric': config.model.eval_metric,
                 }
 
-                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=features['all'])
-                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=features['all'])
+                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=features['all'], enable_categorical=True)
+                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=features['all'], enable_categorical=True)
                 dmat_tst = {}
                 for tst_set_name in ids_tst:
-                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=features['all'])
+                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=features['all'], enable_categorical=True)
 
                 evals_result = {}
                 model = xgb.train(
@@ -261,12 +261,15 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     if config.feature_importance == "shap_tree":
                         explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
                         shap_values = explainer.shap_values(X_trn)
-                    elif config.feature_importance == "shap_kernel":
+                    elif config.feature_importance in ["shap_kernel", "shap_sampling"]:
                         def predict_func(X):
-                            X = xgb.DMatrix(X, feature_names=features['all'])
+                            X = xgb.DMatrix(X, feature_names=features['all'], enable_categorical=True)
                             y = model.predict(X)
                             return y
-                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        if config.feature_importance == "shap_kernel":
+                            explainer = shap.KernelExplainer(predict_func, X_trn)
+                        elif config.feature_importance == "shap_sampling":
+                            explainer = shap.SamplingExplainer(predict_func, X_trn)
                         shap_values = explainer.shap_values(X_trn)
                         if isinstance(shap_values, list):
                             shap_values = shap_values[0]
@@ -299,8 +302,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     'early_stopping_rounds': config.model.patience
                 }
 
+                trn_pool = Pool(X_trn, label=y_trn, feature_names=features['all'], cat_features=features['cat'])
+                val_pool = Pool(X_val, label=y_val, feature_names=features['all'], cat_features=features['cat'])
+
                 model = CatBoost(params=model_params)
-                model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
+                model.fit(trn_pool, eval_set=val_pool, use_best_model=True)
                 model.set_feature_names(features['all'])
 
                 y_trn_pred = model.predict(X_trn).astype('float32')
@@ -322,13 +328,18 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     fi_importances = list(model.feature_importances_)
                 elif config.feature_importance.startswith("shap"):
                     if config.feature_importance == "shap_tree":
-                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        explainer = shap.TreeExplainer(model)
                         shap_values = explainer.shap_values(X_trn)
-                    elif config.feature_importance == "shap_kernel":
+                    elif config.feature_importance in ["shap_kernel", "shap_sampling"]:
                         def predict_func(X):
+                            X = pd.DataFrame(data=X, columns=features["all"])
+                            X[features["cat"]] = X[features["cat"]].astype('int32')
                             y = model.predict(X)
                             return y
-                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        if config.feature_importance == "shap_kernel":
+                            explainer = shap.KernelExplainer(predict_func, X_trn)
+                        elif config.feature_importance == "shap_sampling":
+                            explainer = shap.SamplingExplainer(predict_func, X_trn)
                         shap_values = explainer.shap_values(X_trn)
                         if isinstance(shap_values, list):
                             shap_values = shap_values[0]
@@ -396,13 +407,16 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     fi_importances = list(model.feature_importance())
                 elif config.feature_importance.startswith("shap"):
                     if config.feature_importance == "shap_tree":
-                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        explainer = shap.TreeExplainer(model)
                         shap_values = explainer.shap_values(X_trn)
-                    elif config.feature_importance == "shap_kernel":
+                    elif config.feature_importance in ["shap_kernel", "shap_sampling"]:
                         def predict_func(X):
                             y = model.predict(X, num_iteration=model.best_iteration)
                             return y
-                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        if config.feature_importance == "shap_kernel":
+                            explainer = shap.KernelExplainer(predict_func, X_trn)
+                        elif config.feature_importance == "shap_sampling":
+                            explainer = shap.SamplingExplainer(predict_func, X_trn)
                         shap_values = explainer.shap_values(X_trn)
                         if isinstance(shap_values, list):
                             shap_values = shap_values[0]
@@ -449,11 +463,14 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     if config.feature_importance == "shap_tree":
                         explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
                         shap_values = explainer.shap_values(X_trn)
-                    elif config.feature_importance == "shap_kernel":
+                    elif config.feature_importance in ["shap_kernel", "shap_sampling"]:
                         def predict_func(X):
                             y = model.predict(X)
                             return y
-                        explainer = shap.KernelExplainer(predict_func, X_trn)
+                        if config.feature_importance == "shap_kernel":
+                            explainer = shap.KernelExplainer(predict_func, X_trn)
+                        elif config.feature_importance == "shap_sampling":
+                            explainer = shap.SamplingExplainer(predict_func, X_trn)
                         shap_values = explainer.shap_values(X_trn)
                         if isinstance(shap_values, list):
                             shap_values = shap_values[0]
@@ -548,7 +565,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     batch = {
                         'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
                         'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
-                        'categorical': torch.from_numpy(np.float32(X[:, features['cat_ids']])),
+                        'categorical': torch.from_numpy(np.int32(X[:, features['cat_ids']])),
                     }
                     tmp = best["model"](batch)
                     return tmp.cpu().detach().numpy()
@@ -559,11 +576,13 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
                 if config.model.name == "xgboost":
                     def predict_func(X):
-                        X = xgb.DMatrix(X, feature_names=features['all'])
+                        X = xgb.DMatrix(X, feature_names=features['all'], enable_categorical=True)
                         y = best["model"].predict(X)
                         return y
                 elif config.model.name == "catboost":
                     def predict_func(X):
+                        X = pd.DataFrame(data=X, columns=features["all"])
+                        X[features["cat"]] = X[features["cat"]].astype('int32')
                         y = best["model"].predict(X)
                         return y
                 elif config.model.name == "lightgbm":
@@ -858,8 +877,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         'model': best["model"],
         'predict_func': best['predict_func'],
         'df': df,
-        'feature_names': features['all'],
-        'target_name': target,
+        'features': features,
+        'target': target,
         'ids': {
             'all': np.arange(df.shape[0]),
             'trn': datamodule.ids_trn,
