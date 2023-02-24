@@ -234,8 +234,9 @@ class TabularDataModule(LightningDataModule):
             target=self.target
         )
 
-        for f in self.feats_cat:
-            self.data_all[f] = self.data_all[f].astype('category')
+        self.data_all[self.feats_cat] = self.data_all[self.feats_cat].astype('int32')
+        # for f in self.feats_cat:
+        #     self.data_all[f] = self.data_all[f].astype('category')
 
     def prepare_data(self):
         pass
