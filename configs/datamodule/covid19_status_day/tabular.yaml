@@ -2,7 +2,9 @@ _target_: src.datamodules.tabular.TabularDataModule   # Instantiated object
 task: "regression"                                    # Task type. Options: ["classification", "regression"]. Here we solve regression problem
 feats_con_fn: "${data_dir}/feats_cont.xlsx"           # File with continuous input features
 feats_cat_fn: "${data_dir}/feats_cat.xlsx"            # File with categorical input features
-feats_cat_encoding: one_hot                           # How to encode categorical features? Options: ["label", "one_hot"]
+feats_labels_col: "eng_title"
+feats_cat_replace_col: "eng_values"
+feats_cat_encoding: keep_cat                           # How to encode categorical features? Options: ["keep_cat", "one_hot"]
 feats_cat_embed_dim: ${embed_dim}                     # Dimension size for categorical features embedding
 target: ${target}                                     # Target predicted feature
 target_classes_fn: null                               # File with selected classes (for classification tasks only)

@@ -42,7 +42,7 @@ def inference(config: DictConfig):
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-    feature_names = datamodule.get_feature_names()
+    feature_names = datamodule.get_features()
     class_names = datamodule.get_class_names()
     outcome_name = datamodule.get_outcome_name()
     df = datamodule.get_df()

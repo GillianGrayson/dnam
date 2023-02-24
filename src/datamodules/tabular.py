@@ -15,6 +15,7 @@ import pathlib
 from typing import List, Optional, Tuple
 import matplotlib.pyplot as plt
 import seaborn as sns
+import ast
 
 
 log = utils.get_logger(__name__)
@@ -53,25 +54,28 @@ class TabularDataModule(LightningDataModule):
 
     def __init__(
             self,
-            task: str,
-            feats_con_fn: str,
-            feats_cat_fn: str,
-            feats_cat_encoding: str,
-            feats_cat_embed_dim: int,
-            target: str,
-            target_classes_fn: str,
-            data_fn: str,
-            data_index: str,
-            data_imputation: str,
-            split_by: str,
-            split_trn_val: Tuple[float, float],
-            split_top_feat: str,
-            split_explicit_feat: str,
-            batch_size: int,
-            num_workers: int,
-            pin_memory: bool,
-            seed: int,
-            weighted_sampler: bool,
+            task: str = None,
+            feats_con_fn: str = None,
+            feats_cat_fn: str = None,
+            feats_labels_col: str = None,
+            feats_cat_replace_col: str = None,
+            feats_cat_encoding: str = None,
+            feats_cat_embed_dim: int = None,
+            target: str = None,
+            target_label: str = None,
+            target_classes_fn: str = None,
+            data_fn: str = None,
+            data_index: str = None,
+            data_imputation: str = None,
+            split_by: str = None,
+            split_trn_val: Tuple[float, float] = (0.8, 0.2),
+            split_top_feat: str = None,
+            split_explicit_feat: str = None,
+            batch_size: int = 4096,
+            num_workers: int = 1,
+            pin_memory: bool = False,
+            seed: int = 42,
+            weighted_sampler: bool = True,
             **kwargs,
     ):
         super().__init__()
@@ -80,10 +84,16 @@ class TabularDataModule(LightningDataModule):
 
         self.feats_con_fn = feats_con_fn
         self.feats_cat_fn = feats_cat_fn
+        self.feats_labels_col = feats_labels_col
+        self.feats_cat_replace_col = feats_cat_replace_col
         self.feats_cat_encoding = feats_cat_encoding
         self.feats_cat_embed_dim = feats_cat_embed_dim
 
         self.target = target
+        if target_label is None:
+            self.target_label = target
+        else:
+            self.target_label = target_label
         self.target_classes_fn = target_classes_fn
 
         self.data_fn = data_fn
@@ -113,11 +123,21 @@ class TabularDataModule(LightningDataModule):
         elif file_ext == ".pkl":
             self.data_all = pd.read_pickle(f"{self.data_fn}")
 
-        self.feats_con = pd.read_excel(self.feats_con_fn).iloc[:, 0].values.tolist()
+        df_feats_con = pd.read_excel(self.feats_con_fn, index_col=0)
+        self.feats_con = df_feats_con.index.values.tolist()
+        self.feats_labels = {}
+        for f in  self.feats_con:
+            if self.feats_labels_col in df_feats_con.columns:
+                self.feats_labels[f] = df_feats_con.at[f, self.feats_labels_col]
+            else:
+                self.feats_labels[f] = f
+
         if self.feats_cat_fn is not None:
-            self.feats_cat = pd.read_excel(self.feats_cat_fn).iloc[:, 0].values.tolist()
+            df_feats_cat =  pd.read_excel(self.feats_cat_fn, index_col=0)
+            self.feats_cat = df_feats_cat.index.values.tolist()
         else:
             self.feats_cat = []
+            df_feats_cat = None
 
         if self.task == 'classification':
             self.target_classes_df = pd.read_excel(self.target_classes_fn)
@@ -133,16 +153,31 @@ class TabularDataModule(LightningDataModule):
 
         self.widedeep = {'cat_embed_input': None}
         if len(self.feats_cat) > 0:
-            if self.feats_cat_encoding == "label": # pytorch doesn't work with strings
+            if self.feats_cat_encoding == "keep_cat": # pytorch doesn't work with strings
                 self.widedeep['cat_embed_input'] = []
                 for f in self.feats_cat:
                     self.data_all[f"{f}_origin"] = self.data_all[f]
                     self.data_all[f] = self.data_all[f].astype('category').cat.codes
                     self.widedeep['cat_embed_input'].append((f, len(self.data_all[f].astype('category').cat.codes), self.feats_cat_embed_dim))
+                    if self.feats_labels_col in df_feats_cat.columns:
+                        self.feats_labels[f] = df_feats_cat.at[f, self.feats_labels_col]
+                    else:
+                        self.feats_labels[f] = f
             elif self.feats_cat_encoding == "one_hot":
-                one_hot = pd.get_dummies(self.data_all.loc[:, self.feats_cat], columns=self.feats_cat)
-                self.data_all = self.data_all.join(one_hot)
-                self.feats_con += one_hot.columns.values.tolist()
+                for f in self.feats_cat:
+                    one_hot = pd.get_dummies(self.data_all.loc[:, [f]], columns=[f])
+                    self.data_all = self.data_all.join(one_hot)
+                    feats_encoded = one_hot.columns.values.tolist()
+                    self.feats_con += feats_encoded
+                    if self.feats_labels_col in df_feats_cat.columns and self.feats_cat_replace_col in df_feats_cat.columns:
+                        dict_cat_replace = ast.literal_eval(df_feats_cat.at[f, self.feats_cat_replace_col])
+                        for f_e in feats_encoded:
+                            right_part = ast.literal_eval(f_e.replace(f"{f}_", ''))
+                            self.feats_labels[f_e] = f"{df_feats_cat.at[f, self.feats_labels_col]} ({dict_cat_replace[right_part]})"
+                    else:
+                        for f_e in feats_encoded:
+                            self.feats_labels[f_e] = f_e
+
                 self.feats_cat = []
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.feats_cat_encoding}")
@@ -395,7 +430,7 @@ class TabularDataModule(LightningDataModule):
             )
         return dataloaders
 
-    def get_feature_names(self):
+    def get_features(self):
         feature_names = {
             'all': self.feats_all,
             'con': self.feats_con,
@@ -403,6 +438,7 @@ class TabularDataModule(LightningDataModule):
             'all_ids': self.feats_all_ids,
             'con_ids': self.feats_con_ids,
             'cat_ids': self.feats_cat_ids,
+            'labels': self.feats_labels
         }
         return feature_names
 

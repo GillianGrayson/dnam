@@ -39,7 +39,7 @@ def inference_regression(config: DictConfig):
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: TabularDataModule = hydra.utils.instantiate(config.datamodule)
-    feature_names = datamodule.get_feature_names()
+    feature_names = datamodule.get_features()
     num_features = len(feature_names['all'])
     config.in_dim = num_features
     target_name = datamodule.get_target()

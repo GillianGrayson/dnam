@@ -49,16 +49,14 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: TabularDataModule = hydra.utils.instantiate(config.datamodule)
     datamodule.perform_split()
-    feature_names = datamodule.get_feature_names()
-    num_features = len(feature_names['all'])
+    features = datamodule.get_features()
+    num_features = len(features['all'])
     config.in_dim = num_features
     class_names = datamodule.get_class_names()
-    target_name = datamodule.get_target()
+    target = datamodule.get_target()
     df = datamodule.get_data()
     df['pred'] = 0
     ids_tst = datamodule.ids_tst
-
-    colors = datamodule.colors
 
     cv_splitter = RepeatedStratifiedKFoldCVSplitter(
         datamodule=datamodule,
@@ -75,7 +73,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         best["optimized_metric"] = 0.0
 
     metrics_cv = pd.DataFrame(columns=['fold', 'optimized_metric'])
-    feature_importances_cv = pd.DataFrame(columns=['fold'] + feature_names['all'])
+    feature_importances_cv = pd.DataFrame(columns=['fold'] + features['all'])
 
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     ckpt_name = config.callbacks.model_checkpoint.filename
@@ -84,17 +82,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
-        X_trn = df.loc[df.index[ids_trn], feature_names['all']].values
-        y_trn = df.loc[df.index[ids_trn], target_name].values
+        X_trn = df.loc[df.index[ids_trn], features['all']].values
+        y_trn = df.loc[df.index[ids_trn], target].values
         df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "trn"
-        X_val = df.loc[df.index[ids_val], feature_names['all']].values
-        y_val = df.loc[df.index[ids_val], target_name].values
+        X_val = df.loc[df.index[ids_val], features['all']].values
+        y_val = df.loc[df.index[ids_val], target].values
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         X_tst = {}
         y_tst = {}
         for tst_set_name in ids_tst:
-            X_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], feature_names['all']].values
-            y_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], target_name].values
+            X_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], features['all']].values
+            y_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], target].values
             if tst_set_name != 'tst_all':
                 df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_idx:04d}"] = tst_set_name
 
@@ -113,8 +111,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 config.model.cat_embed_input = widedeep['cat_embed_input']
                 config.model.continuous_cols = widedeep['continuous_cols']
             elif config.model.name.startswith('pytorch_tabular'):
-                config.model.continuous_cols = feature_names['con']
-                config.model.categorical_cols = feature_names['cat']
+                config.model.continuous_cols = features['con']
+                config.model.categorical_cols = features['cat']
                 config.model.embedding_dims = embedding_dims
             elif config.model.name == 'nam':
                 num_unique_vals = [len(np.unique(X_trn[:, i])) for i in range(X_trn.shape[1])]
@@ -215,7 +213,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
                 model.eval()
                 model.freeze()
-            feature_importances = model.get_feature_importance(X_trn, feature_names, config.feature_importance)
+            feature_importances = model.get_feature_importance(X_trn, features, config.feature_importance)
 
         elif model_framework == "stand_alone":
             if config.model.name == "xgboost":
@@ -232,11 +230,11 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     'eval_metric': config.model.eval_metric,
                 }
 
-                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=feature_names['all'])
-                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=feature_names['all'])
+                dmat_trn = xgb.DMatrix(X_trn, y_trn, feature_names=features['all'])
+                dmat_val = xgb.DMatrix(X_val, y_val, feature_names=features['all'])
                 dmat_tst = {}
                 for tst_set_name in ids_tst:
-                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=feature_names['all'])
+                    dmat_tst[tst_set_name] = xgb.DMatrix(X_tst[tst_set_name], y_tst[tst_set_name], feature_names=features['all'])
 
                 evals_result = {}
                 model = xgb.train(
@@ -272,7 +270,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 if config.feature_importance.startswith("shap"):
 
                     def predict_func(X):
-                        X = xgb.DMatrix(X, feature_names=feature_names['all'])
+                        X = xgb.DMatrix(X, feature_names=features['all'])
                         y = model.predict(X)
                         return y
 
@@ -283,7 +281,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': feature_names
+                        'feature_names': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -292,8 +290,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         fi_features = list(fi.keys())
                         fi_importances = list(fi.values())
                     elif config.feature_importance == "none":
-                        fi_features = feature_names['all']
-                        fi_importances = np.zeros(len(feature_names['all']))
+                        fi_features = features['all']
+                        fi_importances = np.zeros(len(features['all']))
                     else:
                         raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                     feature_importances = pd.DataFrame.from_dict(
@@ -319,7 +317,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 model = CatBoost(params=model_params)
                 model.fit(X_trn, y_trn, eval_set=(X_val, y_val), use_best_model=True)
-                model.set_feature_names(feature_names['all'])
+                model.set_feature_names(features['all'])
 
                 y_trn_pred_prob = model.predict(X_trn, prediction_type="Probability")
                 y_val_pred_prob = model.predict(X_val, prediction_type="Probability")
@@ -356,7 +354,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': feature_names
+                        'feature_names': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -364,8 +362,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         fi_features = model.feature_names_
                         fi_importances = list(model.feature_importances_)
                     elif config.feature_importance == "none":
-                        fi_features = feature_names['all']
-                        fi_importances = np.zeros(len(feature_names['all']))
+                        fi_features = features['all']
+                        fi_importances = np.zeros(len(features['all']))
                     else:
                         raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                     feature_importances = pd.DataFrame.from_dict(
@@ -392,8 +390,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     'metric': config.model.metric
                 }
 
-                ds_trn = lightgbm.Dataset(X_trn, label=y_trn, feature_name=feature_names['all'])
-                ds_val = lightgbm.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=feature_names['all'])
+                ds_trn = lightgbm.Dataset(X_trn, label=y_trn, feature_name=features['all'])
+                ds_val = lightgbm.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=features['all'])
 
                 evals_result = {}
                 model = lightgbm.train(
@@ -440,7 +438,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': feature_names
+                        'feature_names': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
@@ -448,8 +446,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         fi_features = model.feature_name()
                         fi_importances = list(model.feature_importance())
                     elif config.feature_importance == "none":
-                        fi_features = feature_names['all']
-                        fi_importances = np.zeros(len(feature_names['all']))
+                        fi_features = features['all']
+                        fi_importances = np.zeros(len(features['all']))
                     else:
                         raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                     feature_importances = pd.DataFrame.from_dict(
@@ -504,16 +502,16 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': feature_names
+                        'feature_names': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
                     if config.feature_importance == "native":
-                        fi_features = ['Intercept'] + feature_names['all']
+                        fi_features = ['Intercept'] + features['all']
                         fi_importances = [model.intercept_] + list(model.coef_.ravel())
                     elif config.feature_importance == "none":
-                        fi_features = feature_names['all']
-                        fi_importances = np.zeros(len(feature_names['all']))
+                        fi_features = features['all']
+                        fi_importances = np.zeros(len(features['all']))
                     else:
                         raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                     feature_importances = pd.DataFrame.from_dict(
@@ -567,13 +565,13 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                         'y_pred_prob': y_trn_pred_prob,
                         'y_pred_raw': y_trn_pred_raw,
                         'predict_func': predict_func,
-                        'feature_names': feature_names
+                        'feature_names': features
                     }
                     feature_importances = get_feature_importance(fi_data)
                 else:
                     if config.feature_importance == "none":
-                        fi_features = feature_names['all']
-                        fi_importances = np.zeros(len(feature_names['all']))
+                        fi_features = features['all']
+                        fi_importances = np.zeros(len(features['all']))
                     else:
                         raise ValueError(f"Unsupported feature importance method: {config.feature_importance}")
                     feature_importances = pd.DataFrame.from_dict(
@@ -657,9 +655,9 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 def predict_func(X):
                     best["model"].produce_probabilities = True
                     batch = {
-                        'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
-                        'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
-                        'categorical': torch.from_numpy(np.float32(X[:, feature_names['cat_ids']])),
+                        'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
+                        'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
+                        'categorical': torch.from_numpy(np.float32(X[:, features['cat_ids']])),
                     }
                     tmp = best["model"](batch)
                     return tmp.cpu().detach().numpy()
@@ -670,7 +668,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
                 if config.model.name == "xgboost":
                     def predict_func(X):
-                        X = xgb.DMatrix(X, feature_names=feature_names['all'])
+                        X = xgb.DMatrix(X, feature_names=features['all'])
                         y = best["model"].predict(X)
                         return y
                 elif config.model.name == "catboost":
@@ -717,7 +715,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         metrics_cv.at[fold_idx, 'fold'] = fold_idx
         metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
         feature_importances_cv.at[fold_idx, 'fold'] = fold_idx
-        for feat in feature_names['all']:
+        for feat in features['all']:
             feature_importances_cv.at[fold_idx, feat] = feature_importances.loc[feature_importances['feature'] == feat, 'importance'].values[0]
 
     metrics_cv.to_excel(f"cv_progress.xlsx", index=False)
@@ -727,7 +725,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         cv_ids_cols.append(datamodule.split_top_feat)
     cv_ids = df.loc[:, cv_ids_cols]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
-    predictions_cols = [f"fold_{best['fold']:04d}", target_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]
+    predictions_cols = [f"fold_{best['fold']:04d}", target, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]
     if datamodule.split_top_feat:
         predictions_cols.append(datamodule.split_top_feat)
     predictions = df.loc[:, predictions_cols]
@@ -758,17 +756,17 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         else:
             raise ValueError(f"Model {config.model.name} is not supported")
 
-    y_trn = df.loc[df.index[datamodule.ids_trn], target_name].values
+    y_trn = df.loc[df.index[datamodule.ids_trn], target].values
     y_trn_pred = df.loc[df.index[datamodule.ids_trn], "pred"].values
     y_trn_pred_prob = df.loc[df.index[datamodule.ids_trn], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
-    y_val = df.loc[df.index[datamodule.ids_val], target_name].values
+    y_val = df.loc[df.index[datamodule.ids_val], target].values
     y_val_pred = df.loc[df.index[datamodule.ids_val], "pred"].values
     y_val_pred_prob = df.loc[df.index[datamodule.ids_val], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
     y_tst = {}
     y_tst_pred = {}
     y_tst_pred_prob = {}
     for tst_set_name in ids_tst:
-        y_tst[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], target_name].values
+        y_tst[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], target].values
         y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "pred"].values
         y_tst_pred_prob[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
@@ -819,15 +817,19 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
 
+    features_labels = []
+    for f in best['feature_importances']['feature'].values:
+        features_labels.append(features['labels'][f])
+    best['feature_importances']['feature_label'] = features_labels
     save_feature_importance(best['feature_importances'], config.num_top_features)
 
     expl_data = {
         'model': best["model"],
         'predict_func': best['predict_func'],
         'df': df,
-        'feature_names': feature_names['all'],
+        'feature_names': features['all'],
         'class_names': class_names,
-        'target_name': target_name,
+        'target_name': target,
         'ids': {
             'all': np.arange(df.shape[0]),
             'trn': datamodule.ids_trn,

@@ -16,7 +16,7 @@ def save_feature_importance(df, num_features):
         df.sort_values(['importance'], ascending=[False], inplace=True)
         df['importance'] = df['importance'] / df['importance'].sum()
         fig = go.Figure()
-        ys = df['feature'][0:num_features][::-1]
+        ys = df['feature_label'][0:num_features][::-1]
         xs = df['importance'][0:num_features][::-1]
         fig.add_trace(
             go.Bar(

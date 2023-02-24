@@ -11,7 +11,7 @@ cv_n_splits: 5      # Number of splits in cross-validation
 cv_n_repeats: 1     # Number of repeats in cross-validation
 
 # Data params
-in_dim: 0       # Number of input features. O - select automatically from loaded files with features
+in_dim: null    # Number of input features. null for auto select from loaded files with features
 out_dim: 1      # Output dimension
 embed_dim: 16   # Default embedding dimension
 
