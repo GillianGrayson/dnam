@@ -157,8 +157,8 @@ class TabularDataModule(LightningDataModule):
                 self.widedeep['cat_embed_input'] = []
                 for f in self.feats_cat:
                     self.data_all[f"{f}_origin"] = self.data_all[f]
-                    self.data_all[f] = self.data_all[f].astype('category').cat.codes
-                    self.widedeep['cat_embed_input'].append((f, len(self.data_all[f].astype('category').cat.codes), self.feats_cat_embed_dim))
+                    self.data_all[f] = self.data_all[f].astype('category').cat.codes.astype('int32')
+                    self.widedeep['cat_embed_input'].append((f, self.data_all[f].value_counts().shape[0], self.feats_cat_embed_dim))
                     if self.feats_labels_col in df_feats_cat.columns:
                         self.feats_labels[f] = df_feats_cat.at[f, self.feats_labels_col]
                     else:
@@ -234,6 +234,9 @@ class TabularDataModule(LightningDataModule):
             feats_cat=self.feats_cat,
             target=self.target
         )
+
+        for f in self.feats_cat:
+            self.data_all[f] = self.data_all[f].astype('category')
 
     def prepare_data(self):
         pass

@@ -86,17 +86,17 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         datamodule.ids_trn = ids_trn
         datamodule.ids_val = ids_val
         datamodule.refresh_datasets()
-        X_trn = df.loc[df.index[ids_trn], features['all']].values
-        y_trn = df.loc[df.index[ids_trn], target].values
+        X_trn = df.loc[df.index[ids_trn], features['all']]
+        y_trn = df.loc[df.index[ids_trn], target]
         df.loc[df.index[ids_trn], f"fold_{fold_idx:04d}"] = "trn"
-        X_val = df.loc[df.index[ids_val], features['all']].values
-        y_val = df.loc[df.index[ids_val], target].values
+        X_val = df.loc[df.index[ids_val], features['all']]
+        y_val = df.loc[df.index[ids_val], target]
         df.loc[df.index[ids_val], f"fold_{fold_idx:04d}"] = "val"
         X_tst = {}
         y_tst = {}
         for tst_set_name in ids_tst:
-            X_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], features['all']].values
-            y_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], target].values
+            X_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], features['all']]
+            y_tst[tst_set_name] = df.loc[df.index[ids_tst[tst_set_name]], target]
             if tst_set_name != 'tst_all':
                 df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_idx:04d}"] = tst_set_name
 
@@ -110,6 +110,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             # Init lightning model
             widedeep = datamodule.get_widedeep()
             embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
+            categorical_cardinality = [x[1] for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
             if config.model.name.startswith('widedeep'):
                 config.model.column_idx = widedeep['column_idx']
                 config.model.cat_embed_input = widedeep['cat_embed_input']
@@ -118,6 +119,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                 config.model.continuous_cols = features['con']
                 config.model.categorical_cols = features['cat']
                 config.model.embedding_dims = embedding_dims
+                config.model.categorical_cardinality = categorical_cardinality
             elif config.model.name == 'nam':
                 num_unique_vals = [len(np.unique(X_trn[:, i])) for i in range(X_trn.shape[1])]
                 num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
@@ -178,14 +180,15 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             if config.get("test_after_training") and not config.trainer.get("fast_dev_run"):
                 log.info("Starting testing!")
                 tst_dataloaders = datamodule.test_dataloaders()
-                if 'tst_all' in tst_dataloaders:
-                    tst_dataloader = tst_dataloaders['tst_all']
-                else:
-                    tst_dataloader = tst_dataloaders[list(tst_dataloaders.keys())[0]]
-                if tst_dataloader is not None and len(tst_dataloader) > 0:
-                    trainer.test(model, tst_dataloader, ckpt_path="best")
-                else:
-                    log.info("Test data is empty!")
+                if len(tst_dataloaders) > 0:
+                    if 'tst_all' in tst_dataloaders:
+                        tst_dataloader = tst_dataloaders['tst_all']
+                    else:
+                        tst_dataloader = tst_dataloaders[list(tst_dataloaders.keys())[0]]
+                    if tst_dataloader is not None and len(tst_dataloader) > 0:
+                        trainer.test(model, tst_dataloader, ckpt_path="best")
+                    else:
+                        log.info("Test data is empty!")
 
             datamodule.dataloaders_evaluate = True
             trn_dataloader = datamodule.train_dataloader()
@@ -361,8 +364,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     'metric': config.model.metric,
                 }
 
-                ds_trn = lightgbm.Dataset(X_trn, label=y_trn, feature_name=features['all'])
-                ds_val = lightgbm.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=features['all'])
+                ds_trn = lightgbm.Dataset(X_trn, label=y_trn, feature_name=features['all'], categorical_feature=features['cat'])
+                ds_val = lightgbm.Dataset(X_val, label=y_val, reference=ds_trn, feature_name=features['all'], categorical_feature=features['cat'])
 
                 evals_result = {}
                 model = lightgbm.train(
@@ -476,15 +479,15 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         else:
             raise ValueError(f"Unsupported model_framework: {model_framework}")
 
-        metrics_trn = eval_regression(config, y_trn, y_trn_pred, loggers, 'trn', is_log=True, is_save=False)
+        metrics_trn = eval_regression(config, y_trn.values, y_trn_pred, loggers, 'trn', is_log=True, is_save=False)
         for m in metrics_trn.index.values:
             metrics_cv.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
-        metrics_val = eval_regression(config, y_val, y_val_pred, loggers, 'val', is_log=True, is_save=False)
+        metrics_val = eval_regression(config, y_val.values, y_val_pred, loggers, 'val', is_log=True, is_save=False)
         for m in metrics_val.index.values:
             metrics_cv.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
         metrics_tst = {}
         for tst_set_name in ids_tst:
-            metrics_tst[tst_set_name] = eval_regression(config, y_tst[tst_set_name], y_tst_pred[tst_set_name], loggers, tst_set_name, is_log=True, is_save=False)
+            metrics_tst[tst_set_name] = eval_regression(config, y_tst[tst_set_name].values, y_tst_pred[tst_set_name], loggers, tst_set_name, is_log=True, is_save=False)
             for m in metrics_tst[tst_set_name].index.values:
                 metrics_cv.at[fold_idx, f"{tst_set_name}_{m}"] = metrics_tst[tst_set_name].at[m, tst_set_name]
 

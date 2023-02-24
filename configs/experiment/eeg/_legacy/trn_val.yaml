@@ -308,7 +308,7 @@ widedeep_tab_transformer:
   frac_shared_embed: 0.25
   continuous_cols: null
   cont_norm_layer: null
-  embed_continuous: True
+  embed_continuous: False
   cont_embed_dropout: 0.1
   use_cont_bias: True
   cont_embed_activation: null
@@ -512,6 +512,7 @@ pytorch_tabular_autoint:
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
+  categorical_cardinality: null
   continuous_cols: null
   categorical_cols: null
   attn_embed_dim: 32
@@ -541,6 +542,7 @@ pytorch_tabular_tabnet:
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
+  categorical_cardinality: null
   continuous_cols: null
   categorical_cols: null
   n_d: 8
@@ -563,6 +565,7 @@ pytorch_tabular_node:
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
+  categorical_cardinality: null
   continuous_cols: null
   categorical_cols: null
   num_layers: 1
@@ -591,6 +594,7 @@ pytorch_tabular_category_embedding:
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
+  categorical_cardinality: null
   continuous_cols: null
   categorical_cols: null
   layers: "128-64-32"
@@ -612,6 +616,7 @@ pytorch_tabular_ft_transformer:
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
+  categorical_cardinality: null
   continuous_cols: null
   categorical_cols: null
   input_embed_dim: 32
@@ -648,6 +653,7 @@ pytorch_tabular_tab_transformer:
   scheduler_step_size: 100
   scheduler_gamma: 0.8
   embedding_dims: null
+  categorical_cardinality: null
   continuous_cols: null
   categorical_cols: null
   input_embed_dim: 32
