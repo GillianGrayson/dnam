@@ -434,7 +434,7 @@ class TabularDataModule(LightningDataModule):
         return dataloaders
 
     def get_features(self):
-        feature_names = {
+        features = {
             'all': self.feats_all,
             'con': self.feats_con,
             'cat': self.feats_cat,
@@ -443,13 +443,10 @@ class TabularDataModule(LightningDataModule):
             'cat_ids': self.feats_cat_ids,
             'labels': self.feats_labels
         }
-        return feature_names
+        return features
 
     def get_widedeep(self):
         return self.widedeep
-
-    def get_target(self):
-        return self.target
 
     def get_class_names(self):
         return list(self.target_classes_dict.keys())

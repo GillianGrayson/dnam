@@ -7,6 +7,7 @@ feats_cat_replace_col: "eng_values"
 feats_cat_encoding: keep_cat                           # How to encode categorical features? Options: ["keep_cat", "one_hot"]
 feats_cat_embed_dim: ${embed_dim}                     # Dimension size for categorical features embedding
 target: ${target}                                     # Target predicted feature
+target_label: "Status day"                                     # Target predicted feature
 target_classes_fn: null                               # File with selected classes (for classification tasks only)
 data_fn: "${data_dir}/data.xlsx"                      # File with dataset
 data_index: index                                     # Index column in dataset file

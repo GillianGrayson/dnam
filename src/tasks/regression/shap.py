@@ -106,7 +106,7 @@ def explain_shap(config, expl_data):
             ids = expl_data["ids"][part]
             indexes = df.index[ids]
             X = df.loc[indexes, features].values
-            y_pred = df.loc[indexes, "Estimation"].values
+            y_pred = df.loc[indexes, "Prediction"].values
 
             if config.shap_explainer == "Tree":
                 df_X = pd.DataFrame(data=X, columns=features_info["all"])
@@ -209,7 +209,7 @@ def explain_shap(config, expl_data):
                             color=y_pred,
                             colorscale=px.colors.sequential.Bluered,
                             showscale=True,
-                            colorbar=dict(title=dict(text="Estimation", font=dict(size=20)), tickfont=dict(size=20))
+                            colorbar=dict(title=dict(text="Prediction", font=dict(size=20)), tickfont=dict(size=20))
                         )
                     )
                 )
@@ -229,7 +229,7 @@ def explain_shap(config, expl_data):
             explain_samples(
                 config,
                 df.loc[indexes, target].values,
-                df.loc[indexes, "Estimation"].values,
+                df.loc[indexes, "Prediction"].values,
                 indexes,
                 shap_values,
                 expected_value,

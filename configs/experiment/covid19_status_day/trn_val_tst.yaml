@@ -24,7 +24,7 @@ direction: min                            # Direction of metrics optimization. O
 # Run params
 max_epochs: 500            # Maximum number of epochs
 patience: 50               # Number of early stopping epochs
-feature_importance: none   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
+feature_importance: shap_tree   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 
 # Info params
 debug: False                # Is Debug?
@@ -52,5 +52,5 @@ lime_bkgrd: trn                     # Type of background data. Options: ["trn", 
 lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
-num_top_features: 15  # Number of most important features to plot
+num_top_features: 100  # Number of most important features to plot
 num_examples: 5      # Number of samples to plot some SHAP figures

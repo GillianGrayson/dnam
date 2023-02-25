@@ -4,6 +4,8 @@ from sklearn.metrics import confusion_matrix
 import plotly.figure_factory as ff
 import wandb
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import seaborn as sns
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 import plotly.io as pio
@@ -15,46 +17,24 @@ def save_feature_importance(df, num_features):
     if df is not None:
         df.sort_values(['importance'], ascending=[False], inplace=True)
         df['importance'] = df['importance'] / df['importance'].sum()
-        fig = go.Figure()
-        ys = df['feature_label'][0:num_features][::-1]
-        xs = df['importance'][0:num_features][::-1]
-        fig.add_trace(
-            go.Bar(
-                x=xs,
-                y=list(range(len(ys))),
-                orientation='h',
-                marker=dict(color='red', opacity=0.9)
-            )
+        df_fig = df.iloc[0:num_features, :]
+        plt.figure(figsize=(8, 0.3 * df_fig.shape[0]))
+        sns.set_theme(style='whitegrid', font_scale=1)
+        bar = sns.barplot(
+            data=df_fig,
+            y='feature_label',
+            x='importance',
+            edgecolor='black',
+            orient='h',
+            dodge=True
         )
-        add_layout(fig, "Feature importance", "", "")
-        fig.update_layout(legend_font_size=20)
-        fig.update_layout(showlegend=False)
-        fig.update_layout(
-            yaxis=dict(
-                tickmode='array',
-                tickvals=list(range(len(xs))),
-                ticktext=ys
-            )
-        )
-        fig.update_yaxes(autorange=False)
-        fig.update_layout(yaxis_range=[-0.5, len(xs) - 0.5])
-        fig.update_yaxes(tickfont_size=24)
-        fig.update_xaxes(tickfont_size=24)
-        fig.update_layout(
-            autosize=False,
-            width=800,
-            height=800,
-            margin=go.layout.Margin(
-                l=350,
-                r=20,
-                b=100,
-                t=40,
-                pad=0
-            )
-        )
-        save_figure(fig, f"feature_importances")
+        bar.set_xlabel("Importance")
+        bar.set_ylabel("")
+        plt.savefig(f"feature_importance.png", bbox_inches='tight', dpi=400)
+        plt.savefig(f"feature_importance.pdf", bbox_inches='tight')
+        plt.close()
         df.set_index('feature', inplace=True)
-        df.to_excel("feature_importances.xlsx", index=True)
+        df.to_excel("feature_importance.xlsx", index=True)
 
 
 def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, file_suffix=''):

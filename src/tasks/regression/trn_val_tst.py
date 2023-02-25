@@ -7,7 +7,8 @@ from pytorch_lightning import (
     Trainer,
     seed_everything,
 )
-import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+import seaborn as sns
 from pytorch_lightning.loggers import LightningLoggerBase
 import plotly.graph_objects as go
 import xgboost as xgb
@@ -56,7 +57,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     features = datamodule.get_features()
     num_features = len(features['all'])
     config.in_dim = num_features
-    target = datamodule.get_target()
+    target = datamodule.target
+    target_label = datamodule.target_label
     df = datamodule.get_data()
     ids_tst = datamodule.ids_tst
 
@@ -604,11 +606,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             best['fold'] = fold_idx
             best['ids_trn'] = ids_trn
             best['ids_val'] = ids_val
-            df.loc[df.index[ids_trn], "Estimation"] = y_trn_pred
-            df.loc[df.index[ids_val], "Estimation"] = y_val_pred
+            df.loc[df.index[ids_trn], "Prediction"] = y_trn_pred
+            df.loc[df.index[ids_val], "Prediction"] = y_val_pred
             for tst_set_name in ids_tst:
                 if tst_set_name != 'tst_all':
-                    df.loc[df.index[ids_tst[tst_set_name]], "Estimation"] = y_tst_pred[tst_set_name]
+                    df.loc[df.index[ids_tst[tst_set_name]], "Prediction"] = y_tst_pred[tst_set_name]
 
         metrics_cv.at[fold_idx, 'fold'] = fold_idx
         metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
@@ -616,12 +618,12 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         for feat in features['all']:
             feature_importances_cv.at[fold_idx, feat] = feature_importances.loc[feature_importances['feature'] == feat, 'importance'].values[0]
 
-    df = df.astype({"Estimation": 'float32'})
+    df = df.astype({"Prediction": 'float32'})
     metrics_cv.to_excel(f"metrics_cv.xlsx", index=False)
     feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:, 'fold'].values]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
-    predictions = df.loc[:, [f"fold_{best['fold']:04d}", target, "Estimation"]]
+    predictions = df.loc[:, [f"fold_{best['fold']:04d}", target, "Prediction"]]
     predictions.to_excel(f"predictions.xlsx", index=True)
 
     datamodule.ids_trn = best['ids_trn']
@@ -648,14 +650,14 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             raise ValueError(f"Model {config.model.name} is not supported")
 
     y_trn = df.loc[df.index[datamodule.ids_trn], target].values
-    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Estimation"].values
+    y_trn_pred = df.loc[df.index[datamodule.ids_trn], "Prediction"].values
     y_val = df.loc[df.index[datamodule.ids_val], target].values
-    y_val_pred = df.loc[df.index[datamodule.ids_val], "Estimation"].values
+    y_val_pred = df.loc[df.index[datamodule.ids_val], "Prediction"].values
     y_tst = {}
     y_tst_pred = {}
     for tst_set_name in ids_tst:
         y_tst[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], target].values
-        y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values
+        y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Prediction"].values
 
     metrics_trn = eval_regression(config, y_trn, y_trn_pred, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
@@ -710,168 +712,60 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     best['feature_importances']['feature_label'] = features_labels
     save_feature_importance(best['feature_importances'], config.num_top_features)
 
-    formula = f"Estimation ~ {target}"
-    model_linear = smf.ols(formula=formula, data=df.loc[df.index[datamodule.ids_trn], :]).fit()
-    df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_trn], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_trn], :])
-    df.loc[df.index[datamodule.ids_val], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_val], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_val], :])
+    df["Prediction error"] = df['Prediction'] - df[f"{target}"]
+    df_fig = df.loc[:, [target, 'Prediction', "Prediction error"]].copy()
+    df_fig.loc[df.index[datamodule.ids_trn], 'Part'] = "trn"
+    df_fig.loc[df.index[datamodule.ids_val], 'Part'] = "val"
     for tst_set_name in ids_tst:
-        df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values - model_linear.predict(df.loc[df.index[datamodule.ids_tst[tst_set_name]], :])
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=df.loc[df.index[datamodule.ids_trn], target].values,
-            y=df.loc[df.index[datamodule.ids_trn], "Estimation"].values,
-            showlegend=True,
-            name=f"trn",
-            mode="markers",
-            line_color=colors['trn'],
-            marker_color=colors['trn'],
-            marker=dict(
-                size=8,
-                opacity=0.75,
-                line=dict(
-                    color="black",
-                    width=0.5
-                )
-            )
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df.loc[df.index[datamodule.ids_trn], target].values,
-            y=model_linear.fittedvalues.values,
-            showlegend=False,
-            name=f"",
-            mode="lines",
-            line_color=colors['trn'],
-            marker_color=colors['trn'],
-            marker=dict(
-                size=8,
-                opacity=0.75,
-                line=dict(
-                    color="black",
-                    width=0.5
-                )
-            )
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df.loc[df.index[datamodule.ids_val], target].values,
-            y=df.loc[df.index[datamodule.ids_val], "Estimation"].values,
-            showlegend=True,
-            name=f"val",
-            mode="markers",
-            line_color=colors['val'],
-            marker_color=colors['val'],
-            marker=dict(
-                size=8,
-                opacity=0.75,
-                line=dict(
-                    color="black",
-                    width=0.5
-                )
-            )
-        )
-    )
-    for tst_set_name in ids_tst:
-        if tst_set_name != 'tst_all':
-            fig.add_trace(
-                go.Scatter(
-                    x=df.loc[df.index[datamodule.ids_tst[tst_set_name]], target].values,
-                    y=df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation"].values,
-                    showlegend=True,
-                    name=f"{tst_set_name}",
-                    mode="markers",
-                    line_color=colors[tst_set_name],
-                    marker_color=colors[tst_set_name],
-                    marker=dict(
-                        size=8,
-                        opacity=0.75,
-                        line=dict(
-                            color="black",
-                            width=0.5
-                        )
-                    )
-                )
-            )
-    add_layout(fig, target, f"Estimation", f"")
-    fig.update_layout({'colorway': list(colors.values())})
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
-    save_figure(fig, f"scatter")
+        df_fig.loc[df.index[datamodule.ids_tst[tst_set_name]], 'Part'] = tst_set_name
 
-    dist_num_bins = 20
-    fig = go.Figure()
-    fig.add_trace(
-        go.Violin(
-            y=df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values,
-            name=f"trn",
-            box_visible=True,
-            meanline_visible=True,
-            showlegend=True,
-            line_color='black',
-            fillcolor=colors['trn'],
-            marker=dict(color=colors['trn'], line=dict(color='black', width=0.3), opacity=0.8),
-            points='all',
-            bandwidth=np.ptp(df.loc[df.index[datamodule.ids_trn], "Estimation acceleration"].values) / dist_num_bins,
-            opacity=0.8
-        )
+    plt.figure()
+    sns.set_theme(style='whitegrid')
+    xy_min = df_fig[[target,'Prediction']].min().min()
+    xy_max = df_fig[[target,'Prediction']].max().max()
+    xy_ptp = xy_max - xy_min
+    scatter = sns.scatterplot(
+        data=df_fig,
+        x=target,
+        y="Prediction",
+        hue="Part",
+        palette=colors,
+        linewidth=0.3,
+        alpha=0.75,
+        edgecolor="k",
+        s=25,
+        hue_order=list(colors.keys())
     )
-    fig.add_trace(
-        go.Violin(
-            y=df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values,
-            name=f"val",
-            box_visible=True,
-            meanline_visible=True,
-            showlegend=True,
-            line_color='black',
-            fillcolor=colors['val'],
-            marker=dict(color=colors['val'], line=dict(color='black', width=0.3), opacity=0.8),
-            points='all',
-            bandwidth=np.ptp(df.loc[df.index[datamodule.ids_val], "Estimation acceleration"].values) / dist_num_bins,
-            opacity=0.8
-        )
+    scatter.set_xlabel(target_label)
+    scatter.set_ylabel("Prediction")
+    scatter.set_xlim(xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp)
+    scatter.set_ylim(xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp)
+    plt.gca().plot(
+        [xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp],
+        [xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp],
+        color='k',
+        linestyle='dashed',
+        linewidth=1
     )
-    for tst_set_name in ids_tst:
-        if tst_set_name != 'tst_all':
-            fig.add_trace(
-                go.Violin(
-                    y=df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"].values,
-                    name=tst_set_name,
-                    box_visible=True,
-                    meanline_visible=True,
-                    showlegend=True,
-                    line_color='black',
-                    fillcolor=colors[tst_set_name],
-                    marker=dict(color=colors[tst_set_name], line=dict(color='black', width=0.3), opacity=0.8),
-                    points='all',
-                    bandwidth=np.ptp(df.loc[df.index[datamodule.ids_tst[tst_set_name]], "Estimation acceleration"].values) / dist_num_bins,
-                    opacity=0.8
-                )
-            )
-    add_layout(fig, "", "Estimation acceleration", f"")
-    fig.update_layout(title_xref='paper')
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=110,
-            r=20,
-            b=50,
-            t=90,
-            pad=0
-        )
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.savefig(f"scatter.png", bbox_inches='tight', dpi=400)
+    plt.savefig(f"scatter.pdf", bbox_inches='tight')
+    plt.close()
+
+    plt.figure()
+    sns.set_theme(style='whitegrid')
+    violin = sns.violinplot(
+        data=df_fig,
+        x="Part",
+        y='Prediction error',
+        palette=colors,
+        scale='width',
+        order=list(colors.keys()),
+        saturation=0.75,
     )
-    fig.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.25,
-            xanchor="center",
-            x=0.5
-        )
-    )
-    save_figure(fig, f"violin")
+    plt.savefig(f"violin.png", bbox_inches='tight', dpi=400)
+    plt.savefig(f"violin.pdf", bbox_inches='tight')
+    plt.close()
 
     expl_data = {
         'model': best["model"],
