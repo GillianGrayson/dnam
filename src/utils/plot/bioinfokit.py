@@ -181,9 +181,9 @@ def volcano(df="dataframe", lfc=None, pv=None, lfc_thr=(1, 1), pv_thr=(0.05, 0.0
     # plot
     assign_values = {col: i for i, col in enumerate(color)}
     color_result_num = [assign_values[i] for i in df['color_add_axy']]
-    assert len(set(color_result_num)) == 3, \
-        'either significant or non-significant genes are missing; try to change lfc_thr or pv_thr to include ' \
-        'both significant and non-significant genes'
+    #assert len(set(color_result_num)) == 3, \
+    #    'either significant or non-significant genes are missing; try to change lfc_thr or pv_thr to include ' \
+    #    'both significant and non-significant genes'
     if theme == 'dark':
         plt.style.use('dark_background')
     plt.subplots(figsize=dim)

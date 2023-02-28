@@ -29,8 +29,10 @@ dmp_pval <- 1
 dmr_pval <- 0.05
 dmr_min_probes <- 10
 gsea_pval <- 0.05
+methylglm_minsize <- 10
+methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/00_all_region/data_for_R"
 path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/00_all_region/data_from_R"
 setwd(path_work)
 
@@ -74,8 +76,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "GO",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_GO.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -84,8 +87,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "KEGG",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_KEGG.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -94,8 +98,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "Reactome",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_Reactome.csv", row.names=FALSE)
 
@@ -150,8 +155,10 @@ dmp_pval <- 1
 dmr_pval <- 0.05
 dmr_min_probes <- 10
 gsea_pval <- 0.05
+methylglm_minsize <- 10
+methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/01_central_sex/data_for_R"
 path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/01_central_sex/data_from_R"
 setwd(path_work)
 
@@ -195,8 +202,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "GO",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_GO.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -205,8 +213,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "KEGG",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_KEGG.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -215,8 +224,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "Reactome",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_Reactome.csv", row.names=FALSE)
 
@@ -271,8 +281,10 @@ dmp_pval <- 1
 dmr_pval <- 0.05
 dmr_min_probes <- 10
 gsea_pval <- 0.05
+methylglm_minsize <- 10
+methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/02_yakutia_sex/data_for_R"
 path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/02_yakutia_sex/data_from_R"
 setwd(path_work)
 
@@ -316,8 +328,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "GO",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_GO.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -326,8 +339,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "KEGG",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_KEGG.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -336,8 +350,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "Reactome",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_Reactome.csv", row.names=FALSE)
 
@@ -392,8 +407,10 @@ dmp_pval <- 1
 dmr_pval <- 0.05
 dmr_min_probes <- 10
 gsea_pval <- 0.05
+methylglm_minsize <- 10
+methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/03_females_region/data_for_R"
 path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/03_females_region/data_from_R"
 setwd(path_work)
 
@@ -437,8 +454,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "GO",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_GO.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -447,8 +465,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "KEGG",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_KEGG.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -457,8 +476,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "Reactome",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_Reactome.csv", row.names=FALSE)
 
@@ -513,8 +533,10 @@ dmp_pval <- 1
 dmr_pval <- 0.05
 dmr_min_probes <- 10
 gsea_pval <- 0.05
+methylglm_minsize <- 10
+methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/data_for_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/04_males_region/data_for_R"
 path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/04_males_region/data_from_R"
 setwd(path_work)
 
@@ -558,8 +580,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "GO",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_GO.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -568,8 +591,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "KEGG",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_KEGG.csv", row.names=FALSE)
 GSEA_methylglm <- methylglm(
@@ -578,8 +602,9 @@ GSEA_methylglm <- methylglm(
   group = "all",
   GS.idtype = "SYMBOL",
   GS.type = "Reactome",
-  minsize = 100,
-  maxsize = 500
+  minsize = methylglm_minsize,
+  maxsize = methylglm_maxsize,
+  parallel = TRUE
 )
 write.csv(GSEA_methylglm, file = "GSEA(methylglm)_Reactome.csv", row.names=FALSE)
 

@@ -3,7 +3,8 @@
 # Global params
 task: regression    # Task type. Options: ["regression", "classification"]
 target: "f07_status_day"       # Target column name
-seed: 1111          # Random seed
+target_label: "Status day"
+seed: 1337          # Random seed
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?
@@ -13,7 +14,7 @@ cv_n_repeats: 1     # Number of repeats in cross-validation
 # Data params
 in_dim: null    # Number of input features. null for auto select from loaded files with features
 out_dim: 1      # Output dimension
-embed_dim: 16   # Default embedding dimension
+embed_dim: 8   # Default embedding dimension
 
 # Optimization metrics params
 optimized_metric: mean_absolute_error     # All metrics listed in src.tasks.metrics
@@ -24,7 +25,7 @@ direction: min                            # Direction of metrics optimization. O
 # Run params
 max_epochs: 500            # Maximum number of epochs
 patience: 50               # Number of early stopping epochs
-feature_importance: shap_tree   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
+feature_importance: none   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 
 # Info params
 debug: False                # Is Debug?
@@ -40,7 +41,7 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: True                       # Calculate SHAP values?
+is_shap: False                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
 shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
