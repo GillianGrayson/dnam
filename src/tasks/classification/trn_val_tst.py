@@ -53,9 +53,11 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     num_features = len(features['all'])
     config.in_dim = num_features
     class_names = datamodule.get_class_names()
-    target = datamodule.get_target()
+    target = datamodule.target
+    target_label = datamodule.target_label
+    config.out_dim = datamodule.target_classes_num
     df = datamodule.get_data()
-    df['pred'] = 0
+    df["pred"] = 0
     ids_tst = datamodule.ids_tst
 
     cv_splitter = RepeatedStratifiedKFoldCVSplitter(
@@ -832,7 +834,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         'model': best["model"],
         'predict_func': best['predict_func'],
         'df': df,
-        'feature': features,
+        'features': features,
         'class_names': class_names,
         'target': target,
         'ids': {

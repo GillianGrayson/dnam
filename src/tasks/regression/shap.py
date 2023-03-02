@@ -177,7 +177,7 @@ def explain_shap(config, expl_data):
             Path(f"shap/{part}/features").mkdir(parents=True, exist_ok=True)
             mean_abs_impact = np.mean(np.abs(shap_values), axis=0)
             features_order = np.argsort(mean_abs_impact)[::-1]
-            feat_ids_to_plot = features_order[0:config.num_top_features]
+            feat_ids_to_plot = features_order[0:config.num_examples]
             for rank, feat_id in enumerate(feat_ids_to_plot):
                 feat = features[feat_id]
                 feat_label = features_labels[feat_id]

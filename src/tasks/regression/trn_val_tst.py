@@ -10,7 +10,6 @@ from pytorch_lightning import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pytorch_lightning.loggers import LightningLoggerBase
-import plotly.graph_objects as go
 import xgboost as xgb
 from catboost import CatBoost, Pool
 import lightgbm
@@ -23,8 +22,6 @@ import pandas as pd
 from tqdm import tqdm
 from src.tasks.regression.shap import explain_shap
 from src.tasks.regression.lime import explain_lime
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.layout import add_layout
 from src.tasks.routines import eval_regression, eval_loss, save_feature_importance
 from datetime import datetime
 from pathlib import Path

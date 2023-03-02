@@ -1,7 +1,7 @@
 import pandas as pd
 from src.tasks.metrics import get_cls_pred_metrics, get_cls_prob_metrics, get_reg_metrics
 from sklearn.metrics import confusion_matrix
-import plotly.figure_factory as ff
+import numpy as np
 import wandb
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
@@ -113,72 +113,31 @@ def eval_regression(config, y_real, y_pred, loggers, part, is_log=True, is_save=
 
 
 def plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=''):
-    conf_mtx = confusion_matrix(y_real, y_pred)
-    if len(conf_mtx) > 1:
-        fig = ff.create_annotated_heatmap(conf_mtx, x=class_names, y=class_names, showscale=False)
-        for i in range(len(fig.layout.annotations)):
-            fig.layout.annotations[i].font.size = 60
-        fig.update_layout(
-            template="none",
-            autosize=True,
-            margin=go.layout.Margin(
-                l=120,
-                r=20,
-                b=20,
-                t=100,
-                pad=0
-            ),
-            showlegend=False,
-            xaxis=dict(
-                title="Prediction",
-                autorange=True,
-                showgrid=True,
-                zeroline=False,
-                linecolor='black',
-                showline=True,
-                gridcolor='gainsboro',
-                gridwidth=0.05,
-                mirror=True,
-                ticks='outside',
-                titlefont=dict(
-                    color='black',
-                    size=45
-                ),
-                showticklabels=True,
-                tickangle=0,
-                tickfont=dict(
-                    color='black',
-                    size=35
-                ),
-                exponentformat='e',
-                showexponent='all'
-            ),
-            yaxis=dict(
-                title="Real",
-                autorange=True,
-                showgrid=True,
-                zeroline=False,
-                linecolor='black',
-                showline=True,
-                gridcolor='gainsboro',
-                gridwidth=0.05,
-                mirror=True,
-                ticks='outside',
-                titlefont=dict(
-                    color='black',
-                    size=45
-                ),
-                showticklabels=True,
-                tickangle=270,
-                tickfont=dict(
-                    color='black',
-                    size=35
-                ),
-                exponentformat='e',
-                showexponent='all'
-            ),
-        )
-        save_figure(fig, f"confusion_matrix_{part}{suffix}")
+    cm = confusion_matrix(y_real, y_pred)
+    if len(cm) > 1:
+        cm_sum = np.sum(cm, axis=1, keepdims=True)
+        cm_perc = cm / cm_sum.astype(float) * 100
+        annot = np.empty_like(cm).astype(str)
+        nrows, ncols = cm.shape
+        for i in range(nrows):
+            for j in range(ncols):
+                c = cm[i, j]
+                p = cm_perc[i, j]
+                if i == j:
+                    s = cm_sum[i]
+                    annot[i, j] = '%.1f%%\n%d/%d' % (p, c, s)
+                elif c == 0:
+                    annot[i, j] = ''
+                else:
+                    annot[i, j] = '%.1f%%\n%d' % (p, c)
+        cm = pd.DataFrame(cm, index=class_names, columns=class_names)
+        cm.index.name = 'Actual'
+        cm.columns.name = 'Predicted'
+        fig, ax = plt.subplots(figsize=(2*len(class_names), 2*len(class_names)))
+        sns.heatmap(cm, annot=annot, fmt='', ax=ax)
+        plt.savefig(f"confusion_matrix_{part}{suffix}.png", bbox_inches='tight')
+        plt.savefig(f"confusion_matrix_{part}{suffix}.pdf", bbox_inches='tight')
+        plt.close()
 
 
 def eval_loss(loss_info, loggers, is_log=True, is_save=True, file_suffix=''):

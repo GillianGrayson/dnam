@@ -147,6 +147,7 @@ class TabularDataModule(LightningDataModule):
             self.data_all = self.data_all.loc[self.data_all[self.target].isin(self.target_classes_dict), :]
             self.data_all[f'{self.target}_origin'] = self.data_all[self.target]
             self.data_all[self.target].replace(self.target_classes_dict, inplace=True)
+            self.target_classes_num = self.data_all[self.target].nunique()
             self.data_all.reset_index(drop=True, inplace=True)
         elif self.task == 'regression':
             self.data_all = self.data_all.astype({self.target: 'float32'})
@@ -293,57 +294,47 @@ class TabularDataModule(LightningDataModule):
 
         if self.task == 'classification':
 
-            dict_to_plot = {
-                "trn": self.ids_trn,
-                "val": self.ids_val,
-            }
+            df_fig = self.data_all.loc[:, [self.target, self.split_explicit_feat]].copy()
+            df_fig.rename(columns={self.target: self.target_label}, inplace=True)
+            target_dict = {v: k for k, v in self.target_classes_dict.items()}
+            df_fig.replace({self.target_label: target_dict}, inplace=True)
+            df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
+            df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
+            order = ['trn', 'val']
             for tst_set_name in self.ids_tst:
                 if tst_set_name != 'tst_all':
-                    dict_to_plot[tst_set_name] = tst_set_name
+                    df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
+                    order.append(tst_set_name)
 
-            for name, ids in dict_to_plot.items():
-                if len(ids) > 0:
-                    classes_counts = pd.DataFrame(Counter(self.data_all.loc[self.data_all.index[ids], f"{self.target}_origin"].values), index=[0])
-                    fig = go.Figure()
-                    for st, st_id in self.target_classes_dict.items():
-                        fig.add_trace(
-                            go.Bar(
-                                name=st,
-                                x=[st],
-                                y=[classes_counts.at[0, st]],
-                                text=[classes_counts.at[0, st]],
-                                textposition='auto',
-                                orientation='v',
-                                textfont_size=30,
-                            )
-                        )
-                    add_layout(fig, f"", f"Count", "")
-                    fig.update_layout({'colorway': px.colors.qualitative.Light24})
-                    fig.update_xaxes(showticklabels=False)
-                    fig.update_layout(legend={'itemsizing': 'constant'})
-                    fig.update_layout(legend_font_size=30)
-                    fig.update_layout(
-                        margin=go.layout.Margin(
-                            l=100,
-                            r=20,
-                            b=30,
-                            t=80,
-                            pad=0
-                        )
-                    )
-                    save_figure(fig, f"bar_{name}{suffix}")
+            plt.figure()
+            sns.set_theme(style='whitegrid', font_scale=1)
+            bar = sns.countplot(
+                data=df_fig,
+                x=f"Part",
+                order=order,
+                hue=self.target_label,
+                palette=px.colors.qualitative.Dark24,
+                edgecolor='black'
+            )
+            for x in bar.containers:
+                bar.bar_label(x)
+            bar.set_ylabel("Count")
+            plt.savefig(f"count.png", bbox_inches='tight')
+            plt.savefig(f"count.pdf", bbox_inches='tight')
+            plt.close()
 
         elif self.task == 'regression':
 
             df_fig = self.data_all.loc[:, [self.target, self.split_explicit_feat]].copy()
+            df_fig.rename(columns={self.target: self.target_label}, inplace=True)
             df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
             df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
             for tst_set_name in self.ids_tst:
                 if tst_set_name != 'tst_all':
                     df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
 
-            hist_min = df_fig.loc[:, self.target].min()
-            hist_max = df_fig.loc[:, self.target].max()
+            hist_min = df_fig.loc[:, self.target_label].min()
+            hist_max = df_fig.loc[:, self.target_label].max()
             hist_width = hist_max - hist_min
             hist_n_bins = 20
             hist_bin_width = hist_width / hist_n_bins
@@ -360,7 +351,7 @@ class TabularDataModule(LightningDataModule):
                 discrete=False,
                 edgecolor='k',
                 linewidth=1,
-                x=self.target,
+                x=self.target_label,
                 hue="Part",
                 hue_order=hue_order,
                 palette=self.colors

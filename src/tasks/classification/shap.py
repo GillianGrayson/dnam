@@ -30,7 +30,6 @@ def get_feature_importance(fi_data):
     if feature_importance == 'shap_tree':
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(X)
-
         base_prob = list(np.mean(y_pred_prob, axis=0))
 
         base_prob_expl = []
@@ -157,7 +156,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, X
     for c_id in corrects_ids:
         if correct_samples[y_real[c_id]] < config.num_examples:
             log.info(f"Plotting correct sample {indexes[c_id]} for {y_real[c_id]}")
-            ind_save = indexes[c_id].replace('/', '_')
+            ind_save = indexes[c_id]
             for cl_id, cl in enumerate(class_names):
                 path_curr = f"{path}/corrects/{class_names[y_real[c_id]]}/{ind_save}"
                 Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
@@ -215,8 +214,7 @@ def explain_shap(config, expl_data):
     class_names = expl_data['class_names']
     target = expl_data['target']
 
-
-    ids_bkgrd = expl_data[f"ids_{config.shap_bkgrd}"]
+    ids_bkgrd = expl_data["ids"][config.shap_bkgrd]
     indexes_bkgrd = df.index[ids_bkgrd]
     X_bkgrd = df.loc[indexes_bkgrd, features].values
     if config.shap_explainer == 'Tree':
@@ -230,12 +228,13 @@ def explain_shap(config, expl_data):
     else:
         raise ValueError(f"Unsupported explainer type: {config.shap_explainer}")
 
-    for part in ['val', 'tst', 'trn', 'all']:
-        if expl_data[f"ids_{part}"] is not None and len(expl_data[f"ids_{part}"]) > 0:
+    for part in expl_data["ids"]:
+        print(f"part: {part}")
+        if expl_data["ids"][part] is not None and len(expl_data["ids"][part]) > 0:
             log.info(f"Calculating SHAP for {part}")
             Path(f"shap/{part}/global").mkdir(parents=True, exist_ok=True)
 
-            ids = expl_data[f"ids_{part}"]
+            ids = expl_data["ids"][part]
             indexes = df.index[ids]
             X = df.loc[indexes, features].values
             y_pred_prob = df.loc[indexes, [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
@@ -313,7 +312,7 @@ def explain_shap(config, expl_data):
                     df_shap.to_excel(f"shap/{part}/shap_{cl}.xlsx", index=True)
                     df_expected_value = pd.DataFrame()
                     df_expected_value["expected_value"] = np.array(expected_value)
-                    df_expected_value.to_excel(f"shap/{part}/expected_value.xlsx", index=True)
+                    df_expected_value.to_excel(f"shap/{part}/expected_value.xlsx", index=False)
 
             shap.summary_plot(
                 shap_values=shap_values,
@@ -375,10 +374,9 @@ def explain_shap(config, expl_data):
                 shap_values_class = shap_values[cl_id]
                 mean_abs_impact = np.mean(np.abs(shap_values_class), axis=0)
                 features_order = np.argsort(mean_abs_impact)[::-1]
-                inds_to_plot = features_order[0:config.num_top_features]
+                inds_to_plot = features_order[0:config.num_examples]
                 for feat_id, ind in enumerate(inds_to_plot):
                     feat = features[ind]
-                    feat_label = features_labels[feat_id]
                     shap.dependence_plot(
                         ind=ind,
                         shap_values=shap_values_class,
@@ -393,7 +391,7 @@ def explain_shap(config, expl_data):
             mean_abs_shap_values = np.sum([np.mean(np.absolute(shap_values[cl_id]), axis=0) for cl_id, cl in enumerate(class_names)], axis=0)
             order = np.argsort(mean_abs_shap_values)[::-1]
             features_sorted = np.asarray(features)[order]
-            features_best = features_sorted[0:config.num_top_features]
+            features_best = features_sorted[0:config.num_examples]
             for feat_id, feat in enumerate(features_best):
                 feat_label = features_info['labels'][feat]
                 fig = go.Figure()
