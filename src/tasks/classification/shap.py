@@ -29,7 +29,9 @@ def get_feature_importance(fi_data):
 
     if feature_importance == 'shap_tree':
         explainer = shap.TreeExplainer(model)
-        shap_values = explainer.shap_values(X)
+        df_X = pd.DataFrame(data=X, columns=features["all"])
+        df_X[features["cat"]] = df_X[features["cat"]].astype('int32')
+        shap_values = explainer.shap_values(df_X)
         base_prob = list(np.mean(y_pred_prob, axis=0))
 
         base_prob_expl = []
@@ -77,8 +79,11 @@ def get_feature_importance(fi_data):
                     log.warning(f"Difference between SHAP contribution for subject {subject_id} in class {class_id}: {diff_check}")
 
         shap_values = shap_values_prob
-    elif feature_importance in ["shap_kernel", "shap_sampling"]:
+    elif feature_importance == "shap_kernel":
         explainer = shap.KernelExplainer(predict_func, X)
+        shap_values = explainer.shap_values(X)
+    elif feature_importance == "shap_sampling":
+        explainer = shap.SamplingExplainer(predict_func, X)
         shap_values = explainer.shap_values(X)
     else:
         raise ValueError(f"Unsupported feature importance type: {feature_importance}")

@@ -258,7 +258,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                     fi_importances = list(fi.values())
                 elif config.feature_importance.startswith("shap"):
                     if config.feature_importance == "shap_tree":
-                        explainer = shap.TreeExplainer(model, data=X_trn, feature_perturbation='interventional')
+                        explainer = shap.TreeExplainer(model)
                         shap_values = explainer.shap_values(X_trn)
                     elif config.feature_importance in ["shap_kernel", "shap_sampling"]:
                         def predict_func(X):
