@@ -21,7 +21,7 @@ hydra:
     n_jobs: 1
 
     # 'minimize' or 'maximize' the objective
-    direction: minimize
+    direction: maximize
 
     # total number of runs that will be executed
     n_trials: 500
@@ -42,4 +42,5 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.alpha: tag(log, interval(0.00001, 100000))
+      model.kernel: choice(linear, rbf)
+      model.C: tag(log, interval(0.01, 10))

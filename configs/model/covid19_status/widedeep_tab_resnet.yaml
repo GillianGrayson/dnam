@@ -1,0 +1,37 @@
+# Parameters for widedeep models available here:
+# [https://pytorch-widedeep.readthedocs.io/en/latest/pytorch-widedeep/model_components.html]
+name: widedeep_tab_resnet
+_target_: src.models.tabular.widedeep.tab_resnet.WDTabResnetModel
+task: classification
+loss_type: CrossEntropyLoss
+input_dim: ${in_dim}
+output_dim: ${out_dim}
+optimizer_lr: 0.01
+optimizer_weight_decay: 1e-7
+scheduler_step_size: 100
+scheduler_gamma: 0.8
+column_idx: null
+cat_embed_input: null
+cat_embed_dropout: 0.1
+use_cat_bias: False
+cat_embed_activation: null
+continuous_cols: null
+cont_norm_layer: "batchnorm"
+embed_continuous: False
+cont_embed_dim: 16
+cont_embed_dropout: 0.1
+use_cont_bias: True
+cont_embed_activation: null
+blocks_dims:
+- 200
+- 100
+- 100
+- ${out_dim}
+blocks_dropout: 0.1
+simplify_blocks: False
+mlp_hidden_dims: null
+mlp_activation: 'relu'
+mlp_dropout: 0.1
+mlp_batchnorm: False
+mlp_batchnorm_last: False
+mlp_linear_first: False

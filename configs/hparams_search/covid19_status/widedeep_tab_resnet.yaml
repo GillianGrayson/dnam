@@ -21,7 +21,7 @@ hydra:
     n_jobs: 1
 
     # 'minimize' or 'maximize' the objective
-    direction: minimize
+    direction: maximize
 
     # total number of runs that will be executed
     n_trials: 500
@@ -44,6 +44,6 @@ hydra:
     params:
       model.optimizer_lr: tag(log, interval(0.0001, 0.9))
       model.optimizer_weight_decay: tag(log, interval(0.0000001, 0.00001))
-      model.blocks_dims: choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1], [400, 200, 100, 1], [400, 200, 100, 50, 1])
+      model.blocks_dims: choice([200, 100, ${out_dim}], [100, 50, ${out_dim}], [200, 100, 50, ${out_dim}])
       model.blocks_dropout: interval(0.0, 0.15)
       model.simplify_blocks: choice(False, True)

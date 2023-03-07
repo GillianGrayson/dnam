@@ -474,6 +474,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     max_iter=config.model.max_iter,
                     tol=config.model.tol,
                     verbose=config.model.verbose,
+                    class_weight='balanced'
                 ).fit(X_trn, y_trn)
 
                 y_trn_pred_prob = model.predict_proba(X_trn)
@@ -535,7 +536,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                     max_iter=config.model.max_iter,
                     tol=config.model.tol,
                     verbose=config.model.verbose,
-                    probability=True
+                    probability=True,
+                    class_weight='balanced'
                 ).fit(X_trn, y_trn)
 
                 y_trn_pred_prob = model.predict_proba(X_trn)

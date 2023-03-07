@@ -13,19 +13,19 @@ cv_n_repeats: 1     # Number of repeats in cross-validation
 
 # Data params
 in_dim: null    # Number of input features. Auto select from loaded files with features
-out_dim: null   # Output dimension. Auto select from loaded files with classes
+out_dim: 2   # Output dimension. Auto select from loaded files with classes
 embed_dim: 8   # Default embedding dimension
 
 # Optimization metrics params
 optimized_metric: f1_score_macro     # All metrics listed in src.tasks.metrics
 optimized_mean: ""                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]
 optimized_part: val                       # Optimized data partition. Options: ["val", "tst"]
-direction: min                            # Direction of metrics optimization. Options ["min", "max"]
+direction: max                            # Direction of metrics optimization. Options ["min", "max"]
 
 # Run params
 max_epochs: 500            # Maximum number of epochs
 patience: 50               # Number of early stopping epochs
-feature_importance: shap_tree   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
+feature_importance: none   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 
 # Info params
 debug: False                # Is Debug?
@@ -41,9 +41,9 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: True                       # Calculate SHAP values?
+is_shap: False                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
-shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
+shap_explainer: Sampling                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
 shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
 
 # LIME weights
