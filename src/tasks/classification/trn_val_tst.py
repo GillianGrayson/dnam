@@ -55,7 +55,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     class_names = datamodule.get_class_names()
     target = datamodule.target
     target_label = datamodule.target_label
-    config.out_dim = datamodule.target_classes_num
+    if datamodule.target_classes_num != config.out_dim:
+        raise ValueError(f"Inconsistent out_dim. From datamodule: {datamodule.target_classes_num}, from config: {config.out_dim}")
     df = datamodule.get_data()
     df["pred"] = 0
     ids_tst = datamodule.ids_tst
