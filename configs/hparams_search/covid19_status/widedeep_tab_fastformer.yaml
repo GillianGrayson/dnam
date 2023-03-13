@@ -21,7 +21,7 @@ hydra:
     n_jobs: 1
 
     # 'minimize' or 'maximize' the objective
-    direction: minimize
+    direction: maximize
 
     # total number of runs that will be executed
     n_trials: 500
@@ -41,19 +41,14 @@ hydra:
       warn_independent_sampling: true
 
     # define range of hyperparameters
-    # 'input_dim' must be divisible by 'n_heads'
     params:
       model.optimizer_lr: tag(log, interval(0.00001, 1))
       model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
-      model.embed_dim: choice(8, 16, 32)
-      model.n_cross_attn_heads: choice(2, 4)
-      model.n_latents: choice(8, 16)
-      model.latent_dim: choice(32, 64, 128)
-      model.n_latent_heads: choice(2, 4)
-      model.n_latent_blocks: choice(2, 4)
-      model.n_perceiver_blocks: choice(2, 4)
+      model.embed_dim: choice(16, 32, 64)
+      model.n_heads: choice(2, 4, 8, 16)
+      model.n_blocks: choice(1, 2, 4)
       model.attn_dropout: interval(0.0, 0.2)
       model.ff_dropout: interval(0.0, 0.2)
       model.transformer_activation: choice(relu, leaky_relu, gelu)
-      model.mlp_hidden_dims: choice([200, 100, 50, 1], [200, 100, 1], [400, 200, 1], [200, 1], [100, 1])
+      model.mlp_hidden_dims: choice([200, 100, 50, ${out_dim}], [200, 100, ${out_dim}], [400, 200, ${out_dim}], [200, ${out_dim}], [100, ${out_dim}])
       model.mlp_dropout: interval(0.0, 0.2)
