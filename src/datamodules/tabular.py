@@ -163,9 +163,12 @@ class TabularDataModule(LightningDataModule):
                         self.feats_labels[f] = df_feats_cat.at[f, self.feats_labels_col]
                     else:
                         self.feats_labels[f] = f
-            elif self.feats_cat_encoding == "one_hot":
+            elif self.feats_cat_encoding in ["one_hot", "one_hot_drop_first"]:
                 for f in self.feats_cat:
-                    one_hot = pd.get_dummies(self.data_all.loc[:, [f]], columns=[f])
+                    if self.feats_cat_encoding == "one_hot_drop_first":
+                        one_hot = pd.get_dummies(self.data_all.loc[:, [f]], columns=[f], drop_first=True)
+                    else:
+                        one_hot = pd.get_dummies(self.data_all.loc[:, [f]], columns=[f])
                     self.data_all = self.data_all.join(one_hot)
                     feats_encoded = one_hot.columns.values.tolist()
                     self.feats_con += feats_encoded
