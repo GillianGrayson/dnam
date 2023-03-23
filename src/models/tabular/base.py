@@ -38,6 +38,7 @@ def get_model_framework_dict():
         "danet": "pytorch",
         "nam": "pytorch",
         "stg": "pytorch",
+        "coxnet": "stand_alone"
     }
     return model_framework
 

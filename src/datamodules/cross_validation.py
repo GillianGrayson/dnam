@@ -55,7 +55,7 @@ class RepeatedStratifiedKFoldCVSplitter(CVSplitter):
             ids = cross_validation_df.loc[:, 'ids'].values
             target = cross_validation_df.loc[:, self.datamodule.target].values
             if self.datamodule.split_by != "top_feat":
-                if self.datamodule.task == 'classification':
+                if self.datamodule.task in ['classification', 'survival']:
                     splits = self.k_fold.split(X=ids, y=target, groups=target)
                 elif self.datamodule.task == "regression":
                     ptp = np.ptp(target)
@@ -74,7 +74,7 @@ class RepeatedStratifiedKFoldCVSplitter(CVSplitter):
 
             else:
                 top_feat_vals = cross_validation_df[self.datamodule.split_top_feat].unique()
-                if self.datamodule.task == 'classification':
+                if self.datamodule.task in ['classification', 'survival']:
                     splits = self.k_fold.split(X=top_feat_vals, y=np.ones(len(top_feat_vals)))
                 elif self.datamodule.task == "regression":
                     raise ValueError(f'Unsupported split by feature for the regression')

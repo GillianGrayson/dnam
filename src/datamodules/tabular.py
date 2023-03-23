@@ -60,10 +60,13 @@ class TabularDataModule(LightningDataModule):
             feats_labels_col: str = None,
             feats_cat_replace_col: str = None,
             feats_cat_encoding: str = None,
+            feats_cat_keep: bool = True,
             feats_cat_embed_dim: int = None,
             target: str = None,
             target_label: str = None,
             target_classes_fn: str = None,
+            duration: str = None,
+            duration_label: str = None,
             data_fn: str = None,
             data_index: str = None,
             data_imputation: str = None,
@@ -87,6 +90,7 @@ class TabularDataModule(LightningDataModule):
         self.feats_labels_col = feats_labels_col
         self.feats_cat_replace_col = feats_cat_replace_col
         self.feats_cat_encoding = feats_cat_encoding
+        self.feats_cat_keep = feats_cat_keep
         self.feats_cat_embed_dim = feats_cat_embed_dim
 
         self.target = target
@@ -95,6 +99,12 @@ class TabularDataModule(LightningDataModule):
         else:
             self.target_label = target_label
         self.target_classes_fn = target_classes_fn
+
+        self.duration = duration
+        if duration_label is None:
+            self.duration_label = duration
+        else:
+            self.duration_label = duration_label
 
         self.data_fn = data_fn
         self.data_index = data_index
@@ -139,7 +149,7 @@ class TabularDataModule(LightningDataModule):
             self.feats_cat = []
             df_feats_cat = None
 
-        if self.task == 'classification':
+        if self.task in ['classification', 'survival']:
             self.target_classes_df = pd.read_excel(self.target_classes_fn)
             self.target_classes_dict = {}
             for cl_id, cl in enumerate(self.target_classes_df.loc[:, self.target].values):
@@ -152,18 +162,33 @@ class TabularDataModule(LightningDataModule):
         elif self.task == 'regression':
             self.data_all = self.data_all.astype({self.target: 'float32'})
 
+        if self.task == 'survival':
+            self.data_all = self.data_all.astype({self.duration: 'float32'})
+
         self.widedeep = {'cat_embed_input': None}
         if len(self.feats_cat) > 0:
-            if self.feats_cat_encoding == "keep_cat": # pytorch doesn't work with strings
+            self.dict_cat_replace = {}
+            if self.feats_cat_encoding == "label": # pytorch doesn't work with strings
                 self.widedeep['cat_embed_input'] = []
                 for f in self.feats_cat:
+                    if self.feats_labels_col in df_feats_cat.columns and self.feats_cat_replace_col in df_feats_cat.columns:
+                        self.dict_cat_replace[f] = ast.literal_eval(df_feats_cat.at[f, self.feats_cat_replace_col])
+                        self.data_all[f].replace(self.dict_cat_replace[f], inplace=True)
+                        dict_change = dict(zip(self.data_all[f].astype('category').cat.codes, self.data_all[f]))
+                        self.dict_cat_replace[f] = dict_change
                     self.data_all[f] = self.data_all[f].astype('category').cat.codes.astype('int32')
                     self.widedeep['cat_embed_input'].append((f, self.data_all[f].value_counts().shape[0], self.feats_cat_embed_dim))
                     if self.feats_labels_col in df_feats_cat.columns:
                         self.feats_labels[f] = df_feats_cat.at[f, self.feats_labels_col]
                     else:
                         self.feats_labels[f] = f
+
+                if not self.feats_cat_keep:
+                    self.feats_con += self.feats_cat
+                    self.feats_cat = []
+
             elif self.feats_cat_encoding in ["one_hot", "one_hot_drop_first"]:
+                feats_cat_new = []
                 for f in self.feats_cat:
                     if self.feats_cat_encoding == "one_hot_drop_first":
                         one_hot = pd.get_dummies(self.data_all.loc[:, [f]], columns=[f], drop_first=True)
@@ -171,17 +196,27 @@ class TabularDataModule(LightningDataModule):
                         one_hot = pd.get_dummies(self.data_all.loc[:, [f]], columns=[f])
                     self.data_all = self.data_all.join(one_hot)
                     feats_encoded = one_hot.columns.values.tolist()
-                    self.feats_con += feats_encoded
+
+                    if self.feats_cat_keep:
+                        feats_cat_new += feats_encoded
+                    else:
+                        self.feats_con += feats_encoded
+
                     if self.feats_labels_col in df_feats_cat.columns and self.feats_cat_replace_col in df_feats_cat.columns:
                         dict_cat_replace = ast.literal_eval(df_feats_cat.at[f, self.feats_cat_replace_col])
                         for f_e in feats_encoded:
                             right_part = ast.literal_eval(f_e.replace(f"{f}_", ''))
                             self.feats_labels[f_e] = f"{df_feats_cat.at[f, self.feats_labels_col]} ({dict_cat_replace[right_part]})"
+                            self.dict_cat_replace[f_e] = {1: 'Yes', 0: 'No'}
                     else:
                         for f_e in feats_encoded:
                             self.feats_labels[f_e] = f_e
 
-                self.feats_cat = []
+                if self.feats_cat_keep:
+                    self.feats_cat = feats_cat_new
+                else:
+                    self.feats_cat = []
+
             else:
                 raise ValueError(f"Unsupported cat_encoding: {self.feats_cat_encoding}")
         self.feats_all = self.feats_con + self.feats_cat
@@ -265,7 +300,7 @@ class TabularDataModule(LightningDataModule):
         else:
             assert abs(1.0 - sum(self.split_trn_val)) < 1.0e-8, "Sum of trn_val_split must be 1"
             target_trn_val = self.data_all.loc[self.data_all.index[self.ids_trn_val], self.target].values
-            if self.task == 'classification':
+            if self.task in ['classification', 'survival']:
                 self.ids_trn, self.ids_val = train_test_split(
                     self.ids_trn_val,
                     test_size=self.split_trn_val[1],
@@ -293,75 +328,83 @@ class TabularDataModule(LightningDataModule):
 
         self.refresh_datasets()
 
+    def plot_split_classification(self, suffix: str = ''):
+
+        df_fig = self.data_all.loc[:, [self.target, self.split_explicit_feat]].copy()
+        df_fig.rename(columns={self.target: self.target_label}, inplace=True)
+        target_dict = {v: k for k, v in self.target_classes_dict.items()}
+        df_fig.replace({self.target_label: target_dict}, inplace=True)
+        df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
+        df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
+        order = ['trn', 'val']
+        for tst_set_name in self.ids_tst:
+            if tst_set_name != 'tst_all':
+                df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
+                order.append(tst_set_name)
+
+        plt.figure()
+        sns.set_theme(style='whitegrid', font_scale=1)
+        bar = sns.countplot(
+            data=df_fig,
+            x=f"Part",
+            order=order,
+            hue=self.target_label,
+            palette=px.colors.qualitative.Dark24,
+            edgecolor='black'
+        )
+        for x in bar.containers:
+            bar.bar_label(x)
+        bar.set_ylabel("Count")
+        plt.savefig(f"count.png", bbox_inches='tight')
+        plt.savefig(f"count.pdf", bbox_inches='tight')
+        plt.close()
+
+    def plot_split_regression(self, target, target_label, suffix: str = ''):
+
+        df_fig = self.data_all.loc[:, [target, self.split_explicit_feat]].copy()
+        df_fig.rename(columns={target: target_label}, inplace=True)
+        df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
+        df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
+        for tst_set_name in self.ids_tst:
+            if tst_set_name != 'tst_all':
+                df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
+
+        hist_min = df_fig.loc[:, target_label].min()
+        hist_max = df_fig.loc[:, target_label].max()
+        hist_width = hist_max - hist_min
+        hist_n_bins = 20
+        hist_bin_width = hist_width / hist_n_bins
+
+        hue_order = ['trn', 'val'] + [x for x in self.ids_tst.keys() if x != 'tst_all']
+
+        fig = plt.figure()
+        sns.set_theme(style='whitegrid')
+        sns.histplot(
+            data=df_fig,
+            bins=hist_n_bins,
+            binrange=(hist_min, hist_max),
+            binwidth=hist_bin_width,
+            discrete=False,
+            edgecolor='k',
+            linewidth=1,
+            x=target_label,
+            hue="Part",
+            hue_order=hue_order,
+            palette=self.colors
+        )
+        plt.savefig(f"hist{suffix}.png", bbox_inches='tight', dpi=400)
+        plt.savefig(f"hist{suffix}.pdf", bbox_inches='tight')
+        plt.close(fig)
+
     def plot_split(self, suffix: str = ''):
 
         if self.task == 'classification':
-
-            df_fig = self.data_all.loc[:, [self.target, self.split_explicit_feat]].copy()
-            df_fig.rename(columns={self.target: self.target_label}, inplace=True)
-            target_dict = {v: k for k, v in self.target_classes_dict.items()}
-            df_fig.replace({self.target_label: target_dict}, inplace=True)
-            df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
-            df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
-            order = ['trn', 'val']
-            for tst_set_name in self.ids_tst:
-                if tst_set_name != 'tst_all':
-                    df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
-                    order.append(tst_set_name)
-
-            plt.figure()
-            sns.set_theme(style='whitegrid', font_scale=1)
-            bar = sns.countplot(
-                data=df_fig,
-                x=f"Part",
-                order=order,
-                hue=self.target_label,
-                palette=px.colors.qualitative.Dark24,
-                edgecolor='black'
-            )
-            for x in bar.containers:
-                bar.bar_label(x)
-            bar.set_ylabel("Count")
-            plt.savefig(f"count.png", bbox_inches='tight')
-            plt.savefig(f"count.pdf", bbox_inches='tight')
-            plt.close()
-
+            self.plot_split_classification(suffix=suffix)
         elif self.task == 'regression':
-
-            df_fig = self.data_all.loc[:, [self.target, self.split_explicit_feat]].copy()
-            df_fig.rename(columns={self.target: self.target_label}, inplace=True)
-            df_fig.loc[df_fig.index[self.ids_trn], "Part"] = 'trn'
-            df_fig.loc[df_fig.index[self.ids_val], "Part"] = 'val'
-            for tst_set_name in self.ids_tst:
-                if tst_set_name != 'tst_all':
-                    df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
-
-            hist_min = df_fig.loc[:, self.target_label].min()
-            hist_max = df_fig.loc[:, self.target_label].max()
-            hist_width = hist_max - hist_min
-            hist_n_bins = 20
-            hist_bin_width = hist_width / hist_n_bins
-
-            hue_order = ['trn', 'val'] + [x for x in self.ids_tst.keys() if x != 'tst_all']
-
-            fig = plt.figure()
-            sns.set_theme(style='whitegrid')
-            sns.histplot(
-                data=df_fig,
-                bins=hist_n_bins,
-                binrange=(hist_min, hist_max),
-                binwidth=hist_bin_width,
-                discrete=False,
-                edgecolor='k',
-                linewidth=1,
-                x=self.target_label,
-                hue="Part",
-                hue_order=hue_order,
-                palette=self.colors
-            )
-            plt.savefig(f"hist{suffix}.png", bbox_inches='tight', dpi=400)
-            plt.savefig(f"hist{suffix}.pdf", bbox_inches='tight')
-            plt.close(fig)
+            self.plot_split_regression(suffix=suffix, target=self.target, target_label=self.target_label)
+        elif self.task == 'survival':
+            self.plot_split_classification(suffix=suffix)
+            self.plot_split_regression(suffix=suffix, target=self.duration, target_label=self.duration_label)
 
     def get_cross_validation_df(self):
         columns = ['ids', self.target]
@@ -381,7 +424,7 @@ class TabularDataModule(LightningDataModule):
             )
         else:
             ys_trn = self.dataset.y[self.ids_trn]
-            if self.task == "classification" and self.weighted_sampler:
+            if self.task in ['classification', 'survival'] and self.weighted_sampler:
                 class_counter = Counter(ys_trn)
                 class_weights = {c: 1.0 / class_counter[c] for c in class_counter}
                 weights = torch.FloatTensor([class_weights[y] for y in ys_trn])
