@@ -1,5 +1,5 @@
 name: coxnet
-alpha: 1.0
+alpha: 5.0
 l1_ratio: 0.5
 tol: 1e-7
 max_iter: 100000

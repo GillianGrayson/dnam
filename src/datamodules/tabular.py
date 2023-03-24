@@ -59,6 +59,7 @@ class TabularDataModule(LightningDataModule):
             feats_cat_fn: str = None,
             feats_labels_col: str = None,
             feats_cat_replace_col: str = None,
+            feats_cat_colors: str = None,
             feats_cat_encoding: str = None,
             feats_cat_keep: bool = True,
             feats_cat_embed_dim: int = None,
@@ -89,6 +90,7 @@ class TabularDataModule(LightningDataModule):
         self.feats_cat_fn = feats_cat_fn
         self.feats_labels_col = feats_labels_col
         self.feats_cat_replace_col = feats_cat_replace_col
+        self.feats_cat_colors = feats_cat_colors
         self.feats_cat_encoding = feats_cat_encoding
         self.feats_cat_keep = feats_cat_keep
         self.feats_cat_embed_dim = feats_cat_embed_dim
@@ -143,7 +145,7 @@ class TabularDataModule(LightningDataModule):
                 self.feats_labels[f] = f
 
         if self.feats_cat_fn is not None:
-            df_feats_cat =  pd.read_excel(self.feats_cat_fn, index_col=0)
+            df_feats_cat = pd.read_excel(self.feats_cat_fn, index_col=0)
             self.feats_cat = df_feats_cat.index.values.tolist()
         else:
             self.feats_cat = []
@@ -168,6 +170,7 @@ class TabularDataModule(LightningDataModule):
         self.widedeep = {'cat_embed_input': None}
         if len(self.feats_cat) > 0:
             self.dict_cat_replace = {}
+            self.dict_colors = {}
             if self.feats_cat_encoding == "label": # pytorch doesn't work with strings
                 self.widedeep['cat_embed_input'] = []
                 for f in self.feats_cat:
@@ -178,6 +181,8 @@ class TabularDataModule(LightningDataModule):
                         self.dict_cat_replace[f] = dict_change
                     self.data_all[f] = self.data_all[f].astype('category').cat.codes.astype('int32')
                     self.widedeep['cat_embed_input'].append((f, self.data_all[f].value_counts().shape[0], self.feats_cat_embed_dim))
+                    if self.feats_cat_colors in df_feats_cat.columns:
+                        self.dict_colors[f] = ast.literal_eval(df_feats_cat.at[f, self.feats_cat_colors])
                     if self.feats_labels_col in df_feats_cat.columns:
                         self.feats_labels[f] = df_feats_cat.at[f, self.feats_labels_col]
                     else:

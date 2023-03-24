@@ -4,6 +4,7 @@ feats_con_fn: "${data_dir}/feats_cont.xlsx"           # File with continuous inp
 feats_cat_fn: "${data_dir}/feats_cat.xlsx"            # File with categorical input features
 feats_labels_col: "eng_title"
 feats_cat_replace_col: "eng_values"
+feats_cat_colors: "colors"
 feats_cat_encoding: label                          # How to encode categorical features? Options: ["label", "one_hot"]
 feats_cat_keep: True
 feats_cat_embed_dim: ${embed_dim}                     # Dimension size for categorical features embedding

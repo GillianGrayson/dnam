@@ -162,7 +162,15 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
         df_fig.replace({features['labels'][cat_feat]: datamodule.dict_cat_replace[cat_feat]}, inplace=True)
         fig = plt.figure()
         sns.set_theme(style='whitegrid', font_scale=1)
-        sns.lineplot(data=df_fig, x='t', y="S(t)", hue=f"{features['labels'][cat_feat]}")
+        palette = datamodule.dict_colors[cat_feat]
+        sns.lineplot(
+            data=df_fig,
+            x='t',
+            y="S(t)",
+            hue=f"{features['labels'][cat_feat]}",
+            palette=palette,
+            hue_order=list(palette.keys())
+        )
         plt.savefig(f"surv_func/{cat_feat}.png", bbox_inches='tight', dpi=400)
         plt.savefig(f"surv_func/{cat_feat}.pdf", bbox_inches='tight')
         plt.close(fig)
