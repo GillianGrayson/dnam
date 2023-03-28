@@ -77,14 +77,21 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                 if tst_set_name != 'tst_all':
                     df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_id:04d}"] = tst_set_name
 
-            if config.model.name == "coxnet":
-                model = CoxnetSurvivalAnalysis(
-                    l1_ratio=config.model.l1_ratio,
-                    alphas=[config.model.alpha],
-                    tol=config.model.tol,
-                    max_iter=config.model.max_iter,
-                    fit_baseline_model=True
-                )
+            if config.model.name in ["coxnet", "coxph"]:
+                if config.model.name == "coxnet":
+                    model = CoxnetSurvivalAnalysis(
+                        l1_ratio=config.model.l1_ratio,
+                        alphas=[config.model.alpha],
+                        tol=config.model.tol,
+                        max_iter=config.model.max_iter,
+                        fit_baseline_model=True
+                    )
+                elif config.model.name == "coxph":
+                    model = CoxPHSurvivalAnalysis(
+                        alpha=config.model.alpha,
+                        tol=config.model.tol,
+                        n_iter=config.model.n_iter,
+                    )
                 X_trn = dfs['trn'].loc[:, features['all']]
                 y_trn = np.zeros(dfs['trn'].shape[0], dtype={'names': ('event', 'duration'), 'formats': (np.bool, np.float32)})
                 y_trn['event'] = dfs['trn'].loc[:, event].values
@@ -142,9 +149,9 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
         metrics.to_excel(f"cv_ids.xlsx", index_label='metric')
 
         X_all = df.loc[:, features['all']]
-        if config.model.name == "coxnet":
+        if config.model.name in ["coxnet", "coxph"]:
             event_times = best["model"].event_times_
-            surv_func = best["model"].predict_survival_function(X_all, alpha=config.model.alpha, return_array=True)
+            surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
 
         pathlib.Path(f"surv_func").mkdir(parents=True, exist_ok=True)
@@ -210,4 +217,4 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
 
     except ArithmeticError:
         log.error(f"Numerical error during {config.model.name}")
-        return  best["optimized_metric"]
+        return best["optimized_metric"]
