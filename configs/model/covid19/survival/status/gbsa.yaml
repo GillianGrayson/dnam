@@ -1,0 +1,8 @@
+name: gbsa
+loss: coxph
+learning_rate: 0.1
+n_estimators: 100
+criterion: 'friedman_mse'
+min_samples_split: 2
+min_samples_leaf: 1
+dropout_rate: 0.0

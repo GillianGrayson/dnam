@@ -6,6 +6,7 @@ from pytorch_lightning import (
     seed_everything,
 )
 from sksurv.linear_model import CoxnetSurvivalAnalysis, CoxPHSurvivalAnalysis
+from sksurv.ensemble import RandomSurvivalForest, GradientBoostingSurvivalAnalysis
 import seaborn as sns
 from src.datamodules.cross_validation import RepeatedStratifiedKFoldCVSplitter
 from src.datamodules.tabular import TabularDataModule
@@ -77,7 +78,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                 if tst_set_name != 'tst_all':
                     df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_id:04d}"] = tst_set_name
 
-            if config.model.name in ["coxnet", "coxph"]:
+            if config.model.name in ["coxnet", "coxph", "random_survival_forest", "gbsa"]:
                 if config.model.name == "coxnet":
                     model = CoxnetSurvivalAnalysis(
                         l1_ratio=config.model.l1_ratio,
@@ -92,13 +93,38 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                         tol=config.model.tol,
                         n_iter=config.model.n_iter,
                     )
+                elif config.model.name == "random_survival_forest":
+                    model = RandomSurvivalForest(
+                        n_estimators=config.model.n_estimators,
+                        min_samples_split=config.model.min_samples_split,
+                        min_samples_leaf=config.model.min_samples_leaf,
+                        n_jobs=-1,
+                        random_state=config.seed
+                    )
+                elif config.model.name == "gbsa":
+                    model = GradientBoostingSurvivalAnalysis(
+                        loss=config.model.loss,
+                        learning_rate=config.model.learning_rate,
+                        criterion=config.model.criterion,
+                        n_estimators=config.model.n_estimators,
+                        min_samples_split=config.model.min_samples_split,
+                        min_samples_leaf=config.model.min_samples_leaf,
+                        dropout_rate=config.model.dropout_rate,
+                        random_state=config.seed
+                    )
                 X_trn = dfs['trn'].loc[:, features['all']]
                 y_trn = np.zeros(dfs['trn'].shape[0], dtype={'names': ('event', 'duration'), 'formats': (np.bool, np.float32)})
                 y_trn['event'] = dfs['trn'].loc[:, event].values
+
                 y_trn['duration'] = dfs['trn'].loc[:, duration].values
                 model.fit(X_trn, y_trn)
 
-                feat_imps_cv.loc[features['all'], fold_id] = model.coef_
+                if config.model.name in ["coxnet", "coxph"]:
+                    feat_imps_cv.loc[features['all'], fold_id] = model.coef_
+                elif config.model.name == "random_survival_forest":
+                    feat_imps_cv.loc[features['all'], fold_id] = 0.0
+                elif config.model.name == "gbsa":
+                    feat_imps_cv.loc[features['all'], fold_id] = model.feature_importances_
 
                 for df_part in dfs:
                     X = dfs[df_part].loc[:, features['all']]
@@ -149,7 +175,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
         metrics.to_excel(f"cv_ids.xlsx", index_label='metric')
 
         X_all = df.loc[:, features['all']]
-        if config.model.name in ["coxnet", "coxph"]:
+        if config.model.name in ["coxnet", "coxph", "random_survival_forest", "gbsa"]:
             event_times = best["model"].event_times_
             surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)

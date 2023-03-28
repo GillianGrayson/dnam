@@ -42,4 +42,4 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.l1_ratio: tag(log, interval(0.0001, 10000))
+      model.alpha: tag(log, interval(0.0001, 10000))
