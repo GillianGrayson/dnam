@@ -78,7 +78,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                 if tst_set_name != 'tst_all':
                     df.loc[df.index[ids_tst[tst_set_name]], f"fold_{fold_id:04d}"] = tst_set_name
 
-            if config.model.name in ["coxnet", "coxph", "random_survival_forest", "gbsa", "cwgbsa"]:
+            if config.model.name in ["coxnet", "coxph", "rsf", "gbsa", "cwgbsa"]:
                 if config.model.name == "coxnet":
                     model = CoxnetSurvivalAnalysis(
                         l1_ratio=config.model.l1_ratio,
@@ -93,7 +93,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                         tol=config.model.tol,
                         n_iter=config.model.n_iter,
                     )
-                elif config.model.name == "random_survival_forest":
+                elif config.model.name == "rsf":
                     model = RandomSurvivalForest(
                         n_estimators=config.model.n_estimators,
                         min_samples_split=config.model.min_samples_split,
@@ -128,9 +128,9 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                 y_trn['duration'] = dfs['trn'].loc[:, duration].values
                 model.fit(X_trn, y_trn)
 
-                if config.model.name in ["coxnet", "coxph"]:
+                if config.model.name in ["coxnet", "coxph", "fssvm"]:
                     feat_imps_cv.loc[features['all'], fold_id] = model.coef_
-                elif config.model.name in ["random_survival_forest", "cwgbsa"]:
+                elif config.model.name in ["rsf", "cwgbsa"]:
                     feat_imps_cv.loc[features['all'], fold_id] = 0.0
                 elif config.model.name == "gbsa":
                     feat_imps_cv.loc[features['all'], fold_id] = model.feature_importances_
@@ -184,7 +184,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
         metrics.to_excel(f"cv_ids.xlsx", index_label='metric')
 
         X_all = df.loc[:, features['all']]
-        if config.model.name in ["coxnet", "coxph", "random_survival_forest", "gbsa", "cwgbsa"]:
+        if config.model.name in ["coxnet", "coxph", "rsf", "gbsa", "cwgbsa"]:
             event_times = best["model"].event_times_
             surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
