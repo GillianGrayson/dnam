@@ -18,6 +18,10 @@ in_dim: null    # Number of input features. Auto select from loaded files with f
 out_dim: null   # Output dimension. Auto select from loaded files with classes
 embed_dim: 8   # Default embedding dimension
 
+# Run params
+max_epochs: 500            # Maximum number of epochs
+patience: 50               # Number of early stopping epochs
+
 # Optimization metrics params
 optimized_metric: ci     # All metrics listed in src.tasks.metrics
 optimized_mean: ""                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]

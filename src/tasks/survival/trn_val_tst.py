@@ -17,6 +17,9 @@ from tqdm import tqdm
 import pathlib
 import pickle
 import matplotlib.pyplot as plt
+from pycox.models import LogisticHazard, PMF, DeepHitSingle, CoxPH
+import torchtuples as tt
+from pycox.evaluation import EvalSurv
 
 
 log = utils.get_logger(__name__)
@@ -142,6 +145,50 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                     y['duration'] = dfs[df_part].loc[:, duration].values
                     metrics_cv.at[fold_id, f"{df_part}_ci"] = model.score(X, y)
 
+            elif config.model.name in ["deep_surv"]:
+
+                X_trn = dfs['trn'].loc[:, features['all']].values
+                y_trn = (dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
+                X_val = dfs['val'].loc[:, features['all']].values
+                y_val = (dfs['val'].loc[:, duration].values, dfs['val'].loc[:, event].values)
+                val = X_val, y_val
+
+                net = tt.practical.MLPVanilla(
+                    in_features=num_features,
+                    num_nodes=list(config.model.net_num_nodes),
+                    out_features=1,
+                    batch_norm=config.model.batch_norm,
+                    dropout=config.model.dropout,
+                    output_bias=config.model.output_bias
+                )
+                model = CoxPH(
+                    net=net,
+                    optimizer=tt.optim.Adam(
+                        lr=config.model.optimizer_lr,
+                        weight_decay=config.model.optimizer_weight_decay
+                    )
+                )
+
+                model.fit(
+                    input=X_trn,
+                    target=y_trn,
+                    batch_size=datamodule.batch_size,
+                    epochs=config.max_epochs,
+                    callbacks=[tt.callbacks.EarlyStopping(patience=config.patience)],
+                    verbose=True,
+                    val_data=val,
+                    val_batch_size=datamodule.batch_size
+                )
+
+                for df_part in dfs:
+                    X = dfs[df_part].loc[:, features['all']].values
+                    durations = dfs[df_part].loc[:, duration].values
+                    events = dfs[df_part].loc[:, event].values
+                    model.compute_baseline_hazards()
+                    surv = model.predict_surv_df(X)
+                    eval = EvalSurv(surv, durations, events)
+                    metrics_cv.at[fold_id, f"{df_part}_ci"] = eval.concordance_td()
+
             is_renew = False
             if config.direction == "min":
                 if metrics_cv.at[fold_id, f"{config.optimized_part}_{config.optimized_metric}"] < best["optimized_metric"]:
@@ -167,10 +214,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
 
         datamodule.ids_trn = best['ids_trn']
         datamodule.ids_val = best['ids_val']
-
         datamodule.plot_split(f"_best_{best['fold_id']:04d}")
-
-        pickle.dump(best["model"], open(f"model_{best['fold_id']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
         metrics_names = ['ci']
         parts = ['trn', 'val'] + list(ids_tst.keys())
@@ -181,13 +225,18 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                 metrics.at[m, f'{p}_mean'] = metrics_cv.loc[:, f'{p}_{m}'].mean()
             for tst_set_name in ids_tst:
                 metrics.at[m, f'val_{tst_set_name}_mean'] = 0.5 * (metrics.at[m, 'val'] + metrics.at[m, tst_set_name])
-        metrics.to_excel(f"cv_ids.xlsx", index_label='metric')
+        metrics.to_excel(f"metrics.xlsx", index_label='metric')
 
         X_all = df.loc[:, features['all']]
         if config.model.name in ["coxnet", "coxph", "rsf", "gbsa", "cwgbsa"]:
+            pickle.dump(best["model"], open(f"model_{best['fold_id']:04d}.pkl", 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
             event_times = best["model"].event_times_
             surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
+        elif config.model.name in ["deep_surv"]:
+            best["model"].save_net(f"model_{best['fold_id']:04d}.pt")
+            df_surv_func = model.predict_surv_df(X_all.values).T
+            df_surv_func.set_index(X_all.index, inplace=True, verify_integrity=True)
 
         pathlib.Path(f"surv_func").mkdir(parents=True, exist_ok=True)
         for cat_feat in features['cat']:

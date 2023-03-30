@@ -165,7 +165,7 @@ class TabularDataModule(LightningDataModule):
             self.data_all = self.data_all.astype({self.target: 'float32'})
 
         if self.task == 'survival':
-            self.data_all = self.data_all.astype({self.duration: 'float32'})
+            self.data_all = self.data_all.astype({self.duration: 'float32', self.target: 'int32'})
 
         self.widedeep = {'cat_embed_input': None}
         if len(self.feats_cat) > 0:
@@ -278,9 +278,10 @@ class TabularDataModule(LightningDataModule):
             target=self.target
         )
 
-        self.data_all[self.feats_cat] = self.data_all[self.feats_cat].astype('int32')
-        # for f in self.feats_cat:
-        #     self.data_all[f] = self.data_all[f].astype('category')
+        if self.task == 'survival':
+            self.data_all[self.feats_cat] = self.data_all[self.feats_cat].astype('float32')
+        else:
+            self.data_all[self.feats_cat] = self.data_all[self.feats_cat].astype('int32')
 
     def prepare_data(self):
         pass
