@@ -17,7 +17,7 @@ from tqdm import tqdm
 import pathlib
 import pickle
 import matplotlib.pyplot as plt
-from pycox.models import LogisticHazard, PMF, DeepHitSingle, CoxPH
+from pycox.models import LogisticHazard, PMF, DeepHitSingle, CoxPH, CoxTime
 import torchtuples as tt
 from pycox.evaluation import EvalSurv
 
@@ -235,6 +235,25 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
         elif config.model.name in ["deep_surv"]:
             best["model"].save_net(f"model_{best['fold_id']:04d}.pt")
+            df_fig = best["model"].log.to_pandas()
+            df_fig["Epoch"] = df_fig.index.values
+            df_fig = df_fig.melt(id_vars="Epoch", var_name='Part', value_name="Loss")
+            df_fig['Part'].replace({'train_loss': 'trn', 'val_loss': 'val'}, inplace=True)
+            fig = plt.figure()
+            sns.set_theme(style='whitegrid', font_scale=1)
+            palette = datamodule.colors
+            sns.lineplot(
+                data=df_fig,
+                x='Epoch',
+                y="Loss",
+                hue=f"Part",
+                palette=palette,
+                hue_order=list(palette.keys())
+            )
+            plt.savefig(f"loss.png", bbox_inches='tight', dpi=400)
+            plt.savefig(f"loss.pdf", bbox_inches='tight')
+            plt.close(fig)
+
             df_surv_func = model.predict_surv_df(X_all.values).T
             df_surv_func.set_index(X_all.index, inplace=True, verify_integrity=True)
 
