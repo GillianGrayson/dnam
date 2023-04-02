@@ -147,7 +147,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                     y['duration'] = dfs[df_part].loc[:, duration].values
                     metrics_cv.at[fold_id, f"{df_part}_ci"] = model.score(X, y)
 
-            elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pycoxph"]:
+            elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pycoxph", "log_haz", "pfm", "deep_hit_single"]:
 
                 X_trn = dfs['trn'].loc[:, features['all']].values
                 y_trn = (dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
@@ -156,6 +156,10 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
 
                 if config.model.name == "pycoxph":
                     lab_trans = PCHazard.label_transform(config.n_disc_durs)
+                    y_trn = lab_trans.fit_transform(dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
+                    y_val = lab_trans.transform(dfs['val'].loc[:, duration].values, dfs['val'].loc[:, event].values)
+                elif config.model.name in ["log_haz", "pfm", "deep_hit_single"]:
+                    lab_trans = LogisticHazard.label_transform(config.n_disc_durs)
                     y_trn = lab_trans.fit_transform(dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
                     y_val = lab_trans.transform(dfs['val'].loc[:, duration].values, dfs['val'].loc[:, event].values)
 
@@ -187,7 +191,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                             )
                         )
 
-                elif config.model.name == "pycoxph":
+                elif config.model.name in ["log_haz", "pfm", "deep_hit_single", "pycoxph"]:
                     net = tt.practical.MLPVanilla(
                         in_features=num_features,
                         num_nodes=list(config.model.net_num_nodes),
@@ -196,14 +200,42 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                         dropout=config.model.dropout,
                         output_bias=config.model.output_bias
                     )
-                    model = PCHazard(
-                        net=net,
-                        optimizer=tt.optim.Adam(
-                            lr=config.model.optimizer_lr,
-                            weight_decay=config.model.optimizer_weight_decay,
-                        ),
-                        duration_index=lab_trans.cuts
-                    )
+                    if config.model.name == "pycoxph":
+                        model = PCHazard(
+                            net=net,
+                            optimizer=tt.optim.Adam(
+                                lr=config.model.optimizer_lr,
+                                weight_decay=config.model.optimizer_weight_decay,
+                            ),
+                            duration_index=lab_trans.cuts
+                        )
+                    elif config.model.name == "log_haz":
+                        model = LogisticHazard(
+                            net=net,
+                            optimizer=tt.optim.Adam(
+                                lr=config.model.optimizer_lr,
+                                weight_decay=config.model.optimizer_weight_decay,
+                            ),
+                            duration_index=lab_trans.cuts
+                        )
+                    elif config.model.name == "pfm":
+                        model = PMF(
+                            net=net,
+                            optimizer=tt.optim.Adam(
+                                lr=config.model.optimizer_lr,
+                                weight_decay=config.model.optimizer_weight_decay,
+                            ),
+                            duration_index=lab_trans.cuts
+                        )
+                    elif config.model.name == "deep_hit_single":
+                        model = DeepHitSingle(
+                            net=net,
+                            optimizer=tt.optim.Adam(
+                                lr=config.model.optimizer_lr,
+                                weight_decay=config.model.optimizer_weight_decay,
+                            ),
+                            duration_index=lab_trans.cuts
+                        )
 
                 elif config.model.name == "cox_time":
                     net = MLPVanillaCoxTime(
@@ -285,7 +317,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             event_times = best["model"].event_times_
             surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
-        elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pycoxph"]:
+        elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pycoxph", "log_haz", "pfm", "deep_hit_single"]:
             best["model"].save_net(f"model_{best['fold_id']:04d}.pt")
             df_fig = best["model"].log.to_pandas()
             df_fig["Epoch"] = df_fig.index.values

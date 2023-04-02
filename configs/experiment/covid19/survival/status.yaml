@@ -9,7 +9,7 @@ duration_label: "LoS"
 seed: 1337
 
 # For discrete-time models
-n_disc_durs: 10
+n_disc_durs: 25
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?
