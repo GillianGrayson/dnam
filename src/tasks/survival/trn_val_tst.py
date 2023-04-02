@@ -18,6 +18,7 @@ import pathlib
 import pickle
 import matplotlib.pyplot as plt
 from pycox.models import LogisticHazard, PMF, DeepHitSingle, CoxPH, CoxTime
+from pycox.models.cox_time import MLPVanillaCoxTime
 import torchtuples as tt
 from pycox.evaluation import EvalSurv
 
@@ -145,7 +146,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                     y['duration'] = dfs[df_part].loc[:, duration].values
                     metrics_cv.at[fold_id, f"{df_part}_ci"] = model.score(X, y)
 
-            elif config.model.name in ["deep_surv"]:
+            elif config.model.name in ["deep_surv", "cox_time"]:
 
                 X_trn = dfs['trn'].loc[:, features['all']].values
                 y_trn = (dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
@@ -153,21 +154,36 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                 y_val = (dfs['val'].loc[:, duration].values, dfs['val'].loc[:, event].values)
                 val = X_val, y_val
 
-                net = tt.practical.MLPVanilla(
-                    in_features=num_features,
-                    num_nodes=list(config.model.net_num_nodes),
-                    out_features=1,
-                    batch_norm=config.model.batch_norm,
-                    dropout=config.model.dropout,
-                    output_bias=config.model.output_bias
-                )
-                model = CoxPH(
-                    net=net,
-                    optimizer=tt.optim.Adam(
-                        lr=config.model.optimizer_lr,
-                        weight_decay=config.model.optimizer_weight_decay
+                if config.model.name == "deep_surv":
+                    net = tt.practical.MLPVanilla(
+                        in_features=num_features,
+                        num_nodes=list(config.model.net_num_nodes),
+                        out_features=1,
+                        batch_norm=config.model.batch_norm,
+                        dropout=config.model.dropout,
+                        output_bias=config.model.output_bias
                     )
-                )
+                    model = CoxPH(
+                        net=net,
+                        optimizer=tt.optim.Adam(
+                            lr=config.model.optimizer_lr,
+                            weight_decay=config.model.optimizer_weight_decay,
+                        )
+                    )
+                elif config.model.name == "cox_time":
+                    net = MLPVanillaCoxTime(
+                        in_features=num_features,
+                        num_nodes=list(config.model.net_num_nodes),
+                        batch_norm=config.model.batch_norm,
+                        dropout=config.model.dropout,
+                    )
+                    model = CoxTime(
+                        net=net,
+                        optimizer=tt.optim.Adam(
+                            lr=config.model.optimizer_lr,
+                            weight_decay=config.model.optimizer_weight_decay,
+                        )
+                    )
 
                 model.fit(
                     input=X_trn,
@@ -233,7 +249,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             event_times = best["model"].event_times_
             surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
-        elif config.model.name in ["deep_surv"]:
+        elif config.model.name in ["deep_surv", "cox_time"]:
             best["model"].save_net(f"model_{best['fold_id']:04d}.pt")
             df_fig = best["model"].log.to_pandas()
             df_fig["Epoch"] = df_fig.index.values
