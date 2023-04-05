@@ -36,6 +36,9 @@ debug: False                # Is Debug?
 print_config: False         # Print config?
 ignore_warnings: True       # Ignore warnings?
 
+# Plot
+plot_surv_func: True
+
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
 base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/041_covid_treatment/010_survival_analysis"

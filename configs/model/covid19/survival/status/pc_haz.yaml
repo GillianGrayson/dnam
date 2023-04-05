@@ -1,4 +1,4 @@
-name: pycoxph
+name: pc_haz
 optimizer_lr: 0.01
 optimizer_weight_decay: 1e-7
 net_num_nodes:

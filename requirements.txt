@@ -24,6 +24,7 @@ statsmodels>=0.13.1
 xgboost>=1.7.0
 catboost>=1.1.1
 lightgbm>=3.3.3
+pycox>=0.2.3
 
 # --------- xai --------- #
 shap==0.39.0

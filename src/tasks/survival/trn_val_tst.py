@@ -147,14 +147,14 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                     y['duration'] = dfs[df_part].loc[:, duration].values
                     metrics_cv.at[fold_id, f"{df_part}_ci"] = model.score(X, y)
 
-            elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pycoxph", "log_haz", "pfm", "deep_hit_single"]:
+            elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pc_haz", "log_haz", "pfm", "deep_hit_single"]:
 
                 X_trn = dfs['trn'].loc[:, features['all']].values
                 y_trn = (dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
                 X_val = dfs['val'].loc[:, features['all']].values
                 y_val = (dfs['val'].loc[:, duration].values, dfs['val'].loc[:, event].values)
 
-                if config.model.name == "pycoxph":
+                if config.model.name == "pc_haz":
                     lab_trans = PCHazard.label_transform(config.n_disc_durs)
                     y_trn = lab_trans.fit_transform(dfs['trn'].loc[:, duration].values, dfs['trn'].loc[:, event].values)
                     y_val = lab_trans.transform(dfs['val'].loc[:, duration].values, dfs['val'].loc[:, event].values)
@@ -191,7 +191,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                             )
                         )
 
-                elif config.model.name in ["log_haz", "pfm", "deep_hit_single", "pycoxph"]:
+                elif config.model.name in ["log_haz", "pfm", "deep_hit_single", "pc_haz"]:
                     net = tt.practical.MLPVanilla(
                         in_features=num_features,
                         num_nodes=list(config.model.net_num_nodes),
@@ -200,7 +200,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
                         dropout=config.model.dropout,
                         output_bias=config.model.output_bias
                     )
-                    if config.model.name == "pycoxph":
+                    if config.model.name == "pc_haz":
                         model = PCHazard(
                             net=net,
                             optimizer=tt.optim.Adam(
@@ -307,6 +307,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             for p in parts:
                 metrics.at[m, p] = metrics_cv.at[best['fold_id'], f'{p}_{m}']
                 metrics.at[m, f'{p}_mean'] = metrics_cv.loc[:, f'{p}_{m}'].mean()
+                metrics.at[m, f'{p}_std'] = metrics_cv.loc[:, f'{p}_{m}'].std()
             for tst_set_name in ids_tst:
                 metrics.at[m, f'val_{tst_set_name}_mean'] = 0.5 * (metrics.at[m, 'val'] + metrics.at[m, tst_set_name])
         metrics.to_excel(f"metrics.xlsx", index_label='metric')
@@ -317,7 +318,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             event_times = best["model"].event_times_
             surv_func = best["model"].predict_survival_function(X_all, return_array=True)
             df_surv_func = pd.DataFrame(index=X_all.index.values, columns=event_times, data=surv_func)
-        elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pycoxph", "log_haz", "pfm", "deep_hit_single"]:
+        elif config.model.name in ["deep_surv", "cox_time", "cox_cc", "pc_haz", "log_haz", "pfm", "deep_hit_single"]:
             best["model"].save_net(f"model_{best['fold_id']:04d}.pt")
             df_fig = best["model"].log.to_pandas()
             df_fig["Epoch"] = df_fig.index.values
@@ -341,59 +342,60 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             df_surv_func = model.predict_surv_df(X_all.values).T
             df_surv_func.set_index(X_all.index, inplace=True, verify_integrity=True)
 
-        pathlib.Path(f"surv_func").mkdir(parents=True, exist_ok=True)
-        for cat_feat in features['cat']:
-            list_surv_func = []
-            for time in df_surv_func.columns.values:
-                dict_time = {
-                    'Sample': df_surv_func.index.values,
-                    't': [time] * df_surv_func.shape[0],
-                    'S(t)': df_surv_func.loc[df_surv_func.index.values, time].values,
-                    f"{features['labels'][cat_feat]}": X_all.loc[df_surv_func.index.values, cat_feat]
-                }
-                list_surv_func.append(pd.DataFrame(dict_time))
-            df_fig = pd.concat(list_surv_func, ignore_index=True)
-            df_fig.replace({features['labels'][cat_feat]: datamodule.dict_cat_replace[cat_feat]}, inplace=True)
-            fig = plt.figure()
-            sns.set_theme(style='whitegrid', font_scale=1)
-            palette = datamodule.dict_colors[cat_feat]
-            sns.lineplot(
-                data=df_fig,
-                x='t',
-                y="S(t)",
-                hue=f"{features['labels'][cat_feat]}",
-                palette=palette,
-                hue_order=list(palette.keys())
-            )
-            plt.savefig(f"surv_func/{cat_feat}.png", bbox_inches='tight', dpi=400)
-            plt.savefig(f"surv_func/{cat_feat}.pdf", bbox_inches='tight')
-            plt.close(fig)
-        for con_feat in features['con']:
-            palette = {"<Q1": 'lawngreen', "Q1-Q2": 'gold', "Q2-Q3": 'orangered', ">Q3": 'firebrick'}
-            q_labels = pd.qcut(X_all.loc[df_surv_func.index.values, con_feat], q=4, labels=["<Q1", "Q1-Q2", "Q2-Q3", ">Q3"])
-            list_surv_func = []
-            for time in df_surv_func.columns.values:
-                dict_time = {
-                    'Sample': df_surv_func.index.values,
-                    't': [time] * df_surv_func.shape[0],
-                    'S(t)': df_surv_func.loc[df_surv_func.index.values, time].values,
-                    f"{features['labels'][con_feat]}": q_labels.values
-                }
-                list_surv_func.append(pd.DataFrame(dict_time))
-            df_fig = pd.concat(list_surv_func, ignore_index=True)
-            fig = plt.figure()
-            sns.set_theme(style='whitegrid', font_scale=1)
-            sns.lineplot(
-                data=df_fig,
-                x='t',
-                y="S(t)",
-                hue=f"{features['labels'][con_feat]}",
-                palette=palette,
-                hue_order=list(palette.keys())
-            )
-            plt.savefig(f"surv_func/{con_feat}.png", bbox_inches='tight', dpi=400)
-            plt.savefig(f"surv_func/{con_feat}.pdf", bbox_inches='tight')
-            plt.close(fig)
+        if config.plot_surv_func:
+            pathlib.Path(f"surv_func").mkdir(parents=True, exist_ok=True)
+            for cat_feat in features['cat']:
+                list_surv_func = []
+                for time in df_surv_func.columns.values:
+                    dict_time = {
+                        'Sample': df_surv_func.index.values,
+                        't': [time] * df_surv_func.shape[0],
+                        'S(t)': df_surv_func.loc[df_surv_func.index.values, time].values,
+                        f"{features['labels'][cat_feat]}": X_all.loc[df_surv_func.index.values, cat_feat]
+                    }
+                    list_surv_func.append(pd.DataFrame(dict_time))
+                df_fig = pd.concat(list_surv_func, ignore_index=True)
+                df_fig.replace({features['labels'][cat_feat]: datamodule.dict_cat_replace[cat_feat]}, inplace=True)
+                fig = plt.figure()
+                sns.set_theme(style='whitegrid', font_scale=1)
+                palette = datamodule.dict_colors[cat_feat]
+                sns.lineplot(
+                    data=df_fig,
+                    x='t',
+                    y="S(t)",
+                    hue=f"{features['labels'][cat_feat]}",
+                    palette=palette,
+                    hue_order=list(palette.keys())
+                )
+                plt.savefig(f"surv_func/{cat_feat}.png", bbox_inches='tight', dpi=400)
+                plt.savefig(f"surv_func/{cat_feat}.pdf", bbox_inches='tight')
+                plt.close(fig)
+            for con_feat in features['con']:
+                palette = {"<Q1": 'lawngreen', "Q1-Q2": 'gold', "Q2-Q3": 'orangered', ">Q3": 'firebrick'}
+                q_labels = pd.qcut(X_all.loc[df_surv_func.index.values, con_feat], q=4, labels=["<Q1", "Q1-Q2", "Q2-Q3", ">Q3"])
+                list_surv_func = []
+                for time in df_surv_func.columns.values:
+                    dict_time = {
+                        'Sample': df_surv_func.index.values,
+                        't': [time] * df_surv_func.shape[0],
+                        'S(t)': df_surv_func.loc[df_surv_func.index.values, time].values,
+                        f"{features['labels'][con_feat]}": q_labels.values
+                    }
+                    list_surv_func.append(pd.DataFrame(dict_time))
+                df_fig = pd.concat(list_surv_func, ignore_index=True)
+                fig = plt.figure()
+                sns.set_theme(style='whitegrid', font_scale=1)
+                sns.lineplot(
+                    data=df_fig,
+                    x='t',
+                    y="S(t)",
+                    hue=f"{features['labels'][con_feat]}",
+                    palette=palette,
+                    hue_order=list(palette.keys())
+                )
+                plt.savefig(f"surv_func/{con_feat}.png", bbox_inches='tight', dpi=400)
+                plt.savefig(f"surv_func/{con_feat}.pdf", bbox_inches='tight')
+                plt.close(fig)
 
         # Return metric score for hyperparameter optimization
         if config.optimized_metric:

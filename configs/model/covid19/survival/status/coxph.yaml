@@ -1,4 +1,4 @@
 name: coxph
-alpha: 0.0
+alpha: 4.721337263475401
 tol: 1e-9
-n_iter: 100
+n_iter: 1000

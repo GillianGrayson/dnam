@@ -42,4 +42,7 @@ hydra:
 
     # define range of hyperparameters
     params:
+      model.learning_rate: tag(log, interval(0.0001, 0.5))
       model.n_estimators: int(range(10, 1000, step=10))
+      model.subsample: choice(0.7, 0.8, 0.9, 1.0)
+      model.dropout_rate: interval(0.0, 0.2)
