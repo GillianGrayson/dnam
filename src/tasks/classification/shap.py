@@ -211,6 +211,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, X
 
 def explain_shap(config, expl_data):
     model = expl_data['model']
+    model.produce_probabilities = True
     predict_func = expl_data['predict_func']
     df = expl_data['df']
     features_info = expl_data['features']

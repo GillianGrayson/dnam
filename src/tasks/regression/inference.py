@@ -39,10 +39,10 @@ def inference_regression(config: DictConfig):
     # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
     datamodule: TabularDataModule = hydra.utils.instantiate(config.datamodule)
-    feature_names = datamodule.get_features()
-    num_features = len(feature_names['all'])
+    features = datamodule.get_features()
+    num_features = len(features['all'])
     config.in_dim = num_features
-    target_name = datamodule.get_target()
+    target = datamodule.target
     df = datamodule.get_data()
 
     df = df[df[config.data_part_column].notna()]
@@ -56,21 +56,23 @@ def inference_regression(config: DictConfig):
     colors = {}
     for data_part_id, data_part in enumerate(data_parts):
         indexes[data_part] = df.loc[df[config.data_part_column] == data_part, :].index.values
-        X[data_part] = df.loc[indexes[data_part], feature_names['all']].values
-        y[data_part] = df.loc[indexes[data_part], target_name].values
+        X[data_part] = df.loc[indexes[data_part], features['all']].values
+        y[data_part] = df.loc[indexes[data_part], target].values
         colors[data_part] = px.colors.qualitative.Light24[data_part_id]
 
     if model_framework == "pytorch":
         widedeep = datamodule.get_widedeep()
         embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
+        categorical_cardinality = [x[1] for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
         if config.model.name.startswith('widedeep'):
             config.model.column_idx = widedeep['column_idx']
             config.model.cat_embed_input = widedeep['cat_embed_input']
             config.model.continuous_cols = widedeep['continuous_cols']
         elif config.model.name.startswith('pytorch_tabular'):
-            config.model.continuous_cols = feature_names['con']
-            config.model.categorical_cols = feature_names['cat']
+            config.model.continuous_cols = features['con']
+            config.model.categorical_cols = features['cat']
             config.model.embedding_dims = embedding_dims
+            config.model.categorical_cardinality = categorical_cardinality
         elif config.model.name == 'nam':
             num_unique_vals = [len(np.unique(X[data_part_main][:, i])) for i in range(X[data_part_main].shape[1])]
             num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
@@ -87,9 +89,9 @@ def inference_regression(config: DictConfig):
 
         def predict_func(X):
             batch = {
-                'all': torch.from_numpy(np.float32(X[:, feature_names['all_ids']])),
-                'continuous': torch.from_numpy(np.float32(X[:, feature_names['con_ids']])),
-                'categorical': torch.from_numpy(np.int32(X[:, feature_names['cat_ids']])),
+                'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
+                'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
+                'categorical': torch.from_numpy(np.int32(X[:, features['cat_ids']])),
             }
             tmp = model(batch)
             return tmp.cpu().detach().numpy()
@@ -100,11 +102,11 @@ def inference_regression(config: DictConfig):
             model.load_model(config.path_ckpt)
 
             for data_part in data_parts:
-                dmat = xgb.DMatrix(X[data_part], y[data_part], feature_names=feature_names['all'])
+                dmat = xgb.DMatrix(X[data_part], y[data_part], feature_names=features['all'])
                 y_pred[data_part] = model.predict(dmat)
 
             def predict_func(X):
-                X = xgb.DMatrix(X, feature_names=feature_names['all'])
+                X = xgb.DMatrix(X, feature_names=features['all'])
                 y = model.predict(X)
                 return y
 
@@ -148,17 +150,17 @@ def inference_regression(config: DictConfig):
         df.loc[indexes[data_part], "Estimation"] = y_pred[data_part]
         eval_regression(config, y[data_part], y_pred[data_part], None, data_part, is_log=False, is_save=True, file_suffix=f"")
 
-    formula = f"Estimation ~ {target_name}"
+    formula = f"Estimation ~ {target}"
     model_linear = smf.ols(formula=formula, data=df.loc[indexes[data_part_main], :]).fit()
     fig = go.Figure()
     for data_part in data_parts:
         df.loc[indexes[data_part], "Estimation acceleration"] = df.loc[indexes[data_part], "Estimation"].values - model_linear.predict(df.loc[indexes[data_part], :])
         if data_part == data_part_main:
-            add_scatter_trace(fig, df.loc[indexes[data_part], target_name].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
-            add_scatter_trace(fig, df.loc[indexes[data_part], target_name].values, model_linear.fittedvalues.values, "", "lines")
+            add_scatter_trace(fig, df.loc[indexes[data_part], target].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
+            add_scatter_trace(fig, df.loc[indexes[data_part], target].values, model_linear.fittedvalues.values, "", "lines")
         else:
-            add_scatter_trace(fig, df.loc[indexes[data_part], target_name].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
-    add_layout(fig, target_name, f"Estimation", f"")
+            add_scatter_trace(fig, df.loc[indexes[data_part], target].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
+    add_layout(fig, target, f"Estimation", f"")
     fig.update_layout({'colorway': [colors[data_part_main]] + [colors[data_part] for data_part in data_parts]})
     fig.update_layout(legend_font_size=20)
     fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
@@ -226,8 +228,8 @@ def inference_regression(config: DictConfig):
         'model': model,
         'predict_func': predict_func,
         'df': df,
-        'feature_names': feature_names['all'],
-        'target_name': target_name,
+        'features': features,
+        'target': target,
         'ids': ids
     }
     if config.is_lime == True:

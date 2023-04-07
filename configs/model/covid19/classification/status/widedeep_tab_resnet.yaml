@@ -6,8 +6,8 @@ task: classification
 loss_type: CrossEntropyLoss
 input_dim: ${in_dim}
 output_dim: ${out_dim}
-optimizer_lr: 0.01
-optimizer_weight_decay: 1e-7
+optimizer_lr: 0.247455330393901
+optimizer_weight_decay: 6.654559007170117e-06
 scheduler_step_size: 100
 scheduler_gamma: 0.8
 column_idx: null
@@ -25,9 +25,9 @@ cont_embed_activation: null
 blocks_dims:
 - 200
 - 100
-- 100
+- 50
 - ${out_dim}
-blocks_dropout: 0.1
+blocks_dropout: 0.004734094127070779
 simplify_blocks: False
 mlp_hidden_dims: null
 mlp_activation: 'relu'

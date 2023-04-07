@@ -1,26 +1,24 @@
 import numpy as np
-from src.models.old.tabnet import TabNetModel
+import pandas as pd
 import torch
 import lightgbm as lgb
 import hydra
 from omegaconf import DictConfig
-from pytorch_lightning import (
-    LightningDataModule,
-    seed_everything,
-)
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning import seed_everything
+from src.datamodules.tabular import TabularDataModule
 from src.utils import utils
-from src.tasks.routines import eval_classification
-from typing import List
-import wandb
-from catboost import CatBoost
 import xgboost as xgb
+from src.tasks.routines import eval_classification
+from catboost import CatBoost
+import plotly.express as px
 from src.tasks.classification.shap import explain_shap
+from src.models.tabular.base import get_model_framework_dict
+import pickle
 
 
 log = utils.get_logger(__name__)
 
-def inference(config: DictConfig):
+def inference_classification(config: DictConfig):
 
     if "seed" in config:
         seed_everything(config.seed)
@@ -28,98 +26,108 @@ def inference(config: DictConfig):
     if 'wandb' in config.logger:
         config.logger.wandb["project"] = config.project_name
 
-    # Init lightning loggers
-    loggers: List[LightningLoggerBase] = []
-    if "logger" in config:
-        for _, lg_conf in config.logger.items():
-            if "_target_" in lg_conf:
-                log.info(f"Instantiating logger <{lg_conf._target_}>")
-                loggers.append(hydra.utils.instantiate(lg_conf))
+    model_framework_dict = get_model_framework_dict()
+    model_framework = model_framework_dict[config.model.name]
 
-    log.info("Logging hyperparameters!")
-    log_hyperparameters(loggers, config)
-
-    # Init Lightning datamodule for test
     log.info(f"Instantiating datamodule <{config.datamodule._target_}>")
-    datamodule: LightningDataModule = hydra.utils.instantiate(config.datamodule)
-    feature_names = datamodule.get_features()
+    datamodule: TabularDataModule = hydra.utils.instantiate(config.datamodule)
+    features = datamodule.get_features()
+    num_features = len(features['all'])
+    config.in_dim = num_features
     class_names = datamodule.get_class_names()
-    outcome_name = datamodule.get_outcome_name()
-    df = datamodule.get_df()
-    df['pred'] = 0
-    X_test = df.loc[:, feature_names].values
-    y_test = df.loc[:, outcome_name].values
+    target = datamodule.target
+    target_label = datamodule.target_label
+    if datamodule.target_classes_num != config.out_dim:
+        raise ValueError(f"Inconsistent out_dim. From datamodule: {datamodule.target_classes_num}, from config: {config.out_dim}")
+    df = datamodule.get_data()
+    df["pred"] = 0
 
-    if config.model_type == "lightgbm":
-        model = lgb.Booster(model_file=config.ckpt_path)
-        y_test_pred_prob = model.predict(X_test, num_iteration=model.best_iteration)
-        y_test_pred_raw = model.predict(X_test, num_iteration=model.best_iteration, raw_score=True)
-        def shap_kernel(X):
-            y = model.predict(X, num_iteration=model.best_iteration)
-            return y
-    elif config.model_type == "catboost":
-        model = CatBoost()
-        model.load_model(config.ckpt_path)
-        y_test_pred_prob = model.predict(X_test, prediction_type="Probability")
-        y_test_pred_raw = model.predict(X_test, prediction_type="RawFormulaVal")
-        def shap_kernel(X):
-            y = model.predict(X, prediction_type="Probability")
-            return y
-    elif config.model_type == "xgboost":
-        model = xgb.Booster()
-        model.load_model(config.ckpt_path)
-        dmat_test = xgb.DMatrix(X_test, y_test, feature_names=feature_names)
-        y_test_pred_prob = model.predict(dmat_test)
-        y_test_pred_raw = model.predict(dmat_test, output_margin=True)
-        def shap_kernel(X):
-            X = xgb.DMatrix(X, feature_names=feature_names)
-            y = model.predict(X)
-            return y
-    elif config.model_type == "tabnet":
-        model = TabNetModel.load_from_checkpoint(checkpoint_path=f"{config.ckpt_path}")
-        model.produce_probabilities = True
+    df = df[df[config.data_part_column].notna()]
+    data_parts = df[config.data_part_column].dropna().unique()
+    data_part_main = config.data_part_main
+    data_parts = [data_part_main] + list(set(data_parts) - set([data_part_main]))
+    indexes = {}
+    X = {}
+    y = {}
+    y_pred = {}
+    y_pred_prob = {}
+    y_pred_raw = {}
+    colors = {}
+    for data_part_id, data_part in enumerate(data_parts):
+        indexes[data_part] = df.loc[df[config.data_part_column] == data_part, :].index.values
+        X[data_part] = df.loc[indexes[data_part], features['all']].values
+        y[data_part] = df.loc[indexes[data_part], target].values
+        colors[data_part] = px.colors.qualitative.Light24[data_part_id]
+
+    if model_framework == "pytorch":
+        widedeep = datamodule.get_widedeep()
+        embedding_dims = [(x[1], x[2]) for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
+        categorical_cardinality = [x[1] for x in widedeep['cat_embed_input']] if widedeep['cat_embed_input'] else []
+        if config.model.name.startswith('widedeep'):
+            config.model.column_idx = widedeep['column_idx']
+            config.model.cat_embed_input = widedeep['cat_embed_input']
+            config.model.continuous_cols = widedeep['continuous_cols']
+        elif config.model.name.startswith('pytorch_tabular'):
+            config.model.continuous_cols = features['con']
+            config.model.categorical_cols = features['cat']
+            config.model.embedding_dims = embedding_dims
+            config.model.categorical_cardinality = categorical_cardinality
+        elif config.model.name == 'nam':
+            num_unique_vals = [len(np.unique(X[data_part_main][:, i])) for i in range(X[data_part_main].shape[1])]
+            num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
+            config.model.num_units = num_units
+        log.info(f"Instantiating model <{config.model._target_}>")
+        model = hydra.utils.instantiate(config.model)
+
+        model = type(model).load_from_checkpoint(checkpoint_path=f"{config.path_ckpt}")
         model.eval()
         model.freeze()
-        X_test_pt = torch.from_numpy(X_test)
-        y_test_pred_prob = model(X_test_pt).cpu().detach().numpy()
+
+        model.produce_probabilities = True
+        for data_part in data_parts:
+            y_pred_prob[data_part] = model(torch.from_numpy(X[data_part])).cpu().detach().numpy()
         model.produce_probabilities = False
-        y_test_pred_raw = model(torch.from_numpy(X_test)).cpu().detach().numpy()
-        def shap_kernel(X):
+        for data_part in data_parts:
+            y_pred_raw[data_part] = model(torch.from_numpy(X[data_part])).cpu().detach().numpy()
+            y_pred[data_part] = np.argmax(y_pred_prob[data_part], 1)
+        model.produce_probabilities = True
+
+        def predict_func(X):
             model.produce_probabilities = True
-            X = torch.from_numpy(X)
-            tmp = model(X)
+            batch = {
+                'all': torch.from_numpy(np.float32(X[:, features['all_ids']])),
+                'continuous': torch.from_numpy(np.float32(X[:, features['con_ids']])),
+                'categorical': torch.from_numpy(np.int32(X[:, features['cat_ids']])),
+            }
+            tmp = model(batch)
             return tmp.cpu().detach().numpy()
+
     else:
-        raise ValueError(f"Unsupported sa_model")
+        raise ValueError(f"Unsupported model_framework: {model_framework}")
 
-    y_test_pred = np.argmax(y_test_pred_prob, 1)
+    for data_part in data_parts:
+        df.loc[indexes[data_part], "pred"] = y_pred[data_part]
+        for cl_id, cl in enumerate(class_names):
+            df.loc[indexes[data_part], f"pred_prob_{cl_id}"] = y_pred_prob[data_part][:, cl_id]
+            df.loc[indexes[data_part], f"pred_raw_{cl_id}"] = y_pred_raw[data_part][:, cl_id]
+        eval_classification(config, class_names, y[data_part], y_pred[data_part], y_pred_prob[data_part], None, data_part, is_log=False, is_save=True, file_suffix=f"")
 
-    eval_classification(config, class_names, y_test, y_test_pred, y_test_pred_prob, loggers, 'inference', is_log=True, is_save=True)
-    df.loc[:, "pred"] = y_test_pred
-    for cl_id, cl in enumerate(class_names):
-        df.loc[:, f"pred_prob_{cl_id}"] = y_test_pred_prob[:, cl_id]
-        df.loc[:, f"pred_raw_{cl_id}"] = y_test_pred_raw[:, cl_id]
-
-    predictions = df.loc[:, [outcome_name, "pred"] + [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]]
-    predictions.to_excel(f"predictions.xlsx", index=True)
+    df['ids'] = np.arange(df.shape[0])
+    ids = {}
+    for data_part in data_parts:
+        ids[data_part] = df.loc[indexes[data_part], 'ids'].values
+    ids['all'] = df['ids']
 
     if config.is_shap == True:
         shap_data = {
             'model': model,
-            'shap_kernel': shap_kernel,
+            'predict_func': predict_func,
             'df': df,
-            'feature_names': feature_names,
+            'features': features,
             'class_names': class_names,
-            'outcome_name': outcome_name,
-            'ids_all': np.arange(df.shape[0]),
-            'ids_trn': None,
-            'ids_val': None,
-            'ids_tst': None
+            'target': target,
+            'ids': ids
         }
         explain_shap(config, shap_data)
 
-    for logger in loggers:
-        logger.save()
-    if 'wandb' in config.logger:
-        wandb.finish()
-
+    df.to_excel("df.xlsx", index=True)

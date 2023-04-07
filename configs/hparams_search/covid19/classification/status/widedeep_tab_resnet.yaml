@@ -42,8 +42,8 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.optimizer_lr: tag(log, interval(0.0001, 0.9))
+      model.optimizer_lr: tag(log, interval(0.01, 0.9))
       model.optimizer_weight_decay: tag(log, interval(0.0000001, 0.00001))
-      model.blocks_dims: choice([200, 100, ${out_dim}], [100, 50, ${out_dim}], [200, 100, 50, ${out_dim}])
-      model.blocks_dropout: interval(0.0, 0.15)
-      model.simplify_blocks: choice(False, True)
+      model.blocks_dims: choice([200, 100, 50, ${out_dim}], [200, 100, 50, ${out_dim}], [256, 128, 64, ${out_dim}], [512, 256, 128, 64, ${out_dim}])
+      model.blocks_dropout: interval(0.0, 0.10)
+      model.simplify_blocks: choice(False)
