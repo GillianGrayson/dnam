@@ -7,7 +7,8 @@ from omegaconf import DictConfig
 from pytorch_lightning import seed_everything
 from src.datamodules.tabular import TabularDataModule
 from src.utils import utils
-import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+import seaborn as sns
 import xgboost as xgb
 import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
@@ -43,7 +44,10 @@ def inference_regression(config: DictConfig):
     num_features = len(features['all'])
     config.in_dim = num_features
     target = datamodule.target
+    target_label = datamodule.target_label
     df = datamodule.get_data()
+
+    colors = datamodule.colors
 
     df = df[df[config.data_part_column].notna()]
     data_parts = df[config.data_part_column].dropna().unique()
@@ -147,76 +151,61 @@ def inference_regression(config: DictConfig):
         raise ValueError(f"Unsupported model_framework: {model_framework}")
 
     for data_part in data_parts:
-        df.loc[indexes[data_part], "Estimation"] = y_pred[data_part]
+        df.loc[indexes[data_part], "Prediction"] = y_pred[data_part]
         eval_regression(config, y[data_part], y_pred[data_part], None, data_part, is_log=False, is_save=True, file_suffix=f"")
+    df["Prediction error"] = df['Prediction'] - df[f"{target}"]
 
-    formula = f"Estimation ~ {target}"
-    model_linear = smf.ols(formula=formula, data=df.loc[indexes[data_part_main], :]).fit()
-    fig = go.Figure()
+
+    df_fig = df.loc[:, [target, 'Prediction', "Prediction error"]].copy()
     for data_part in data_parts:
-        df.loc[indexes[data_part], "Estimation acceleration"] = df.loc[indexes[data_part], "Estimation"].values - model_linear.predict(df.loc[indexes[data_part], :])
-        if data_part == data_part_main:
-            add_scatter_trace(fig, df.loc[indexes[data_part], target].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
-            add_scatter_trace(fig, df.loc[indexes[data_part], target].values, model_linear.fittedvalues.values, "", "lines")
-        else:
-            add_scatter_trace(fig, df.loc[indexes[data_part], target].values, df.loc[indexes[data_part], "Estimation"].values, data_part)
-    add_layout(fig, target, f"Estimation", f"")
-    fig.update_layout({'colorway': [colors[data_part_main]] + [colors[data_part] for data_part in data_parts]})
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(margin=go.layout.Margin(l=90, r=20, b=80, t=65, pad=0))
-    save_figure(fig, f"scatter")
-
-    fig = go.Figure()
-    dist_num_bins = 15
-    df_mw = pd.DataFrame(data=np.zeros(shape=(len(data_parts) - 1, 2)),index=list(set(data_parts) - set([data_part_main])), columns=["stat", "pval"])
-    for data_part in data_parts:
-        fig.add_trace(
-            go.Violin(
-                y=df.loc[indexes[data_part], "Estimation acceleration"].values,
-                name=data_part,
-                box_visible=True,
-                meanline_visible=True,
-                showlegend=True,
-                line_color='black',
-                fillcolor=colors[data_part],
-                marker=dict(color=colors[data_part], line=dict(color='black', width=0.3), opacity=0.8),
-                points='all',
-                bandwidth=np.ptp(df.loc[indexes[data_part], "Estimation acceleration"].values) / dist_num_bins,
-                opacity=0.8
-            )
-        )
-        add_layout(fig, "", "Estimation acceleration", f"")
-
-
-        if data_part != data_part_main:
-            df_mw.at[data_part, "stat"], df_mw.at[data_part, "pval"] = mannwhitneyu(
-                df.loc[indexes[data_part_main], "Estimation acceleration"].values,
-                df.loc[indexes[data_part], "Estimation acceleration"].values,
-                alternative='two-sided'
-            )
-
-    fig.update_layout(title_xref='paper')
-    fig.update_layout(legend_font_size=20)
-    fig.update_layout(
-        margin=go.layout.Margin(
-            l=110,
-            r=20,
-            b=50,
-            t=90,
-            pad=0
-        )
+        df_fig.loc[indexes[data_part], 'Part'] = data_part
+    plt.figure()
+    sns.set_theme(style='whitegrid')
+    xy_min = df_fig[[target, 'Prediction']].min().min()
+    xy_max = df_fig[[target, 'Prediction']].max().max()
+    xy_ptp = xy_max - xy_min
+    scatter = sns.scatterplot(
+        data=df_fig,
+        x=target,
+        y="Prediction",
+        hue="Part",
+        palette=colors,
+        linewidth=0.3,
+        alpha=0.75,
+        edgecolor="k",
+        s=25,
+        hue_order=list(colors.keys())
     )
-    fig.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.25,
-            xanchor="center",
-            x=0.5
-        )
+    scatter.set_xlabel(target_label)
+    scatter.set_ylabel("Prediction")
+    scatter.set_xlim(xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp)
+    scatter.set_ylim(xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp)
+    plt.gca().plot(
+        [xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp],
+        [xy_min - 0.1 * xy_ptp, xy_max + 0.1 * xy_ptp],
+        color='k',
+        linestyle='dashed',
+        linewidth=1
     )
-    save_figure(fig, f"violin")
-    df_mw.to_excel("df_mw.xlsx", index=True)
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.savefig(f"scatter.png", bbox_inches='tight', dpi=400)
+    plt.savefig(f"scatter.pdf", bbox_inches='tight')
+    plt.close()
+
+    plt.figure()
+    sns.set_theme(style='whitegrid')
+    violin = sns.violinplot(
+        data=df_fig,
+        x="Part",
+        y='Prediction error',
+        palette=colors,
+        scale='width',
+        order=list(colors.keys()),
+        saturation=0.75,
+    )
+    plt.savefig(f"violin.png", bbox_inches='tight', dpi=400)
+    plt.savefig(f"violin.pdf", bbox_inches='tight')
+    plt.close()
 
     df['ids'] = np.arange(df.shape[0])
     ids = {}

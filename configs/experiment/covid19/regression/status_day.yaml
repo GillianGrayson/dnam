@@ -41,7 +41,7 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: False                       # Calculate SHAP values?
+is_shap: True                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
 shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
@@ -54,4 +54,4 @@ lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
 num_top_features: 100  # Number of most important features to plot
-num_examples: 5      # Number of samples to plot some SHAP figures
+num_examples: 20      # Number of samples to plot some SHAP figures

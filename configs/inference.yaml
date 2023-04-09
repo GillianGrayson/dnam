@@ -3,14 +3,14 @@
 # specify here defaults
 defaults:
   - _self_
-  - experiment: covid19/classification/status_inference       # Global parameters of experiment
-  - datamodule: covid19/classification/status         # Information about dataset
+  - experiment: covid19/regression/status_day_inference       # Global parameters of experiment
+  - datamodule: covid19/regression/status_day         # Information about dataset
   - trainer: null                     # Run configuration for DNN models
   - callbacks: null                   # Callbacks for DNN models
   - logger: none                      # Loggers for DNN models
   - hydra: default                    # Output paths for logs
 
-  - model: covid19/classification/status/widedeep_tab_resnet             # Model
+  - model: covid19/regression/status_day/lightgbm             # Model
   - hparams_search: null              # Model-specific hyperparameters
 
   # Enable color logging

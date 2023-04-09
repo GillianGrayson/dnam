@@ -26,10 +26,10 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, X,
     log.info(f"Number of samples: {len(ids)}")
     for m_id in ids:
         diff = y_diff[m_id]
-        log.info(f"Plotting sample {m_id}: {indexes[m_id]} (real = {y_real[m_id]:0.4f}, estimated = {y_pred[m_id]:0.4f}) with diff = {diff:0.4f}")
+        log.info(f"Plotting sample {m_id}: {indexes[m_id]} (real = {y_real[m_id]:0.4f}, pred = {y_pred[m_id]:0.4f}) with diff = {diff:0.4f}")
 
         ind_save = indexes[m_id]
-        Path(f"{path}/{ind_save}_{diff:0.4f}").mkdir(parents=True, exist_ok=True)
+        Path(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})").mkdir(parents=True, exist_ok=True)
 
         shap.plots.waterfall(
             shap.Explanation(
@@ -42,9 +42,9 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, X,
             show=False,
         )
         fig = plt.gcf()
-        plt.title(f"{indexes[m_id]}: Real = {y_real[m_id]:0.4f}, Estimated = {y_pred[m_id]:0.4f}", {'fontsize': 20})
-        fig.savefig(f"{path}/{ind_save}_{diff:0.4f}/waterfall.pdf", bbox_inches='tight')
-        fig.savefig(f"{path}/{ind_save}_{diff:0.4f}/waterfall.png", bbox_inches='tight')
+        plt.title(f"{indexes[m_id]}: Real = {y_real[m_id]:0.4f}, Pred = {y_pred[m_id]:0.4f}", {'fontsize': 20})
+        fig.savefig(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})/waterfall.pdf", bbox_inches='tight')
+        fig.savefig(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})/waterfall.png", bbox_inches='tight')
         plt.close()
 
         shap.plots.decision(
@@ -55,9 +55,9 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, X,
             show=False,
         )
         fig = plt.gcf()
-        plt.title(f"{indexes[m_id]}: Real = {y_real[m_id]:0.4f}, Estimated = {y_pred[m_id]:0.4f}", {'fontsize': 20})
-        fig.savefig(f"{path}/{ind_save}_{diff:0.4f}/decision.pdf", bbox_inches='tight')
-        fig.savefig(f"{path}/{ind_save}_{diff:0.4f}/decision.png", bbox_inches='tight')
+        plt.title(f"{indexes[m_id]}: Real = {y_real[m_id]:0.4f}, Pred = {y_pred[m_id]:0.4f}", {'fontsize': 20})
+        fig.savefig(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})/decision.pdf", bbox_inches='tight')
+        fig.savefig(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})/decision.png", bbox_inches='tight')
         plt.close()
 
         shap.plots.force(
@@ -69,8 +69,8 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, X,
             matplotlib=True
         )
         fig = plt.gcf()
-        fig.savefig(f"{path}/{ind_save}_{diff:0.4f}/force.pdf", bbox_inches='tight')
-        fig.savefig(f"{path}/{ind_save}_{diff:0.4f}/force.png", bbox_inches='tight')
+        fig.savefig(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})/force.pdf", bbox_inches='tight')
+        fig.savefig(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})/force.png", bbox_inches='tight')
         plt.close()
 
 
