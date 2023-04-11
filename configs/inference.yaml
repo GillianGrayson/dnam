@@ -3,14 +3,14 @@
 # specify here defaults
 defaults:
   - _self_
-  - experiment: covid19/regression/status_day_inference       # Global parameters of experiment
-  - datamodule: covid19/regression/status_day         # Information about dataset
+  - experiment: immuno/age_inference       # Global parameters of experiment
+  - datamodule: immuno/age         # Information about dataset
   - trainer: null                     # Run configuration for DNN models
   - callbacks: null                   # Callbacks for DNN models
   - logger: none                      # Loggers for DNN models
   - hydra: default                    # Output paths for logs
 
-  - model: covid19/regression/status_day/lightgbm             # Model
+  - model: immuno/age/danet             # Model
   - hparams_search: null              # Model-specific hyperparameters
 
   # Enable color logging

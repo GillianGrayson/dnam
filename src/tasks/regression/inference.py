@@ -47,8 +47,6 @@ def inference_regression(config: DictConfig):
     target_label = datamodule.target_label
     df = datamodule.get_data()
 
-    colors = datamodule.colors
-
     df = df[df[config.data_part_column].notna()]
     data_parts = df[config.data_part_column].dropna().unique()
     data_part_main = config.data_part_main
