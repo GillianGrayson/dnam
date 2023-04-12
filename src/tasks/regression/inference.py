@@ -152,7 +152,7 @@ def inference_regression(config: DictConfig):
         df.loc[indexes[data_part], "Prediction"] = y_pred[data_part]
         eval_regression(config, y[data_part], y_pred[data_part], None, data_part, is_log=False, is_save=True, file_suffix=f"")
     df["Prediction error"] = df['Prediction'] - df[f"{target}"]
-
+    df["Prediction error abs"] = df["Prediction error"].abs()
 
     df_fig = df.loc[:, [target, 'Prediction', "Prediction error"]].copy()
     for data_part in data_parts:
