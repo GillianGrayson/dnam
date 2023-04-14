@@ -66,7 +66,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         is_split=config.cv_is_split,
         n_splits=config.cv_n_splits,
         n_repeats=config.cv_n_repeats,
-        random_state=config.seed
+        random_state=config.seed,
+        all_combinations=config.cv_all_combinations
     )
 
     best = {}

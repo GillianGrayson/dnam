@@ -10,6 +10,7 @@ seed: 1337          # Random seed
 cv_is_split: True   # Perform cross-validation?
 cv_n_splits: 5      # Number of splits in cross-validation
 cv_n_repeats: 1     # Number of repeats in cross-validation
+cv_all_combinations: False
 
 # Data params
 in_dim: null    # Number of input features. Auto select from loaded files with features

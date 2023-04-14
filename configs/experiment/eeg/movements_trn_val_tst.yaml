@@ -1,31 +1,32 @@
 # @package _global_
 
 # Global params
-task: regression    # Task type. Options: ["regression", "classification"]
-target: "Age"       # Target column name
-target_label: "Age"
+movement_type: real
+task: classification    # Task type. Options: ["regression", "classification"]
+target: "class_simp"       # Target column name
+target_label: "Movement"
 seed: 1337          # Random seed
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?
 cv_n_splits: 5      # Number of splits in cross-validation
 cv_n_repeats: 1     # Number of repeats in cross-validation
-cv_all_combinations: False
+cv_all_combinations: True
 
 # Data params
-in_dim: null    # Number of input features. null for auto select from loaded files with features
-out_dim: 1      # Output dimension
+in_dim: null    # Number of input features. Auto select from loaded files with features
+out_dim: 2   # Output dimension. Auto select from loaded files with classes
 embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
-optimized_metric: mean_absolute_error     # All metrics listed in src.tasks.metrics
-optimized_mean: cv_mean                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]
+optimized_metric: accuracy_weighted     # All metrics listed in src.tasks.metrics
+optimized_mean: ""                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]
 optimized_part: val                       # Optimized data partition. Options: ["val", "tst"]
-direction: min                            # Direction of metrics optimization. Options ["min", "max"]
+direction: max                            # Direction of metrics optimization. Options ["min", "max"]
 
 # Run params
-max_epochs: 1000            # Maximum number of epochs
-patience: 100               # Number of early stopping epochs
+max_epochs: 500            # Maximum number of epochs
+patience: 50               # Number of early stopping epochs
 feature_importance: none   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 
 # Info params
@@ -37,14 +38,14 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision"
+base_dir: "D:/YandexDisk/Work/eeg/many_freqs" # "D:/YandexDisk/Work/eeg/region_averaged"
 data_dir: "${base_dir}"
-work_dir: "${base_dir}/models/${project_name}"
+work_dir: "${base_dir}/${movement_type}/models/${project_name}"
 
 # SHAP values params
 is_shap: False                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
-shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
+shap_explainer: Deep                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
 shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
 
 # LIME weights
@@ -54,5 +55,5 @@ lime_bkgrd: trn                     # Type of background data. Options: ["trn", 
 lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
-num_top_features: 10  # Number of most important features to plot
-num_examples: 200      # Number of samples to plot some SHAP figures
+num_top_features: 100  # Number of most important features to plot
+num_examples: 10      # Number of samples or features examples to plot some SHAP figures
