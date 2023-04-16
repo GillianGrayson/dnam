@@ -1,10 +1,10 @@
 # @package _global_
 
 # Global params
-task: regression    # Task type. Options: ["regression", "classification"]
-target: "Age"       # Target column name
-target_label: "Age"
-seed: 1337          # Random seed
+task: regression      # Task type. Options: ["regression", "classification"]
+target: "Age"         # Target column name
+target_label: "Age"   # Target label
+seed: 1337            # Random seed
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?
@@ -19,13 +19,13 @@ embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
 optimized_metric: mean_absolute_error     # All metrics listed in src.tasks.metrics
-optimized_mean: cv_mean                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean"]
+optimized_mean: cv_mean                   # Optimize mean result across all cross-validation splits? Options: ["", "cv_mean", "cv_mean_val_tst_ctrl_subset"]
 optimized_part: val                       # Optimized data partition. Options: ["val", "tst"]
 direction: min                            # Direction of metrics optimization. Options ["min", "max"]
 
 # Run params
-max_epochs: 1000            # Maximum number of epochs
-patience: 100               # Number of early stopping epochs
+max_epochs: 500            # Maximum number of epochs
+patience: 50               # Number of early stopping epochs
 feature_importance: none   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 
 # Info params
@@ -42,7 +42,7 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: False                       # Calculate SHAP values?
+is_shap: False                      # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Tree                # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
 shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
@@ -55,4 +55,4 @@ lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
 num_top_features: 10  # Number of most important features to plot
-num_examples: 200      # Number of samples to plot some SHAP figures
+num_examples: 500      # Number of samples to plot some SHAP figures

@@ -714,8 +714,11 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     df_fig = df.loc[:, [target, 'Prediction', "Prediction error"]].copy()
     df_fig.loc[df.index[datamodule.ids_trn], 'Part'] = "trn"
     df_fig.loc[df.index[datamodule.ids_val], 'Part'] = "val"
+    color_order = ["trn", "val"]
     for tst_set_name in ids_tst:
-        df_fig.loc[df.index[datamodule.ids_tst[tst_set_name]], 'Part'] = tst_set_name
+        if tst_set_name != 'tst_all':
+            df_fig.loc[df.index[datamodule.ids_tst[tst_set_name]], 'Part'] = tst_set_name
+            color_order.append(tst_set_name)
 
     plt.figure()
     sns.set_theme(style='whitegrid')
@@ -732,7 +735,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         alpha=0.75,
         edgecolor="k",
         s=25,
-        hue_order=list(colors.keys())
+        hue_order=color_order
     )
     scatter.set_xlabel(target_label)
     scatter.set_ylabel("Prediction")
@@ -758,7 +761,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
         y='Prediction error',
         palette=colors,
         scale='width',
-        order=list(colors.keys()),
+        order=color_order,
         saturation=0.75,
     )
     plt.savefig(f"violin.png", bbox_inches='tight', dpi=400)
