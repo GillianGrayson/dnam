@@ -339,7 +339,6 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
             plt.savefig(f"loss.png", bbox_inches='tight', dpi=400)
             plt.savefig(f"loss.pdf", bbox_inches='tight')
             plt.close(fig)
-
             df_surv_func = model.predict_surv_df(X_all.values).T
             df_surv_func.set_index(X_all.index, inplace=True, verify_integrity=True)
 

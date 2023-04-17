@@ -2,6 +2,7 @@
 
 # Global params
 movement_type: real
+features_type: full
 task: classification    # Task type. Options: ["regression", "classification"]
 target: "class_simp"       # Target column name
 target_label: "Movement"
@@ -15,7 +16,7 @@ cv_all_combinations: True
 
 # Data params
 in_dim: null    # Number of input features. Auto select from loaded files with features
-out_dim: 2   # Output dimension. Auto select from loaded files with classes
+out_dim: 2      # Output dimension. Auto select from loaded files with classes
 embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
@@ -38,9 +39,9 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/eeg/many_freqs" # "D:/YandexDisk/Work/eeg/region_averaged"
+base_dir: "D:/YandexDisk/Work/eeg" # "D:/YandexDisk/Work/eeg/region_averaged"
 data_dir: "${base_dir}"
-work_dir: "${base_dir}/${movement_type}/models/${project_name}"
+work_dir: "${base_dir}/${features_type}/${movement_type}/models/${project_name}"
 
 # SHAP values params
 is_shap: False                       # Calculate SHAP values?

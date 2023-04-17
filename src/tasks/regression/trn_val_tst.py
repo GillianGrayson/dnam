@@ -610,6 +610,12 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                 if tst_set_name != 'tst_all':
                     df.loc[df.index[ids_tst[tst_set_name]], "Prediction"] = y_tst_pred[tst_set_name]
 
+        if model_framework == "pytorch":
+            fns = glob.glob(f"{ckpt_name}*.ckpt")
+            fns.remove(f"{ckpt_name}_fold_{best['fold']:04d}.ckpt")
+            for fn in fns:
+                os.remove(fn)
+
         metrics_cv.at[fold_idx, 'fold'] = fold_idx
         metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
         feature_importances_cv.at[fold_idx, 'fold'] = fold_idx
@@ -629,12 +635,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
     datamodule.plot_split(f"_best_{best['fold']:04d}")
 
-    if model_framework == "pytorch":
-        fns = glob.glob(f"{ckpt_name}*.ckpt")
-        fns.remove(f"{ckpt_name}_fold_{best['fold']:04d}.ckpt")
-        for fn in fns:
-            os.remove(fn)
-    elif model_framework == "stand_alone":
+    if model_framework == "stand_alone":
         eval_loss(best['loss_info'], None, is_log=True, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
         if config.model.name == "xgboost":
             best["model"].save_model(f"epoch_{best['model'].best_iteration}_best_{best['fold']:04d}.model")
