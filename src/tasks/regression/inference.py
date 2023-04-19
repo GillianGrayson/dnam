@@ -104,11 +104,11 @@ def inference_regression(config: DictConfig):
             model.load_model(config.path_ckpt)
 
             for data_part in data_parts:
-                dmat = xgb.DMatrix(X[data_part], y[data_part], feature_names=features['all'])
+                dmat = xgb.DMatrix(X[data_part], y[data_part], feature_names=features['all'], enable_categorical=True)
                 y_pred[data_part] = model.predict(dmat)
 
             def predict_func(X):
-                X = xgb.DMatrix(X, feature_names=features['all'])
+                X = xgb.DMatrix(X, feature_names=features['all'], enable_categorical=True)
                 y = model.predict(X)
                 return y
 
@@ -120,6 +120,8 @@ def inference_regression(config: DictConfig):
                 y_pred[data_part] = model.predict(X[data_part]).astype('float32')
 
             def predict_func(X):
+                X = pd.DataFrame(data=X, columns=features["all"])
+                X[features["cat"]] = X[features["cat"]].astype('int32')
                 y = model.predict(X)
                 return y
 

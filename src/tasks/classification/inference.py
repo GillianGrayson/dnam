@@ -102,6 +102,49 @@ def inference_classification(config: DictConfig):
             tmp = model(batch)
             return tmp.cpu().detach().numpy()
 
+    elif model_framework == "stand_alone":
+
+        if config.model.name == "xgboost":
+            model = xgb.Booster()
+            model.load_model(config.path_ckpt)
+            for data_part in data_parts:
+                dmat = xgb.DMatrix(X[data_part], y[data_part], feature_names=features['all'], enable_categorical=True)
+                y_pred_prob[data_part] = model.predict(dmat)
+                y_pred_raw[data_part] = model.predict(dmat, output_margin=True)
+                y_pred[data_part] = np.argmax(y_pred_prob[data_part], 1)
+
+            def predict_func(X):
+                X = xgb.DMatrix(X, feature_names=features['all'], enable_categorical=True)
+                y = model.predict(X)
+                return y
+
+        elif config.model.name == "catboost":
+            model = CatBoost()
+            model.load_model(config.path_ckpt)
+            for data_part in data_parts:
+                y_pred_prob[data_part] = model.predict(X[data_part], prediction_type="Probability")
+                y_pred_raw[data_part] = model.predict(X[data_part], prediction_type="RawFormulaVal")
+                y_pred[data_part] = np.argmax(y_pred_prob[data_part], 1)
+
+            def predict_func(X):
+                X = pd.DataFrame(data=X, columns=features["all"])
+                X[features["cat"]] = X[features["cat"]].astype('int32')
+                y = model.predict(X)
+                return y
+
+        elif config.model.name == "lightgbm":
+            model = lgb.Booster(model_file=config.path_ckpt)
+            for data_part in data_parts:
+                y_pred_prob[data_part] = model.predict(X[data_part], num_iteration=model.best_iteration)
+                y_pred_raw[data_part] = model.predict(X[data_part], num_iteration=model.best_iteration, raw_score=True)
+                y_pred[data_part] = np.argmax(y_pred_prob[data_part], 1)
+            def predict_func(X):
+                y = model.predict(X, num_iteration=model.best_iteration)
+                return y
+
+        else:
+            raise ValueError(f"Model {config.model.name} is not supported")
+
     else:
         raise ValueError(f"Unsupported model_framework: {model_framework}")
 

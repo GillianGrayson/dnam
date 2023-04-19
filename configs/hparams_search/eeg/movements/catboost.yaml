@@ -42,6 +42,6 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.learning_rate: tag(log, interval(0.0001, 1))
-      model.depth: choice(3, 4, 5, 6, 7)
-      model.min_data_in_leaf: int(range(1, 50, step=1))
+      model.learning_rate: tag(log, interval(0.001, 2))
+      model.depth: choice(3, 4, 5, 6)
+      model.min_data_in_leaf: int(range(5, 50, step=1))
