@@ -2,14 +2,14 @@
 
 # Global params
 movement_type: real
-features_type: full
+features_type: region_avg
 task: classification    # Task type. Options: ["regression", "classification"]
 target: "class_simp"       # Target column name
 target_label: "Movement"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/eeg/full/real/models/widedeep_tab_mlp_trn_val_tst/multiruns/2023-04-17_08-23-18_1337/8/best_fold_0175.ckpt"
+path_ckpt: "D:/YandexDisk/Work/eeg/region_avg/real/models/lightgbm_trn_val_tst/multiruns/2023-04-19_14-40-27_1337/16/epoch_13_best_0181.model"
 data_part_column: "Split"
 data_part_main: "trn_val"
 

@@ -1,5 +1,3 @@
-# LightGBM parameters available here:
-# [https://lightgbm.readthedocs.io/en/latest/Parameters.html]
 name: lightgbm
 objective: regression
 boosting: gbdt
