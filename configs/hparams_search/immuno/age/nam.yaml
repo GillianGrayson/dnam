@@ -31,11 +31,11 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.optimizer_lr: tag(log, interval(0.000001, 0.1)) # tag(log, interval(0.00001, 1))
-      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.001)) # tag(log, interval(0.00000001, 0.1))
-      model.hidden_sizes: choice([64], [64, 32], [128, 64], [128, 64, 32], [256, 128]) # choice([], [32], [64, 32], [128, 64], [128, 64, 32])
+      model.optimizer_lr: tag(log, interval(0.001, 0.05)) # tag(log, interval(0.00001, 1))
+      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.0001)) # tag(log, interval(0.00000001, 0.1))
+      model.hidden_sizes: choice([256, 256, 256], [512, 256, 128], [256, 256]) # choice([], [32], [64, 32], [128, 64], [128, 64, 32])
       model.activation: choice(relu) # choice(exu, relu)
-      model.dropout: interval(0.0, 0.5) # interval(0.0, 0.5)
+      model.dropout: interval(0.0, 0.1) # interval(0.0, 0.5)
       model.feature_dropout: interval(0.0, 0.7) # interval(0.0, 0.5)
-      model.output_regularization: interval(0.0, 0.7) # interval(0.0, 0.5)
-      model.l2_regularization: interval(0.0, 0.3) # interval(0.0, 0.5)
+      model.output_regularization: interval(0.05, 0.35) # interval(0.0, 0.5)
+      model.l2_regularization: tag(log, interval(0.00000001, 0.1)) # interval(0.0, 0.3) # interval(0.0, 0.5)

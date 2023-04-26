@@ -32,7 +32,8 @@ hydra:
     # define range of hyperparameters
     params:
       model.optimizer_lr: tag(log, interval(0.00001, 100))
-      model.dropout: choice(0.0, 0.01, 0.1, 0.2)
-      model.concept_dropout: choice(0.0, 0.01, 0.1, 0.2)
-      model.hidden_dims: choice([256, 128, 128], [256, 128], [64, 32], [128, 64])
+      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.0001))
+      model.dropout: interval(0.0, 0.25)
+      model.concept_dropout: interval(0.0, 0.25)
+      model.hidden_dims: choice([256, 128, 64], [200, 200], [256, 128], [64, 32], [128, 64])
       model.output_penalty: tag(log, interval(0.00001, 100))

@@ -31,6 +31,7 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.learning_rate: tag(log, interval(0.0001, 1))
-      model.max_depth: choice(3, 4, 5, 6, 7, 8)
-      model.gamma: choice(0, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0)
+      model.learning_rate: tag(log, interval(0.0075, 0.25))
+      model.max_depth: choice(2, 3, 4)
+      model.subsample: interval(0.6, 1.0)
+      model.gamma: tag(log, interval(0.1, 100)) # choice(0, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0, 20.0)

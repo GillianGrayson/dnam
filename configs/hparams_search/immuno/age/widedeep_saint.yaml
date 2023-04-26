@@ -32,13 +32,12 @@ hydra:
     # define range of hyperparameters
     # 'embed_dim' must be divisible by 'n_heads'
     params:
-      model.optimizer_lr: tag(log, interval(0.00001, 1)) # tag(log, interval(0.00001, 1))
-      model.optimizer_weight_decay: tag(log, interval(0.0000001, 0.01)) # tag(log, interval(0.00000001, 0.1))
-      model.embed_dim: choice(16, 32, 48) # choice(2, 4)
-      model.n_heads: choice(2, 4, 8, 16) # choice(1, 2)
-      model.n_blocks: choice(1, 2, 3, 4) # choice(1, 2)
-      model.attn_dropout: interval(0.0, 0.3) # choice(0.05, 0.1, 0.2)
-      model.ff_dropout: interval(0.0, 0.3) # choice(0.05, 0.1, 0.2)
-      model.mlp_hidden_dims: choice([200, 100, 50, 1], [200, 100, 1], [100, 50, 1], [100, 1]) # choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1])
-      model.mlp_dropout: interval(0.0, 0.3) # choice(0.05, 0.1, 0.15)
-
+      model.optimizer_lr: tag(log, interval(0.00005, 0.001)) # tag(log, interval(0.00001, 1))
+      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.00001)) # tag(log, interval(0.00000001, 0.1))
+      model.embed_dim: choice(4, 8) # choice(2, 4)
+      model.n_heads: choice(2, 4) # choice(1, 2)
+      model.n_blocks: choice(2, 3) # choice(1, 2)
+      model.attn_dropout: interval(0.0, 0.05) # choice(0.05, 0.1, 0.2)
+      model.ff_dropout: interval(0.1, 0.3) # choice(0.05, 0.1, 0.2)
+      model.mlp_hidden_dims: choice([100, 100, 1], [200, 200, 1], [200, 200, 200, 1], [400, 400, 1]) # choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1])
+      model.mlp_dropout: interval(0.0, 0.1) # choice(0.05, 0.1, 0.15)

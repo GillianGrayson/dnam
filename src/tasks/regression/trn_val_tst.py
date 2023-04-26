@@ -121,7 +121,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
                 config.model.embedding_dims = embedding_dims
                 config.model.categorical_cardinality = categorical_cardinality
             elif config.model.name == 'nam':
-                num_unique_vals = [len(np.unique(X_trn[:, i])) for i in range(X_trn.shape[1])]
+                num_unique_vals = [len(np.unique(X_trn.loc[:, f].values)) for f in features['all']]
                 num_units = [min(config.model.num_basis_functions, i * config.model.units_multiplier) for i in num_unique_vals]
                 config.model.num_units = num_units
 
