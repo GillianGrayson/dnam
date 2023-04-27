@@ -42,8 +42,8 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.optimizer_lr: tag(log, interval(0.00001, 0.5))
-      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.001))
+      model.optimizer_lr: tag(log, interval(0.001, 0.5))
+      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.0001))
       model.mlp_hidden_dims: choice([200, 100, ${out_dim}], [100, 50, ${out_dim}], [200, 100, 50, ${out_dim}])
       model.mlp_activation: choice('relu', 'gelu')
       model.mlp_dropout: interval(0.0, 0.2)

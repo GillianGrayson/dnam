@@ -2,7 +2,7 @@
 
 # Global params
 movement_type: real
-features_type: region_avg
+features_type: alpha
 task: classification    # Task type. Options: ["regression", "classification"]
 target: "class_simp"       # Target column name
 target_label: "Movement"
