@@ -7,8 +7,8 @@ target_label: "Age"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
-data_part_column: "parts_danet"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/46/xgboost_trn_val_tst/multiruns/2023-04-25_21-09-57_1337/125/epoch_454_best_0001.model"
+data_part_column: "best_${model.name}"
 data_part_main: "trn"
 
 # Data params
