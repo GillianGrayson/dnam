@@ -636,7 +636,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
             metrics_main = metrics_trn
         elif config.optimized_part == "val":
             metrics_main = metrics_val
-        elif config.optimized_part.startwith("tst"):
+        elif config.optimized_part.startswith("tst"):
             metrics_main = metrics_tst[config.optimized_part]
         else:
             raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
@@ -824,7 +824,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         metrics_main = metrics_trn
     elif config.optimized_part == "val":
         metrics_main = metrics_val
-    elif config.optimized_part.startwith("tst"):
+    elif config.optimized_part.startswith("tst"):
         metrics_main = metrics_tst[config.optimized_part]
     else:
         raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
