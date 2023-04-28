@@ -7,9 +7,9 @@ target_label: "Age"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/46/xgboost_trn_val_tst/multiruns/2023-04-25_21-09-57_1337/125/epoch_454_best_0001.model"
-data_part_column: "best_${model.name}"
-data_part_main: "trn"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/46_trn_val_tst/widedeep_saint_trn_val_tst/multiruns/2023-04-23_02-12-35_1337/219/best_fold_0002.ckpt"
+data_part_column: "Split"
+data_part_main: "trn_val"
 
 # Data params
 in_dim: null       # Number of input features
@@ -26,10 +26,10 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: False                       # Calculate SHAP values?
+is_shap: True                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
-shap_explainer: Tree            # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
-shap_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
+shap_explainer: Sampling            # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
+shap_bkgrd: trn_val                 # Type of background data. Options: ["trn", "all"]
 
 # LIME weights
 is_lime: False                      # Calculate LIME?
@@ -38,5 +38,5 @@ lime_bkgrd: trn                     # Type of background data. Options: ["trn", 
 lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
-num_top_features: 10  # Number of most important features to plot
-num_examples: 200      # Number of samples or features examples to plot some SHAP figures
+num_top_features: 100  # Number of most important features to plot
+num_examples: 32       # Number of samples or features examples to plot some SHAP figures
