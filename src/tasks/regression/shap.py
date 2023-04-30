@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 import plotly.express as px
-import re
+from slugify import slugify
 
 
 log = utils.get_logger(__name__)
@@ -31,8 +31,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_value, X,
 
         ind_save = indexes[m_id]
         if isinstance(ind_save, str):
-            pattern = re.compile('\W')
-            ind_save = re.sub(pattern, '', ind_save)
+            ind_save = slugify(ind_save)
 
         Path(f"{path}/{ind_save}_real({y_real[m_id]:0.4f})_diff({diff:0.4f})").mkdir(parents=True, exist_ok=True)
 
