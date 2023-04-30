@@ -10,7 +10,7 @@ feats_cat_embed_dim: ${embed_dim}                     # Dimension size for categ
 target: ${target}                                     # Target predicted feature
 target_label: ${target_label}                         # Target label for plots
 target_classes_fn: null                               # File with selected classes (for classification tasks only)
-data_fn: "${data_dir}/data_selected.xlsx"                      # File with dataset
+data_fn: "${data_dir}/data_final.xlsx"                      # File with dataset
 data_index: index                                     # Index column in dataset file
 data_imputation: fast_knn                             # Imputation method for missing values (see https://github.com/eltonlaw/impyute)
 split_by: trn_val                                     # Splitting method. Options: [trn_val, top_feat, explicit_feat]

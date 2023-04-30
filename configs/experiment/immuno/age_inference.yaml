@@ -7,7 +7,7 @@ target_label: "Age"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/46_trn_val_tst/widedeep_saint_trn_val_tst/multiruns/2023-04-23_02-12-35_1337/219/best_fold_0002.ckpt"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/46_trn_val_tst/widedeep_saint_trn_val_tst/multiruns/2023-04-28_19-51-09_1337/72/best_fold_0002.ckpt"
 data_part_column: "Split"
 data_part_main: "trn_val"
 

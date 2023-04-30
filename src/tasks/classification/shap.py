@@ -13,6 +13,7 @@ from scripts.python.routines.plot.scatter import add_scatter_trace
 import plotly.express as px
 import plotly.io as pio
 pio.kaleido.scope.mathjax = None
+import re
 
 
 log = utils.get_logger(__name__)
@@ -114,7 +115,11 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, X
         log.info(f"Plotting sample with error {indexes[m_id]}")
 
         ind_save = indexes[m_id]
-        for cl_id, cl in enumerate(class_names):
+        if isinstance(ind_save, str):
+            pattern = re.compile('\W')
+            ind_save = re.sub(pattern, '', ind_save)
+
+    for cl_id, cl in enumerate(class_names):
             path_curr = f"{path}/mistakes/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}"
             Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
             shap.plots.waterfall(
