@@ -1,6 +1,6 @@
 _target_: src.datamodules.tabular.TabularDataModule   # Instantiated object
 task: "regression"                                    # Task type. Options: ["classification", "regression"]. Here we solve regression problem
-feats_con_fn: "${data_dir}/feats_con.xlsx"            # File with continuous input features
+feats_con_fn: "${data_dir}/feats_con_top10_new.xlsx"            # File with continuous input features
 feats_cat_fn: null                                    # File with categorical input features
 feats_labels_col: null
 feats_cat_replace_col: null
