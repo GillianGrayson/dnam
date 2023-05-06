@@ -307,11 +307,16 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
         for m in metrics_names:
             for p in parts:
                 metrics.at[m, p] = metrics_cv.at[best['fold_id'], f'{p}_{m}']
-                metrics.at[m, f'{p}_mean'] = metrics_cv.loc[:, f'{p}_{m}'].mean()
-                metrics.at[m, f'{p}_std'] = metrics_cv.loc[:, f'{p}_{m}'].std()
+                metrics.at[f'{m}_mean', f'{p}'] = metrics_cv.loc[:, f'{p}_{m}'].mean()
+                metrics.at[f'{m}_std', f'{p}'] = metrics_cv.loc[:, f'{p}_{m}'].std()
             for tst_set_name in ids_tst:
-                metrics.at[m, f'val_{tst_set_name}_mean'] = 0.5 * (metrics.at[m, 'val'] + metrics.at[m, tst_set_name])
-        metrics.to_excel(f"metrics.xlsx", index_label='metric')
+                metrics.at[m, f'trn_val_{tst_set_name}'] = (metrics.at[m, 'trn'] + metrics.at[m, 'val'] + metrics.at[m, tst_set_name]) / 3
+                metrics.at[f'{m}_mean', f'trn_val_{tst_set_name}'] = (metrics.at[f'{m}_mean', 'trn'] + metrics.at[f'{m}_mean', 'val'] + metrics.at[f'{m}_mean', tst_set_name]) / 3
+                metrics.at[f'{m}_std', f'trn_val_{tst_set_name}'] = (metrics.at[f'{m}_std', 'trn'] + metrics.at[f'{m}_std', 'val'] + metrics.at[f'{m}_std', tst_set_name]) / 3
+                metrics.at[m, f'val_{tst_set_name}'] = (metrics.at[m, 'val'] + metrics.at[m, tst_set_name]) / 2
+                metrics.at[f'{m}_mean', f'val_{tst_set_name}'] = (metrics.at[f'{m}_mean', 'val'] + metrics.at[f'{m}_mean', tst_set_name]) / 2
+                metrics.at[f'{m}_std', f'val_{tst_set_name}'] = (metrics.at[f'{m}_std', 'val'] + metrics.at[f'{m}_std', tst_set_name]) / 2
+        metrics.to_excel(f"metrics_all.xlsx", index_label='metric')
 
         X_all = df.loc[:, features['all']]
         if config.model.name in ["coxnet", "coxph", "rsf", "gbsa", "cwgbsa"]:
@@ -399,10 +404,7 @@ def trn_val_tst_survival(config: DictConfig) -> Optional[float]:
 
         # Return metric score for hyperparameter optimization
         if config.optimized_metric:
-            if config.optimized_mean == "":
-                return metrics.at[config.optimized_metric, config.optimized_part]
-            else:
-                return metrics.at[config.optimized_metric, f"{config.optimized_part}_{config.optimized_mean}"]
+            return metrics.at[config.optimized_metric, config.optimized_part]
 
     except ArithmeticError:
         log.error(f"Numerical error during {config.model.name}")

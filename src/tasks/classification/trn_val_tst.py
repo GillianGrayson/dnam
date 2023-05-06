@@ -597,16 +597,23 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
             raise ValueError(f"Unsupported model_framework: {model_framework}")
 
         metrics_trn = eval_classification(config, class_names, y_trn.values, y_trn_pred, y_trn_pred_prob, loggers, 'trn', is_log=True, is_save=False)
+        metrics_all = metrics_trn.copy()
         for m in metrics_trn.index.values:
             metrics_cv.at[fold_idx, f"trn_{m}"] = metrics_trn.at[m, 'trn']
         metrics_val = eval_classification(config, class_names, y_val.values, y_val_pred, y_val_pred_prob, loggers, 'val', is_log=True, is_save=False)
+        metrics_all.loc[metrics_all.index.values, "val"] = metrics_val.loc[metrics_all.index.values, "val"]
         for m in metrics_val.index.values:
             metrics_cv.at[fold_idx, f"val_{m}"] = metrics_val.at[m, 'val']
         metrics_tst = {}
         for tst_set_name in ids_tst:
             metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name].values, y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], loggers, tst_set_name, is_log=True, is_save=False)
+            metrics_all.loc[metrics_all.index.values, tst_set_name] = metrics_tst[tst_set_name].loc[metrics_all.index.values, tst_set_name]
             for m in metrics_tst[tst_set_name].index.values:
                 metrics_cv.at[fold_idx, f"{tst_set_name}_{m}"] = metrics_tst[tst_set_name].at[m, tst_set_name]
+        metrics_all["trn_val"] = metrics_all.loc[:, ['trn', 'val']].sum(axis=1) / 2
+        for tst_set_name in ids_tst:
+            metrics_all[f"trn_val_{tst_set_name}"] = metrics_all.loc[:, ['trn', 'val', tst_set_name]].sum(axis=1) / 3
+            metrics_all[f"val_{tst_set_name}"] = metrics_all.loc[:, ['val', tst_set_name]].sum(axis=1) / 2
 
         # Make sure everything closed properly
         if model_framework == "pytorch":
@@ -632,28 +639,19 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         else:
             raise ValueError(f"Unsupported model_framework: {model_framework}")
 
-        if config.optimized_part == "trn":
-            metrics_main = metrics_trn
-        elif config.optimized_part == "val":
-            metrics_main = metrics_val
-        elif config.optimized_part.startswith("tst"):
-            metrics_main = metrics_tst[config.optimized_part]
-        else:
-            raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
-
         if config.direction == "min":
-            if metrics_main.at[config.optimized_metric, config.optimized_part] < best["optimized_metric"]:
+            if metrics_all.at[config.optimized_metric, config.optimized_part] < best["optimized_metric"]:
                 is_renew = True
             else:
                 is_renew = False
         elif config.direction == "max":
-            if metrics_main.at[config.optimized_metric, config.optimized_part] > best["optimized_metric"]:
+            if metrics_all.at[config.optimized_metric, config.optimized_part] > best["optimized_metric"]:
                 is_renew = True
             else:
                 is_renew = False
 
         if is_renew:
-            best["optimized_metric"] = metrics_main.at[config.optimized_metric, config.optimized_part]
+            best["optimized_metric"] = metrics_all.at[config.optimized_metric, config.optimized_part]
             if model_framework == "pytorch":
                 if Path(f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt").is_file():
                     model = type(model).load_from_checkpoint(checkpoint_path=f"{config.callbacks.model_checkpoint.dirpath}{config.callbacks.model_checkpoint.filename}.ckpt")
@@ -730,12 +728,12 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
                 os.remove(fn)
 
         metrics_cv.at[fold_idx, 'fold'] = fold_idx
-        metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_main.at[config.optimized_metric, config.optimized_part]
+        metrics_cv.at[fold_idx, 'optimized_metric'] = metrics_all.at[config.optimized_metric, config.optimized_part]
         feature_importances_cv.at[fold_idx, 'fold'] = fold_idx
         for feat in features['all']:
             feature_importances_cv.at[fold_idx, feat] = feature_importances.loc[feature_importances['feature'] == feat, 'importance'].values[0]
 
-    metrics_cv.to_excel(f"cv_progress.xlsx", index=False)
+    metrics_cv.to_excel(f"metrics_cv.xlsx", index=False)
     feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
     cv_ids_cols = [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:,'fold'].values]
     if datamodule.split_top_feat:
@@ -782,52 +780,39 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "pred"].values
         y_tst_pred_prob[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'trn', is_log=False, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
     metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['trn'])
     for metric in metrics_names:
         metrics_trn_cv.at[f"{metric}_cv_mean", 'trn'] = metrics_cv[f"trn_{metric}"].mean()
         metrics_trn_cv.at[f"{metric}_cv_std", 'trn'] = metrics_cv[f"trn_{metric}"].std()
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
-    metrics_trn.to_excel(f"metrics_trn_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
+    metrics_all = metrics_trn.copy()
 
-    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
         metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = metrics_cv[f"val_{metric}"].mean()
         metrics_val_cv.at[f"{metric}_cv_std", 'val'] = metrics_cv[f"val_{metric}"].std()
     metrics_val = pd.concat([metrics_val, metrics_val_cv])
-    metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
+    metrics_all.loc[metrics_all.index.values, 'val'] = metrics_val.loc[metrics_all.index.values, 'val']
 
     metrics_tst = {}
     metrics_tst_cv = {}
-    metrics_val_tst_cv_mean = {}
     for tst_set_name in ids_tst:
-        metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name], y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], None, tst_set_name, is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name], y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], None, tst_set_name, is_log=False, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
         metrics_tst_cv[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=[tst_set_name])
         for metric in metrics_names:
             metrics_tst_cv[tst_set_name].at[f"{metric}_cv_mean", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].mean()
             metrics_tst_cv[tst_set_name].at[f"{metric}_cv_std", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].std()
         metrics_tst[tst_set_name] = pd.concat([metrics_tst[tst_set_name], metrics_tst_cv[tst_set_name]])
+        metrics_all.loc[metrics_all.index.values, tst_set_name] = metrics_tst[tst_set_name].loc[metrics_all.index.values, tst_set_name]
 
-        metrics_val_tst_cv_mean[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean_val_{tst_set_name}" for x in metrics_names],columns=['val', tst_set_name])
-        for metric in metrics_names:
-            val_tst_value = 0.5 * (metrics_val.at[f"{metric}_cv_mean", 'val'] + metrics_tst[tst_set_name].at[f"{metric}_cv_mean", tst_set_name])
-            metrics_val_tst_cv_mean[tst_set_name].at[f"{metric}_cv_mean_val_{tst_set_name}", 'val'] = val_tst_value
-            metrics_val_tst_cv_mean[tst_set_name].at[f"{metric}_cv_mean_val_{tst_set_name}", tst_set_name] = val_tst_value
-        metrics_val = pd.concat([metrics_val, metrics_val_tst_cv_mean[tst_set_name].loc[:, ['val']]])
-        metrics_tst[tst_set_name] = pd.concat([metrics_tst[tst_set_name], metrics_val_tst_cv_mean[tst_set_name].loc[:, [tst_set_name]]])
-        metrics_val.to_excel(f"metrics_val_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
-        metrics_tst[tst_set_name].to_excel(f"metrics_{tst_set_name}_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
-
-    if config.optimized_part == "trn":
-        metrics_main = metrics_trn
-    elif config.optimized_part == "val":
-        metrics_main = metrics_val
-    elif config.optimized_part.startswith("tst"):
-        metrics_main = metrics_tst[config.optimized_part]
-    else:
-        raise ValueError(f"Unsupported config.optimized_part: {config.optimized_part}")
+    metrics_all["trn_val"] = metrics_all.loc[:,['trn','val']].sum(axis=1) / 2
+    for tst_set_name in ids_tst:
+        metrics_all[f"trn_val_{tst_set_name}"] = metrics_all.loc[:, ['trn', 'val', tst_set_name]].sum(axis=1) / 3
+        metrics_all[f"val_{tst_set_name}"] = metrics_all.loc[:, ['val', tst_set_name]].sum(axis=1) / 2
+    metrics_all.to_excel(f"metrics_all_best_{best['fold']:04d}.xlsx", index=True, index_label="metric")
 
     features_labels = []
     for f in best['feature_importances']['feature'].values:
@@ -858,9 +843,5 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
 
     # Return metric score for hyperparameter optimization
     optimized_metric = config.get("optimized_metric")
-    optimized_mean = config.get("optimized_mean")
     if optimized_metric:
-        if optimized_mean == "":
-            return metrics_main.at[optimized_metric, config.optimized_part]
-        else:
-            return metrics_main.at[f"{optimized_metric}_{optimized_mean}", config.optimized_part]
+        return metrics_all.at[optimized_metric, config.optimized_part]
