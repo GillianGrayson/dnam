@@ -7,7 +7,7 @@ target_label: "Age"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/46_trn_val_tst/widedeep_saint_trn_val_tst/multiruns/2023-04-28_19-51-09_1337/72/best_fold_0002.ckpt"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/widedeep_ft_transformer_trn_val_tst/multiruns/2023-05-07_19-40-40_1337/64/best_fold_0002.ckpt"
 data_part_column: "Split"
 data_part_main: "trn_val"
 
@@ -39,4 +39,4 @@ lime_num_features: all              # Number of features. Options: [int, "all"]
 
 # Plot params
 num_top_features: 100  # Number of most important features to plot
-num_examples: 32       # Number of samples or features examples to plot some SHAP figures
+num_examples: 1000       # Number of samples or features examples to plot some SHAP figures

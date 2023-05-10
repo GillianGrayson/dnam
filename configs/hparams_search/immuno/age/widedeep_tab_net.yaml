@@ -31,13 +31,13 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.optimizer_lr: tag(log, interval(0.03, 0.09)) # tag(log, interval(0.00001, 1))
-      model.optimizer_weight_decay: tag(log, interval(0.0000001, 0.00001)) # tag(log, interval(0.00000001, 0.1))
-      model.n_steps: choice(1, 2, 3) # choice(3, 4, 5)
-      model.attn_dim: choice(40, 41, 42, 43, 44) # choice(24, 30, 36, 42, 48) # choice(8, 16)
-      model.dropout: interval(0.05, 0.07) # choice(0.0, 0.1)
-      model.n_glu_step_dependent: choice(2) # choice(2, 3)
-      model.n_glu_shared: choice(3) # choice(2, 3)
-      model.momentum: interval(0.075, 0.12) # interval(0.01, 0.2)
-      model.gamma: interval(1.175, 1.225) # interval(1.15, 1.35) # interval(1.1, 1.5)
+      model.optimizer_lr: tag(log, interval(0.005, 0.5)) # tag(log, interval(0.00001, 1))
+      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.00001)) # tag(log, interval(0.00000001, 0.1))
+      model.n_steps: choice(1, 2, 3, 4, 5) # choice(3, 4, 5)
+      model.attn_dim: int(range(8, 64, step=1)) # choice(24, 30, 36, 42, 48) # choice(8, 16)
+      model.dropout: interval(0.0, 0.15) # choice(0.0, 0.1)
+      model.n_glu_step_dependent: choice(2, 3) # choice(2, 3)
+      model.n_glu_shared: choice(2, 3) # choice(2, 3)
+      model.momentum: interval(0.01, 0.2) # interval(0.01, 0.2)
+      model.gamma: interval(1.1, 1.5) # interval(1.15, 1.35) # interval(1.1, 1.5)
       model.mask_type: choice(entmax) # choice(sparsemax, entmax)

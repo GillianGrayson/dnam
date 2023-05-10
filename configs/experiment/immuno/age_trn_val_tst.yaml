@@ -23,7 +23,7 @@ optimized_part: "val_tst_ctrl_central"                       # Optimized data pa
 direction: min                            # Direction of metrics optimization. Options ["min", "max"]
 
 # Run params
-max_epochs: 500            # Maximum number of epochs
+max_epochs: 1000            # Maximum number of epochs
 patience: 50               # Number of early stopping epochs
 feature_importance: none   # Feature importance method. Options: [none, "shap_deep", "shap_kernel", "shap_tree", "shap_sampling", "native"]
 

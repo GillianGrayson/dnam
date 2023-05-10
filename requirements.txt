@@ -38,6 +38,7 @@ seaborn>=0.12.1
 kaleido==0.2.1
 UpSetPlot>=0.6.1
 matplotlib_venn
+statannotations==0.5.0
 
 # --------- dataframes --------- #
 pandas>=1.5.1
