@@ -5,11 +5,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import torch
 from src.utils import utils
-import plotly.graph_objects as go
-from scripts.python.routines.plot.save import save_figure
-from scripts.python.routines.plot.layout import add_layout
-import plotly.express as px
 from slugify import slugify
+import seaborn as sns
 
 
 log = utils.get_logger(__name__)
@@ -185,50 +182,26 @@ def explain_shap(config, expl_data):
             for rank, feat_id in enumerate(feat_ids_to_plot):
                 feat = features[feat_id]
                 feat_label = features_labels[feat_id]
-                shap.dependence_plot(
-                    ind=feat_id,
-                    shap_values=shap_values,
-                    features=X,
-                    feature_names=features_labels,
-                    show=False,
+
+                df_fig = pd.DataFrame({feat_label: X[:, feat_id], f"SHAP for {feat_label}": shap_values[:, feat_id], "Age": y_pred})
+                scatter = sns.scatterplot(
+                    data=df_fig,
+                    x=feat_label,
+                    y=f"SHAP for {feat_label}",
+                    palette='spring',
+                    hue="Age",
+                    linewidth=0.2,
+                    alpha=0.75,
+                    edgecolor="k",
                 )
+                norm = plt.Normalize(df_fig['Age'].min(), df_fig['Age'].max())
+                sm = plt.cm.ScalarMappable(cmap="spring", norm=norm)
+                sm.set_array([])
+                scatter.get_legend().remove()
+                scatter.figure.colorbar(sm, label="Age")
                 plt.savefig(f"shap/{part}/features/{rank}_{feat}.png", bbox_inches='tight')
                 plt.savefig(f"shap/{part}/features/{rank}_{feat}.pdf", bbox_inches='tight')
                 plt.close()
-
-                fig = go.Figure()
-                fig.add_trace(
-                    go.Scatter(
-                        x=X[:, feat_id],
-                        y=shap_values[:, feat_id],
-                        showlegend=False,
-                        name=feat,
-                        mode='markers',
-                        marker=dict(
-                            size=10,
-                            opacity=0.7,
-                            line=dict(
-                                width=1
-                            ),
-                            color=y_pred,
-                            colorscale=px.colors.sequential.Bluered,
-                            showscale=True,
-                            colorbar=dict(title=dict(text="Prediction", font=dict(size=20)), tickfont=dict(size=20))
-                        )
-                    )
-                )
-                add_layout(fig, feat_label, f"SHAP value for<br>{feat_label}", f"", font_size=20)
-                fig.update_layout(legend_font_size=20)
-                fig.update_layout(
-                    margin=go.layout.Margin(
-                        l=120,
-                        r=20,
-                        b=80,
-                        t=25,
-                        pad=0
-                    )
-                )
-                save_figure(fig, f"shap/{part}/features/{rank}_{feat}_scatter")
 
             explain_samples(
                 config,
