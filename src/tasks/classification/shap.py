@@ -118,7 +118,7 @@ def explain_samples(config, y_real, y_pred, indexes, shap_values, base_values, X
         if isinstance(ind_save, str):
             ind_save = slugify(ind_save)
 
-    for cl_id, cl in enumerate(class_names):
+        for cl_id, cl in enumerate(class_names):
             path_curr = f"{path}/mistakes/real({class_names[y_real[m_id]]})_pred({class_names[y_pred[m_id]]})/{ind_save}"
             Path(f"{path_curr}").mkdir(parents=True, exist_ok=True)
             shap.plots.waterfall(
