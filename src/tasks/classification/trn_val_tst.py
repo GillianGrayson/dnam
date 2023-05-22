@@ -780,7 +780,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
         y_tst_pred[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], "pred"].values
         y_tst_pred_prob[tst_set_name] = df.loc[df.index[datamodule.ids_tst[tst_set_name]], [f"pred_prob_{cl_id}" for cl_id, cl in enumerate(class_names)]].values
 
-    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'trn', is_log=False, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_trn = eval_classification(config, class_names, y_trn, y_trn_pred, y_trn_pred_prob, None, 'trn', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_names = metrics_trn.index.values
     metrics_trn_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['trn'])
     for metric in metrics_names:
@@ -789,7 +789,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     metrics_trn = pd.concat([metrics_trn, metrics_trn_cv])
     metrics_all = metrics_trn.copy()
 
-    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
+    metrics_val = eval_classification(config, class_names, y_val, y_val_pred, y_val_pred_prob, None, 'val', is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
     metrics_val_cv = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=['val'])
     for metric in metrics_names:
         metrics_val_cv.at[f"{metric}_cv_mean", 'val'] = metrics_cv[f"val_{metric}"].mean()
@@ -800,7 +800,7 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
     metrics_tst = {}
     metrics_tst_cv = {}
     for tst_set_name in ids_tst:
-        metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name], y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], None, tst_set_name, is_log=False, is_save=False, file_suffix=f"_best_{best['fold']:04d}")
+        metrics_tst[tst_set_name] = eval_classification(config, class_names, y_tst[tst_set_name], y_tst_pred[tst_set_name], y_tst_pred_prob[tst_set_name], None, tst_set_name, is_log=False, is_save=True, file_suffix=f"_best_{best['fold']:04d}")
         metrics_tst_cv[tst_set_name] = pd.DataFrame(index=[f"{x}_cv_mean" for x in metrics_names] + [f"{x}_cv_std" for x in metrics_names], columns=[tst_set_name])
         for metric in metrics_names:
             metrics_tst_cv[tst_set_name].at[f"{metric}_cv_mean", tst_set_name] = metrics_cv[f"{tst_set_name}_{metric}"].mean()

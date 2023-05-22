@@ -77,7 +77,6 @@ def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, logger
 
     if is_save:
         plot_confusion_matrix(y_real, y_pred, class_names, part, suffix=file_suffix)
-        metrics_df.to_excel(f"metrics_{part}{file_suffix}.xlsx", index=True)
 
     return metrics_df
 
