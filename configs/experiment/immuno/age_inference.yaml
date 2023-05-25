@@ -7,8 +7,8 @@ target_label: "Age"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/widedeep_ft_transformer_trn_val_tst/multiruns/2023-05-07_19-40-40_1337/64/best_fold_0002.ckpt"
-data_part_column: "Split"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/10_trn_val_tst/widedeep_ft_transformer_trn_val_tst/multiruns/2023-05-07_19-40-40_1337/64/best_fold_0002.ckpt"
+data_part_column: Split"
 data_part_main: "trn_val"
 
 # Data params
@@ -26,7 +26,7 @@ data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: True                       # Calculate SHAP values?
+is_shap: False                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Sampling            # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
 shap_bkgrd: trn_val                 # Type of background data. Options: ["trn", "all"]
