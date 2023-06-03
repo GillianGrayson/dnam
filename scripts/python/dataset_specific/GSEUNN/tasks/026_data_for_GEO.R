@@ -26,7 +26,7 @@ library(FlowSorted.Blood.450k)
 library(FlowSorted.DLPFC.450k)
 library(sva)
 
-myDir <- "../../../../../../../YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/raw/idat"
+myDir <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/raw/idat"
 targets <- read.metharray.sheet(myDir)
 rgSet <- read.metharray.exp(targets = targets, extended = FALSE, force = force)
 mset <- preprocessRaw(rgSet)
