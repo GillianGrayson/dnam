@@ -19,7 +19,7 @@ embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
 optimized_metric: mean_absolute_error     # All metrics listed in src.tasks.metrics
-optimized_part: "val_tst_ctrl_central"                       # Optimized data partition. Options: ["val", "tst"]
+optimized_part: "val_tst"                       # "val_tst_ctrl_central" # Optimized data partition. Options: ["val", "tst"]
 direction: min                            # Direction of metrics optimization. Options ["min", "max"]
 
 # Run params
@@ -36,7 +36,8 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision"
+# base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/049_immuno_age_regression_extended"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
