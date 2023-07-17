@@ -32,8 +32,8 @@ gsea_pval <- 0.05
 methylglm_minsize <- 10
 methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/00_all_region/data_for_R"
-path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/00_all_region/data_from_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/analysis_without_non_sakha/00_all_region/data_for_R"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/analysis_without_non_sakha/00_all_region/data_from_R"
 setwd(path_work)
 
 pheno <- pd$read_pickle(paste(path_load, "/pheno_R_all_region.pkl", sep=''))
@@ -158,8 +158,8 @@ gsea_pval <- 0.05
 methylglm_minsize <- 10
 methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/01_central_sex/data_for_R"
-path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/01_central_sex/data_from_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/analysis_without_non_sakha/01_central_sex/data_for_R"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/analysis_without_non_sakha/01_central_sex/data_from_R"
 setwd(path_work)
 
 pheno <- pd$read_pickle(paste(path_load, "/pheno_R_central_sex.pkl", sep=''))
@@ -284,8 +284,8 @@ gsea_pval <- 0.05
 methylglm_minsize <- 10
 methylglm_maxsize <- 1000
 
-path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/02_yakutia_sex/data_for_R"
-path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/02_yakutia_sex/data_from_R"
+path_load <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/analysis_without_non_sakha/02_yakutia_sex/data_for_R"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/043_yakutia_EWAS/analysis_without_non_sakha/02_yakutia_sex/data_from_R"
 setwd(path_work)
 
 pheno <- pd$read_pickle(paste(path_load, "/pheno_R_yakutia_sex.pkl", sep=''))
