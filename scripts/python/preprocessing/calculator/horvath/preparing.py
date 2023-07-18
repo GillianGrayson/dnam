@@ -29,7 +29,7 @@ with open(f"{path}/lists/cpgs/cpgs_horvath_calculator.txt") as f:
 betas = pd.read_pickle(f"{path}/{platform}/{dataset}/betas.pkl")
 cpgs_na = list(set(cpgs_h) - set(betas.columns.values))
 betas = betas[betas.columns.intersection(cpgs_h)]
-betas[cpgs_na] = np.nan
+betas.loc[:, cpgs_na] = np.nan
 betas = betas.astype('float32')
 betas = betas.T
 betas.index.name = 'ProbeID'
