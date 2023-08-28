@@ -7,9 +7,9 @@ target_label: "Age"
 seed: 1337          # Random seed
 
 # Inference params
-path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision/models/10_trn_val_tst/widedeep_ft_transformer_trn_val_tst/multiruns/2023-05-07_19-40-40_1337/64/best_fold_0002.ckpt"
-data_part_column: Split"
-data_part_main: "trn_val"
+path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/data/immuno/models/SImAge/best_fold_0002.ckpt"
+data_part_column: Status
+data_part_main: Control
 
 # Data params
 in_dim: null       # Number of input features
@@ -21,9 +21,9 @@ print_config: False         # Print config?
 
 # Directories and files params
 project_name: ${model.name}_inference
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/044_small_immuno_clocks_revision"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/data/immuno"
 data_dir: "${base_dir}"
-work_dir: "${base_dir}/models/${project_name}"
+work_dir: "${base_dir}/models/new/${project_name}"
 
 # SHAP values params
 is_shap: False                       # Calculate SHAP values?
