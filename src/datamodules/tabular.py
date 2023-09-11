@@ -315,12 +315,11 @@ class TabularDataModule(LightningDataModule):
                 )
             elif self.task == 'regression':
                 ptp = np.ptp(target_trn_val)
-                num_bins = 4
-                bins = np.linspace(
-                    np.min(target_trn_val) - 0.1 * ptp,
-                    np.max(target_trn_val) + 0.1 * ptp,
-                    num_bins + 1
-                )
+                bins = np.concatenate((
+                    [np.min(target_trn_val) - 0.1 * ptp],
+                    np.percentile(target_trn_val, [20, 40, 60, 80]),
+                    [np.max(target_trn_val) + 0.1 * ptp]
+                ))
                 binned = np.digitize(target_trn_val, bins) - 1
                 unique, counts = np.unique(binned, return_counts=True)
                 occ = dict(zip(unique, counts))

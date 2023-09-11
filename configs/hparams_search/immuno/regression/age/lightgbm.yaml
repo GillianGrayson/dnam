@@ -28,7 +28,7 @@ hydra:
       prior_weight: 1.0            # The weight of the prior
       consider_magic_clip: true    # Enable a heuristic to limit the smallest variances of Gaussians used in the Parzen estimator
       consider_endpoints: false    # Take endpoints of domains into account when calculating variances of Gaussians in Parzen estimator
-      n_startup_trials: 50         # The random sampling is used instead of the TPE algorithm until the given number of trials finish
+      n_startup_trials: 250         # The random sampling is used instead of the TPE algorithm until the given number of trials finish
       n_ei_candidates: 10          # Number of candidate samples used to calculate the expected improvement
       multivariate: false          # Single variate optimization
 

@@ -8,7 +8,7 @@ seed: 1337           # Random seed
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?
-cv_n_splits: 5      # Number of splits in cross-validation
+cv_n_splits: 4      # Number of splits in cross-validation
 cv_n_repeats: 1     # Number of repeats in cross-validation
 cv_all_combinations: False
 
@@ -19,7 +19,7 @@ embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
 optimized_metric: mean_absolute_error     # All metrics listed in src.tasks.metrics
-optimized_part: "val_tst_ctrl"            #  # Optimized data partition. Options: ["val", "tst", "val_tst_ctrl_central"]
+optimized_part: "val_tst_ctrl_central"            # Optimized data partition. Options: ["val", "tst", "val_tst_ctrl"]
 direction: min                            # Direction of metrics optimization. Options ["min", "max"]
 
 # Run params
@@ -36,7 +36,7 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/051_small_immuno_clocks_reviewer_3"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/049_immuno_age_regression_extended/filtered"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
