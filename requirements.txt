@@ -47,6 +47,9 @@ openpyxl>=3.0.10
 # --------- imputation --------- #
 impyute>=0.0.8
 
+# --------- augmentation --------- #
+sdv>=1.4.0
+
 # --------- others --------- #
 python-dotenv==0.21.0   # loading env variables from .env file
 rich==12.6.0            # beautiful text formatting in terminal
