@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import seaborn as sns
 import missingno as msno
+from scipy.stats import mannwhitneyu
+from statannotations.Annotator import Annotator
+from sklearn.metrics import mean_absolute_error
 
 
 def add_iqr_outs_to_df(df, df_train, feats):
@@ -20,10 +23,7 @@ def add_iqr_outs_to_df(df, df_train, feats):
     df[f"n_outs_iqr"] = df.loc[:, out_columns].sum(axis=1)
 
 
-def plot_iqr_plots(df, feats, color, title, path):
-
-    print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-
+def plot_iqr_outs(df, feats, color, title, path):
     # Plot hist for Number of IQR outliers
     hist_bins = np.linspace(-0.5, len(feats) + 0.5, len(feats) + 2)
     fig = plt.figure(figsize=(4, 3))
@@ -94,3 +94,64 @@ def plot_iqr_plots(df, feats, color, title, path):
     plt.savefig(f"{path}/heatmap_featsOutsCorr.png", bbox_inches='tight', dpi=200)
     plt.savefig(f"{path}/heatmap_featsOutsCorr.pdf", bbox_inches='tight')
     plt.clf()
+
+
+def plot_iqr_outs_regression_error(df, feats, title, path, thld_outs, col_pred, col_real, col_error):
+    # Plot Error distribution in inliers and outliers
+    thld = round(len(feats) * thld_outs)
+    df_fig = df.loc[:, [col_real, col_pred, col_error, 'n_outs_iqr']].copy()
+    df_fig.loc[df_fig['n_outs_iqr'] == 0, 'Type'] = 'Inlier'
+    df_fig.loc[df_fig['n_outs_iqr'] >= thld, 'Type'] = 'Outlier'
+    df_fig = df_fig.loc[df_fig['Type'].isin(['Inlier', 'Outlier']), :]
+    mae_dict = {
+        'Inlier': mean_absolute_error(
+            df_fig.loc[df_fig['Type'] == 'Inlier', col_real].values,
+            df_fig.loc[df_fig['Type'] == 'Inlier', col_pred].values
+        ),
+        'Outlier': mean_absolute_error(
+            df_fig.loc[df_fig['Type'] == 'Outlier', col_real].values,
+            df_fig.loc[df_fig['Type'] == 'Outlier', col_pred].values
+        ),
+    }
+    _, mw_pval = mannwhitneyu(
+        df_fig.loc[df_fig['Type'] == 'Inlier', col_error].values,
+        df_fig.loc[df_fig['Type'] == 'Outlier', col_error].values,
+        alternative='two-sided'
+    )
+    type_description = {
+        'Inlier': '0 IQR Outliers',
+        'Outlier': f'>= {thld} IQR Outliers'
+    }
+    samples_num = {
+        'Inlier':  df_fig[df_fig['Type'] == 'Inlier'].shape[0],
+        'Outlier': df_fig[df_fig['Type'] == 'Outlier'].shape[0]
+    }
+    rename_dict = {x: f"{x}\n{type_description[x]}\n({samples_num[x]} samples)\nMAE={mae_dict[x]:0.2f}" for x in mae_dict}
+    df_fig['Type'].replace(rename_dict, inplace=True)
+    fig = plt.figure(figsize=(4, 3))
+    sns.set_theme(style='whitegrid')
+    violin = sns.violinplot(
+        data=df_fig,
+        x='Type',
+        y=col_error,
+        palette=['dodgerblue', 'crimson'],
+        scale='width',
+        order=[rename_dict['Inlier'], rename_dict['Outlier']],
+        saturation=0.75,
+    )
+    pval_formatted = [f"{mw_pval:.2e}"]
+    annotator = Annotator(
+        violin,
+        pairs=[(rename_dict['Inlier'], rename_dict['Outlier'])],
+        data=df_fig,
+        x='Type',
+        y=col_error,
+        order=[rename_dict['Inlier'], rename_dict['Outlier']],
+    )
+    annotator.set_custom_annotations(pval_formatted)
+    annotator.configure(loc='outside')
+    annotator.annotate()
+    plt.title(title, y=1.15)
+    plt.savefig(f"{path}/error.png", bbox_inches='tight', dpi=200)
+    plt.savefig(f"{path}/error.pdf", bbox_inches='tight')
+    plt.close(fig)
