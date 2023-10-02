@@ -76,9 +76,10 @@ def plot_pyod_outs(df, pyod_methods, color, title, path):
                         cut=0,
                         ax=brick
                     )
+                    brick.set(xticklabels=[])
                     brick.set_title(method)
-                    brick.set_xlabel(m_title)
-                    brick.set_ylabel('Count')
+                    brick.set_xlabel("")
+                    brick.set_ylabel(m_title)
                     pw_cols.append(brick)
                 else:
                     brick = pw.Brick(figsize=(1.68, 2))
