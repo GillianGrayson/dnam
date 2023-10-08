@@ -26,7 +26,7 @@ def add_pyod_outs_to_df(df, pyod_methods, feats):
     df["Detections"] = df.loc[:, [f"{method}" for method in pyod_methods]].sum(axis=1)
 
 
-def plot_pyod_outs(df, pyod_methods, color, title, path):
+def plot_pyod_outs(df, pyod_methods, color, title, path, n_cols=6):
     # Plot hist for Number of detections as outlier in different PyOD methods
     hist_bins = np.linspace(-0.5, len(pyod_methods) + 0.5, len(pyod_methods) + 2)
     fig = plt.figure()
@@ -56,7 +56,6 @@ def plot_pyod_outs(df, pyod_methods, color, title, path):
     }
     colors_methods = {m: px.colors.qualitative.Alphabet[m_id] for m_id, m in enumerate(pyod_methods)}
     for m_name, m_title in metrics.items():
-        n_cols = 6
         n_rows = int(np.ceil(len(pyod_methods) / n_cols))
         method_names = list(pyod_methods.keys())
         pw_rows = []
