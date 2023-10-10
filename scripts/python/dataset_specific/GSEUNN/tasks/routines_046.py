@@ -13,6 +13,45 @@ from statannotations.Annotator import Annotator
 from sklearn.metrics import mean_absolute_error
 import pandas as pd
 from statsmodels.stats.multitest import multipletests
+import matplotlib.lines as mlines
+
+
+def plot_cls_dim_red(df, col_class, cls_names, col_prob, cols_dim_red, title, fn):
+    norm = plt.Normalize(df[col_prob].min(), df[col_prob].max())
+    sm = plt.cm.ScalarMappable(cmap="seismic", norm=norm)
+    sm.set_array([])
+    df.loc[df[col_class] == cls_names[0], 'Symbol'] = 'o'
+    df.loc[df[col_class] == cls_names[1], 'Symbol'] = 'X'
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+
+    sns.set_theme(style='whitegrid')
+    scatter = sns.scatterplot(
+        data=df,
+        x=cols_dim_red[0],
+        y=cols_dim_red[1],
+        palette='seismic',
+        hue=col_prob,
+        linewidth=0,
+        alpha=0.6,
+        edgecolor="k",
+        style=df.loc[:, 'Symbol'].values,
+        s=25,
+        ax=ax
+    )
+    scatter.get_legend().remove()
+    scatter.figure.colorbar(sm, label=col_prob)
+    scatter.set_title(title, loc='left', y=1.05, fontdict={'fontsize': 20})
+
+    legend_handles = [
+        mlines.Line2D([], [], marker='o', linestyle='None', markeredgecolor='k', markerfacecolor='lightgrey', markersize=10, label=cls_names[0]),
+        mlines.Line2D([], [], marker='X', linestyle='None', markeredgecolor='k', markerfacecolor='lightgrey', markersize=10, label=cls_names[1])
+    ]
+    plt.legend(handles=legend_handles, title="Samples", bbox_to_anchor=(0.4, 1.02, 1, 0.2), loc="lower left", borderaxespad=0, ncol=2, frameon=False)
+
+    plt.savefig(f"{fn}.png", bbox_inches='tight', dpi=200)
+    plt.savefig(f"{fn}.pdf", bbox_inches='tight')
+    plt.close(fig)
 
 
 def plot_regression_error_distributions(df, feats, color, title, path, col_error_abs):
