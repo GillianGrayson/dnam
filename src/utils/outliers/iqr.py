@@ -163,15 +163,16 @@ def plot_iqr_outs_regression_error(df, feats, title, path, thld_outs, col_pred, 
     plt.close(fig)
 
 
-def plot_iqr_outs_cls(df, path, thld_in, thld_out, col_class, col_pred, col_real, cols_prob, palette):
+def plot_iqr_outs_cls(df, path, col_class, col_pred, col_real, cols_prob, palette):
+    q25, q50, q75 = np.percentile(df['n_outs_iqr'].values, [25, 50, 75])
     df_fig = df.loc[:, [col_real, col_pred, col_class, 'n_outs_iqr'] + cols_prob].copy()
-    df_fig.loc[df_fig['n_outs_iqr'] <= thld_in, 'Type'] = 'Inlier'
-    df_fig.loc[df_fig['n_outs_iqr'] >= thld_out, 'Type'] = 'Outlier'
+    df_fig.loc[df_fig['n_outs_iqr'] <= q25, 'Type'] = 'Inlier'
+    df_fig.loc[df_fig['n_outs_iqr'] >= q75, 'Type'] = 'Outlier'
     df_fig = df_fig.loc[df_fig['Type'].isin(['Inlier', 'Outlier']), :]
 
     type_description = {
-        'Inlier': f'<= {thld_in} IQR Outliers',
-        'Outlier': f'>= {thld_out} IQR Outliers'
+        'Inlier': f'<= q25({round(q25)}) IQR Outliers',
+        'Outlier': f'>= q75({round(q75)}) IQR Outliers'
     }
     samples_num = {
         'Inlier':  df_fig[df_fig['Type'] == 'Inlier'].shape[0],
@@ -249,6 +250,7 @@ def plot_iqr_outs_cls(df, path, thld_in, thld_out, col_class, col_pred, col_real
             hue=col_class,
             linewidth=2,
             palette=palette,
+            common_norm=False,
             hue_order=list(palette.keys()),
             fill=True,
             cut=0,
@@ -257,9 +259,10 @@ def plot_iqr_outs_cls(df, path, thld_in, thld_out, col_class, col_pred, col_real
         sns.move_legend(kdeplots[dt], "upper center")
         kdeplots[dt].set_ylabel(rename_dict[dt], fontsize=10)
 
+
     pw_fig = ((barplots['accuracy_weighted'] | barplots['auroc_weighted']) / (countplots['Inlier'] | kdeplots['Inlier']) / (countplots['Outlier'] | kdeplots['Outlier']))
-    pw_fig.savefig(f"{path}/count_and_kde.png", bbox_inches='tight', dpi=200)
-    pw_fig.savefig(f"{path}/count_and_kde.pdf", bbox_inches='tight')
+    pw_fig.savefig(f"{path}/bar_count_kde.png", bbox_inches='tight', dpi=200)
+    pw_fig.savefig(f"{path}/bar_count_kde.pdf", bbox_inches='tight')
     pw.clear()
 
 
