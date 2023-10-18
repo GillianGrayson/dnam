@@ -210,7 +210,8 @@ def volcano(df="dataframe", lfc=None, pv=None, lfc_thr=(1, 1), pv_thr=(0.05, 0.0
     plt.ylabel(_y, fontsize=axlabelfontsize, fontname=axlabelfontname)
     if xlm:
         plt.xlim(left=xlm[0], right=xlm[1])
-        plt.xticks(np.arange(xlm[0], xlm[1], xlm[2]),  fontsize=axtickfontsize, rotation=ar, fontname=axtickfontname)
+        plt.xticks(fontsize=axtickfontsize, rotation=ar, fontname=axtickfontname)
+
     else:
         plt.xticks(fontsize=axtickfontsize, rotation=ar, fontname=axtickfontname)
     if ylm:
