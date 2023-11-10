@@ -1,13 +1,11 @@
 import GEOparse
 import pandas as pd
-from pathlib import Path
 import pathlib
-import pickle
 import re
 from scripts.python.GEO.routines import get_gse_gsm_info, process_characteristics_ch1
 
 
-gse = 'GSE55763'
+gse = 'GSE121633'
 datasets_info = pd.read_excel(f"D:/YandexDisk/Work/pydnameth/datasets/datasets.xlsx", index_col='dataset')
 gpl = datasets_info.loc[gse, 'platform']
 
@@ -88,5 +86,5 @@ if not gse_df['supplementary_file'].isnull().all():
         if supp_details.shape[1] == 3:
             gse_df[['Sample_Name', 'Sentrix_ID', 'Sentrix_Position']] = supp_details
 
-gse_df.to_excel(f"{path}/{gpl}/{gse}/pheno.xlsx", index=True)
+gse_df.to_excel(f"{path}/{gpl}/{gse}/pheno11.xlsx", index=True)
 
