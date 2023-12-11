@@ -5,7 +5,7 @@ import re
 from scripts.python.GEO.routines import get_gse_gsm_info, process_characteristics_ch1
 
 
-gse = 'GSE210255'
+gse = 'GSE137688'
 datasets_info = pd.read_excel(f"D:/YandexDisk/Work/pydnameth/datasets/datasets.xlsx", index_col='dataset')
 gpl = datasets_info.loc[gse, 'platform']
 
@@ -85,6 +85,10 @@ if not gse_df['supplementary_file'].isnull().all():
         supp_details = gse_df['supplementary_file_1'].str.findall('(?:.*\/)(.*)(?:_\w*.\..*\..*)').explode().str.split('_', expand=True)
         if supp_details.shape[1] == 3:
             gse_df[['Sample_Name', 'Sentrix_ID', 'Sentrix_Position']] = supp_details
+        else:
+            n_fields = supp_details.shape[1]
+            fields_name = [f"raw_idat_{x}" for x in range(n_fields)]
+            gse_df[fields_name] = supp_details
 
 gse_df.to_excel(f"{path}/{gpl}/{gse}/pheno11.xlsx", index=True)
 
