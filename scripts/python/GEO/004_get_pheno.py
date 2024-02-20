@@ -5,7 +5,7 @@ import re
 from scripts.python.GEO.routines import get_gse_gsm_info, process_characteristics_ch1
 
 
-gse = 'GSE103027'
+gse = 'GSE224363'
 datasets_info = pd.read_excel(f"D:/YandexDisk/Work/pydnameth/datasets/datasets.xlsx", index_col='dataset')
 gpl = datasets_info.loc[gse, 'platform']
 
