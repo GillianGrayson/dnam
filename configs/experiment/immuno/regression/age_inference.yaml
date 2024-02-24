@@ -21,7 +21,7 @@ print_config: False         # Print config?
 
 # Directories and files params
 project_name: ${model.name}_inference
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/059_imm_data_selection"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/059_imm_data_selection/yakutia_imputation"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
