@@ -9,7 +9,7 @@ seed: 1337          # Random seed
 # Inference params
 path_ckpt: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/data/immuno/models/SImAge/best_fold_0002.ckpt"
 data_part_column: Split
-data_part_main: tst
+data_part_main: tst_Central
 
 # Data params
 in_dim: null       # Number of input features
@@ -21,15 +21,15 @@ print_config: False         # Print config?
 
 # Directories and files params
 project_name: ${model.name}_inference
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/059_imm_data_selection/yakutia_imputation"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/059_imm_data_selection/region_specific/SImAge"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
 # SHAP values params
-is_shap: False                       # Calculate SHAP values?
+is_shap: True                       # Calculate SHAP values?
 is_shap_save: True                  # Save SHAP values?
 shap_explainer: Sampling            # Type of explainer. Options: ["Tree", "Kernel", "Deep", "Sampling"]
-shap_bkgrd: trn_val                 # Type of background data. Options: ["trn", "all"]
+shap_bkgrd: tst_Central                 # Type of background data. Options: ["trn", "all"]
 
 # LIME weights
 is_lime: False                      # Calculate LIME?
