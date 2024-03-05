@@ -1,0 +1,42 @@
+# @package _global_
+
+# example hyperparameter optimization of some experiment with Optuna:
+# python train.py -m hparams_search=mnist_optuna experiment=example
+
+defaults:
+  - override /hydra/sweeper: optuna
+
+
+# here we define Optuna hyperparameter search
+# it optimizes for value returned from function with @hydra.main decorator
+# docs: https://hydra.cc/docs/next/plugins/optuna_sweeper
+hydra:
+  sweeper:
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper   # Instantiated object
+    storage: null         # Storage URL to persist optimization results
+    study_name: null      # Name of the study to persist optimization results
+    n_jobs: 1             # Number of parallel workers
+    direction: minimize   # Objective: 'minimize' or 'maximize'
+    n_trials: 500         # Total number of runs that will be executed
+
+    # Choose Optuna hyperparameter sampler
+    # Documentation: [https://optuna.readthedocs.io/en/stable/reference/samplers/index.html]
+    sampler:
+      _target_: optuna.samplers.TPESampler    # Instantiated object
+      seed: ${seed}                # Seed for random number generator
+      consider_prior: true         # Enhance the stability of Parzen estimator by imposing a Gaussian prior
+      prior_weight: 1.0            # The weight of the prior
+      consider_magic_clip: true    # Enable a heuristic to limit the smallest variances of Gaussians used in the Parzen estimator
+      consider_endpoints: false    # Take endpoints of domains into account when calculating variances of Gaussians in Parzen estimator
+      n_startup_trials: 250         # The random sampling is used instead of the TPE algorithm until the given number of trials finish
+      n_ei_candidates: 10          # Number of candidate samples used to calculate the expected improvement
+      multivariate: false          # Single variate optimization
+
+    # Define range of hyperparameters in LightGBM model
+    params:
+      model.learning_rate: tag(log, interval(0.3, 2))   # Learning/shrinkage rate
+      model.num_leaves: int(range(20, 150, step=1))         # Max number of leaves in one tree
+      model.min_data_in_leaf: int(range(5, 40, step=1))     # Minimal number of data in one leaf
+      model.feature_fraction: interval(0.5, 1.0)            # Randomly selected subset of features on each iteration (tree)
+      model.bagging_fraction: interval(0.7, 1.0)            # Like feature_fraction, but this will randomly select part of data without resampling
+      model.bagging_freq: choice(0, 1, 2, 5, 10, 20, 25, 30)

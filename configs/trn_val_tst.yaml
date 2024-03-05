@@ -3,15 +3,15 @@
 # specify here defaults
 defaults:
   - _self_
-  - experiment: immuno/regression/age_trn_val_tst         # Global parameters of experiment
-  - datamodule: immuno/regression/age                     # Information about dataset
+  - experiment: dnam/regression/CXCL9_trn_val_tst         # Global parameters of experiment
+  - datamodule: dnam/regression/CXCL9                     # Information about dataset
   - trainer: gpu                                  # Run configuration for DNN models
   - callbacks: default # none                     # Callbacks for DNN models
   - logger: none                                  # Loggers for DNN models
   - hydra: default                                # Output paths for logs
 
-  - model: immuno/regression/age/widedeep_ft_transformer                # Model
-  - hparams_search: immuno/regression/age/widedeep_ft_transformer       # Model-specific hyperparameters
+  - model: dnam/regression/CXCL9/widedeep_tab_mlp                # Model
+  - hparams_search: dnam/regression/CXCL9/widedeep_tab_mlp       # Model-specific hyperparameters
 
   # Enable color logging
   - override hydra/hydra_logging: colorlog

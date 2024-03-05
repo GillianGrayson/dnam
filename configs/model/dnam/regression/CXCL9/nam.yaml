@@ -1,0 +1,21 @@
+name: nam
+_target_: src.models.tabular.nam.nam.NeuralAdditiveModel
+task: regression
+loss_type: "L1Loss"
+input_dim: ${in_dim}
+output_dim: ${out_dim}
+optimizer_lr: 0.01
+optimizer_weight_decay: 0.0
+scheduler_step_size: 100
+scheduler_gamma: 0.8
+hidden_sizes: []  # [64, 32],
+activation: 'exu'  ## Either `ExU` or `Relu`
+dropout: 0.1
+feature_dropout: 0.1  # 0.5,
+decay_rate: 0.995
+l2_regularization: 0.1
+output_regularization: 0.1
+num_basis_functions: 500
+units_multiplier: 2
+use_dnn: False
+num_units: null

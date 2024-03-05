@@ -134,8 +134,13 @@ class TabularDataModule(LightningDataModule):
             self.data_all = pd.read_excel(f"{self.data_fn}")
         elif file_ext == ".pkl":
             self.data_all = pd.read_pickle(f"{self.data_fn}")
+            self.data_all.reset_index(inplace=True)
 
-        df_feats_con = pd.read_excel(self.feats_con_fn, index_col=0)
+        file_ext = pathlib.Path(self.feats_con_fn).suffix
+        if file_ext == '.xlsx':
+            df_feats_con = pd.read_excel(self.feats_con_fn, index_col=0)
+        elif file_ext == ".pkl":
+            df_feats_con = pd.read_pickle(self.feats_con_fn)
         self.feats_con = df_feats_con.index.values.tolist()
         self.feats_labels = {}
         for f in  self.feats_con:

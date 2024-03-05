@@ -13,28 +13,29 @@ pio.kaleido.scope.mathjax = None
 import torch
 
 
-def save_feature_importance(df, num_features):
-    if df is not None:
-        df.sort_values(['importance'], ascending=[False], inplace=True)
-        df['importance'] = df['importance'] / df['importance'].sum()
-        df_fig = df.iloc[0:num_features, :]
-        plt.figure(figsize=(8, 0.3 * df_fig.shape[0]))
-        sns.set_theme(style='whitegrid', font_scale=1)
-        bar = sns.barplot(
-            data=df_fig,
-            y='feature_label',
-            x='importance',
-            edgecolor='black',
-            orient='h',
-            dodge=True
-        )
-        bar.set_xlabel("Importance")
-        bar.set_ylabel("")
-        plt.savefig(f"feature_importance.png", bbox_inches='tight', dpi=400)
-        plt.savefig(f"feature_importance.pdf", bbox_inches='tight')
-        plt.close()
-        df.set_index('feature', inplace=True)
-        df.to_excel("feature_importance.xlsx", index=True)
+def save_feature_importance(df, num_features, config='none'):
+    if config != 'none':
+        if df is not None:
+            df.sort_values(['importance'], ascending=[False], inplace=True)
+            df['importance'] = df['importance'] / df['importance'].sum()
+            df_fig = df.iloc[0:num_features, :]
+            plt.figure(figsize=(8, 0.3 * df_fig.shape[0]))
+            sns.set_theme(style='whitegrid', font_scale=1)
+            bar = sns.barplot(
+                data=df_fig,
+                y='feature_label',
+                x='importance',
+                edgecolor='black',
+                orient='h',
+                dodge=True
+            )
+            bar.set_xlabel("Importance")
+            bar.set_ylabel("")
+            plt.savefig(f"feature_importance.png", bbox_inches='tight', dpi=400)
+            plt.savefig(f"feature_importance.pdf", bbox_inches='tight')
+            plt.close()
+            df.set_index('feature', inplace=True)
+            df.to_excel("feature_importance.xlsx", index=True)
 
 
 def eval_classification(config, class_names, y_real, y_pred, y_pred_prob, loggers, part, is_log=True, is_save=True, file_suffix=''):

@@ -694,7 +694,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     for f in best['feature_importances']['feature'].values:
         features_labels.append(features['labels'][f])
     best['feature_importances']['feature_label'] = features_labels
-    save_feature_importance(best['feature_importances'], config.num_top_features)
+    save_feature_importance(best['feature_importances'], config.num_top_features, config.feature_importance)
 
     df["Prediction error"] = df['Prediction'] - df[f"{target}"]
     df_fig = df.loc[:, [target, 'Prediction', "Prediction error"]].copy()
