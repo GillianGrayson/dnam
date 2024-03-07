@@ -2,23 +2,23 @@
 
 # Global params
 task: regression      # Task type. Options: ["regression", "classification"]
-target: "CXCL9"         # Target column name
-target_label: "CXCL9"   # Target label
+target: "CXCL9_log"         # Target column name
+target_label: "CXCL9_log"   # Target label
 seed: 1337           # Random seed
 
 # Cross-validation params
 cv_is_split: True   # Perform cross-validation?
 cv_n_splits: 4      # Number of splits in cross-validation
-cv_n_repeats: 4     # Number of repeats in cross-validation
+cv_n_repeats: 2     # Number of repeats in cross-validation
 cv_all_combinations: False
 
 # Data params
-in_dim: 1000    # Number of input features. null for auto select from loaded files with features
+in_dim: 100    # Number of input features. null for auto select from loaded files with features
 out_dim: 1      # Output dimension
 embed_dim: 16   # Default embedding dimension
 
 # Optimization metrics params
-optimized_metric: mean_absolute_percentage_error      # All metrics listed in src.tasks.metrics
+optimized_metric: mean_absolute_error      # All metrics listed in src.tasks.metrics
 optimized_part: "val_tst"                             # Optimized data partition. Options: ["val", "tst", "val_tst"]
 direction: min                                        # Direction of metrics optimization. Options ["min", "max"]
 
@@ -36,7 +36,7 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/fimmu_features/${target}"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/fimmu_features/CXCL9"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 

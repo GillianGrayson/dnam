@@ -734,7 +734,8 @@ def trn_val_tst_classification(config: DictConfig) -> Optional[float]:
             feature_importances_cv.at[fold_idx, feat] = feature_importances.loc[feature_importances['feature'] == feat, 'importance'].values[0]
 
     metrics_cv.to_excel(f"metrics_cv.xlsx", index=False)
-    feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
+    if config.feature_importance != "none":
+        feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
     cv_ids_cols = [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:,'fold'].values]
     if datamodule.split_top_feat:
         cv_ids_cols.append(datamodule.split_top_feat)

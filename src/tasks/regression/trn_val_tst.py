@@ -622,7 +622,8 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
 
     df = df.astype({"Prediction": 'float32'})
     metrics_cv.to_excel(f"metrics_cv.xlsx", index=False)
-    feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
+    if config.feature_importance != "none":
+        feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:, 'fold'].values]]
     cv_ids.to_excel(f"cv_ids.xlsx", index=True)
     predictions = df.loc[:, [f"fold_{best['fold']:04d}", target, "Prediction"]]

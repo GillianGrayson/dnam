@@ -26,7 +26,7 @@ embed_dim: 64
 kv_compression_factor: 0.5
 kv_sharing: False
 use_qkv_bias: False
-n_heads: 16
+n_heads: 8
 n_blocks: 2
 attn_dropout: 0.2
 ff_dropout: 0.2
