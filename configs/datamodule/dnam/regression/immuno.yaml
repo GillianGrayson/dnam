@@ -10,13 +10,13 @@ feats_cat_embed_dim: ${embed_dim}                     # Dimension size for categ
 target: ${target}                                     # Target predicted feature
 target_label: ${target_label}                         # Target label for plots
 target_classes_fn: null                               # File with selected classes (for classification tasks only)
-data_fn: "${data_dir}/data_${in_dim}.pkl"            # File with dataset
+data_fn: "${data_dir}/data_${in_dim}.pkl"             # File with dataset
 data_index: Index                                     # Index column in dataset file
 data_imputation: fast_knn                             # Imputation method for missing values (see https://github.com/eltonlaw/impyute)
 split_by: trn_val                                     # Splitting method. Options: [trn_val, top_feat, explicit_feat]
 split_trn_val: [0.80, 0.20]                           # Splitting parts for "trn_val" splitting method
 split_top_feat: null                                  # Splitting column for "top_feat" splitting method
-split_explicit_feat: "Split_0"                        # Splitting column for initial splitting. Also used for "explicit_feat" splitting method
+split_explicit_feat: "Split_2"                        # Splitting column for initial splitting. Also used for "explicit_feat" splitting method
 batch_size: 1024                                      # Batch size (for torch DataLoader)
 num_workers: 0                                        # Num workers (for torch DataLoader)
 pin_memory: False                                     # Memory pinning (for torch DataLoader)

@@ -31,13 +31,26 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.optimizer_lr: tag(log, interval(0.00001, 1.0))
-      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.001))
-      model.n_steps: choice(1, 2, 3, 4)
-      model.attn_dim: int(range(4, 64, step=4))
-      model.dropout: interval(0.0, 0.25)
+      # Origin
+      # model.optimizer_lr: tag(log, interval(0.00001, 1.0))
+      # model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.001))
+      # model.n_steps: choice(1, 2, 3, 4)
+      # model.attn_dim: int(range(4, 64, step=4))
+      # model.dropout: interval(0.0, 0.25)
+      # model.n_glu_step_dependent: choice(2, 3)
+      # model.n_glu_shared: choice(2, 3)
+      # model.momentum: interval(0.01, 0.2)
+      # model.gamma: interval(1.1, 1.5)
+      # model.mask_type: choice(sparsemax, entmax)
+
+      # CXCL9
+      model.optimizer_lr: tag(log, interval(0.1, 1.0))
+      model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.0001))
+      model.n_steps: choice(1, 2)
+      model.attn_dim: int(range(8, 32, step=4))
+      model.dropout: interval(0.1, 0.2)
       model.n_glu_step_dependent: choice(2, 3)
       model.n_glu_shared: choice(2, 3)
-      model.momentum: interval(0.01, 0.2)
+      model.momentum: interval(0.05, 0.15)
       model.gamma: interval(1.1, 1.5)
-      model.mask_type: choice(entmax) # choice(sparsemax, entmax)
+      model.mask_type: choice(entmax)
