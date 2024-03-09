@@ -38,5 +38,5 @@ hydra:
       model.num_leaves: int(range(20, 150, step=1))         # Max number of leaves in one tree
       model.min_data_in_leaf: int(range(5, 40, step=1))     # Minimal number of data in one leaf
       model.feature_fraction: interval(0.5, 1.0)            # Randomly selected subset of features on each iteration (tree)
-      model.bagging_fraction: interval(0.7, 1.0)            # Like feature_fraction, but this will randomly select part of data without resampling
+      model.bagging_fraction: interval(0.5, 1.0)            # Like feature_fraction, but this will randomly select part of data without resampling
       model.bagging_freq: choice(0, 1, 2, 5, 10, 20, 25, 30)
