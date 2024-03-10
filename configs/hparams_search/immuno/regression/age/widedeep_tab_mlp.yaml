@@ -13,7 +13,7 @@ hydra:
     study_name: null
     n_jobs: 1
     direction: minimize
-    n_trials: 500
+    n_trials: 1000
 
     # choose Optuna hyperparameter sampler
     # docs: https://optuna.readthedocs.io/en/stable/reference/samplers.html
@@ -33,7 +33,7 @@ hydra:
     params:
       model.optimizer_lr: tag(log, interval(0.00001, 1))
       model.optimizer_weight_decay: tag(log, interval(0.00000001, 0.1))
-      model.mlp_hidden_dims: choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1], [400, 200, 100, 1], [400, 200, 100, 50, 1])
+      model.mlp_hidden_dims: choice([200, 100, 1], [100, 50, 1], [200, 100, 50, 1], [400, 200, 100, 1], [100, 100, 100, 1])
       model.mlp_activation: choice('relu', 'gelu', 'leaky_relu')
       model.mlp_dropout: interval(0.01, 0.2)
       model.mlp_linear_first: choice(False, True)
