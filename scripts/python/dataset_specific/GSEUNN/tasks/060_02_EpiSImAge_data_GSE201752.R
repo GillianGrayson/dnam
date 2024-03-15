@@ -33,7 +33,7 @@ dataset_ref <- 'GSEUNN'
 path_data <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSE201752/raw/idat"
 path_pc_clocks <- "D:/YandexDisk/Work/pydnameth/datasets/lists/cpgs/PC_clocks/"
 path_horvath <- "D:/YandexDisk/Work/pydnameth/draft/10_MetaEPIClock/MetaEpiAge"
-path_harm_ref <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSEUNN/"
+path_harm_ref <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSEUNN/harm/"
 path_work <- path_data
 setwd(path_work)
 

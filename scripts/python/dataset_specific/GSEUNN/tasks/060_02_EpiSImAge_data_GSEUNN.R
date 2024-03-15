@@ -170,8 +170,12 @@ pd['DunedinPACE'] <- pace$DunedinPACE
 write.csv(pd, file = "pheno.csv")
 
 ###############################################
-# Save DNAm data
+# Save target CpGs
 ###############################################
 cpgs_trgt <- intersect(rownames(betas), cpgs_fltd)
-betas <- betas[cpgs_trgt, ]
+write.csv(as.data.frame(cpgs_trgt), file = "cpgs_trgt.csv", row.names = FALSE)
+
+###############################################
+# Save DNAm data
+###############################################
 write.csv(betas, file = "betas.csv")
