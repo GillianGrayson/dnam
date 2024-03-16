@@ -18,53 +18,35 @@ library("DunedinPACE")
 library("regRCPqn")
 library(readxl)
 library(splitstackshape)
+library("reticulate")
+pandas <- import("pandas")
 
 ###############################################
 # Setting variables
 ###############################################
 arraytype <- '450K'
-dataset <- 'GSE87571'
+dataset <- 'GSE106648'
 dataset_ref <- 'GSEUNN'
 
 ###############################################
 # Setting path
 ###############################################
-path_data <- "D:/YandexDisk/Work/pydnameth/datasets/GPL13534/GSE87571/raw/idat"
+path_data <- "D:/YandexDisk/Work/pydnameth/datasets/GPL13534/GSE106648"
 path_pc_clocks <- "D:/YandexDisk/Work/pydnameth/datasets/lists/cpgs/PC_clocks/"
 path_horvath <- "D:/YandexDisk/Work/pydnameth/draft/10_MetaEPIClock/MetaEpiAge"
 path_harm_ref <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSEUNN/harm/"
-path_work <- path_data
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSE106648"
 setwd(path_work)
 
 ###############################################
-# Import and filtration
+# Import data
 ###############################################
-myLoad <- champ.load(
-  directory = path_data,
-  arraytype = arraytype,
-  method = "minfi",
-  methValue = "B",
-  autoimpute = TRUE,
-  filterDetP = TRUE,
-  ProbeCutoff = 0.1,
-  SampleCutoff = 0.1,
-  detPcut = 0.01,
-  filterBeads = FALSE,
-  beadCutoff = 0.05,
-  filterNoCG = FALSE,
-  filterSNPs = FALSE,
-  filterMultiHit = FALSE,
-  filterXY = FALSE,
-  force = TRUE
-)
-pd <- as.data.frame(myLoad$pd)
-
-###############################################
-# Normalization and CpGs selection
-###############################################
-betas <- getBeta(preprocessFunnorm(myLoad$rgSet))
-cpgs_orgn <- rownames(betas)
-cpgs_fltd <- rownames(myLoad$beta)
+pd <- as.data.frame(read_excel(paste(path_data,"/pheno.xlsx", sep="")))
+row.names(pd) <- pd$gsm
+betas <- pandas$read_pickle(paste(path_data, "/betas.pkl", sep=''))
+missed_in_betas <- setdiff(row.names(pd), colnames(betas))
+missed_in_pheno <- setdiff(colnames(betas), row.names(pd))
+betas <- betas[, row.names(pd)]
 
 ###############################################
 # Harmonization

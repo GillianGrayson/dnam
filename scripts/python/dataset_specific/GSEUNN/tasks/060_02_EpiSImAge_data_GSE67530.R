@@ -25,17 +25,17 @@ pandas <- import("pandas")
 # Setting variables
 ###############################################
 arraytype <- '450K'
-dataset <- 'GSE106648'
+dataset <- 'GSE67530'
 dataset_ref <- 'GSEUNN'
 
 ###############################################
 # Setting path
 ###############################################
-path_data <- "D:/YandexDisk/Work/pydnameth/datasets/GPL13534/GSE106648"
+path_data <- "D:/YandexDisk/Work/pydnameth/datasets/GPL13534/GSE67530"
 path_pc_clocks <- "D:/YandexDisk/Work/pydnameth/datasets/lists/cpgs/PC_clocks/"
 path_horvath <- "D:/YandexDisk/Work/pydnameth/draft/10_MetaEPIClock/MetaEpiAge"
 path_harm_ref <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSEUNN/harm/"
-path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSE106648"
+path_work <- "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/GSE67530"
 setwd(path_work)
 
 ###############################################
