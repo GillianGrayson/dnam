@@ -17,7 +17,7 @@ hydra:
     study_name: null      # Name of the study to persist optimization results
     n_jobs: 1             # Number of parallel workers
     direction: minimize   # Objective: 'minimize' or 'maximize'
-    n_trials: 500         # Total number of runs that will be executed
+    n_trials: 1000         # Total number of runs that will be executed
 
     # Choose Optuna hyperparameter sampler
     # Documentation: [https://optuna.readthedocs.io/en/stable/reference/samplers/index.html]
@@ -34,9 +34,9 @@ hydra:
 
     # Define range of hyperparameters in LightGBM model
     params:
-      model.learning_rate: tag(log, interval(0.3, 2))   # Learning/shrinkage rate
-      model.num_leaves: int(range(20, 150, step=1))         # Max number of leaves in one tree
-      model.min_data_in_leaf: int(range(5, 40, step=1))     # Minimal number of data in one leaf
+      model.learning_rate: tag(log, interval(0.005, 2))   # Learning/shrinkage rate
+      model.num_leaves: int(range(10, 100, step=1))         # Max number of leaves in one tree
+      model.min_data_in_leaf: int(range(5, 50, step=1))     # Minimal number of data in one leaf
       model.feature_fraction: interval(0.5, 1.0)            # Randomly selected subset of features on each iteration (tree)
       model.bagging_fraction: interval(0.7, 1.0)            # Like feature_fraction, but this will randomly select part of data without resampling
-      model.bagging_freq: choice(0, 1, 2, 5, 10, 20, 25, 30)
+      model.bagging_freq: choice(0, 1, 2, 5, 10, 15, 20, 25)

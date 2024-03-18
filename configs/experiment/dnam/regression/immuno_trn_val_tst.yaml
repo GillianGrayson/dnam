@@ -2,8 +2,8 @@
 
 # Global params
 task: regression      # Task type. Options: ["regression", "classification"]
-target: "IL27_log"         # Target column name
-target_label: "IL27_log"   # Target label
+target: "CXCL10_log"         # Target column name
+target_label: "CXCL10_log"   # Target label
 seed: 1337           # Random seed
 
 # Cross-validation params
@@ -36,7 +36,7 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/fimmu_features/IL27"
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/fimmu_features/no_harm/CXCL10"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
