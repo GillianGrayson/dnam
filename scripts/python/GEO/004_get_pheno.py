@@ -4,10 +4,9 @@ import pathlib
 import re
 from scripts.python.GEO.routines import get_gse_gsm_info, process_characteristics_ch1
 
-
-gse = 'GSE87648'
+gse = 'GSE69138'
 datasets_info = pd.read_excel(f"D:/YandexDisk/Work/pydnameth/datasets/datasets.xlsx", index_col='dataset')
-gpl = datasets_info.loc[gse, 'platform']
+gpl = 'GPL13534' # datasets_info.loc[gse, 'platform']
 
 characteristics_ch1_regex_findall = ';*([a-zA-Z0-9\^\/\=\-\:\,\.\s_\(\)]+): '
 characteristics_ch1_regex_split = '(;*[a-zA-Z0-9\^\/\=\-\,\:\.\s_\(\)]+: )'

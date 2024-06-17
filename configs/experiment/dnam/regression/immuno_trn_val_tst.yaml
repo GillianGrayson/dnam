@@ -2,12 +2,12 @@
 
 # Global params
 task: regression      # Task type. Options: ["regression", "classification"]
-target: "CXCL10_log"         # Target column name
-target_label: "CXCL10_log"   # Target label
+target: "CXCL9_log"         # Target column name
+target_label: "CXCL9_log"   # Target label
 seed: 1337           # Random seed
 
 # Cross-validation params
-cv_is_split: True   # Perform cross-validation?
+cv_is_split: False   # Perform cross-validation?
 cv_n_splits: 4      # Number of splits in cross-validation
 cv_n_repeats: 2     # Number of repeats in cross-validation
 cv_all_combinations: False
@@ -36,7 +36,7 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/060_EpiSImAge/fimmu_features/no_harm/CXCL10"
+base_dir: "D:/YandexDisk/Work/bbd/immunology/003_EpImAge/imp_source(imm)_method(knn)_params(5)/no_harm/mrmr_100/CXCL9"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 
