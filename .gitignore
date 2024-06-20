@@ -147,3 +147,5 @@ wandb/
 .autoenv
 
 submit/dnam/output/
+
+scripts/python/dataset_specific/GSEUNN/tasks/.pt_tmp/
