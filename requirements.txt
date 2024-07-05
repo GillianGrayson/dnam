@@ -58,9 +58,16 @@ tqdm>=4.63.1            # progress bar
 
 missingno>=0.5.1
 pyod>=1.0.6
+pythresh>=0.3.6
 suod>=0.0.8
 gseapy
 GEOparse>=2.0.3
 patchworklib>=0.5.0
 
 python-slugify==8.0.1
+
+# --------- Libs for pythresh --------- #
+geomstats
+pyclustering
+ruptures
+sklego
