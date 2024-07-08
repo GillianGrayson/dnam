@@ -1,6 +1,4 @@
 import numpy as np
-import plotly.io as pio
-pio.kaleido.scope.mathjax = None
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import seaborn as sns
