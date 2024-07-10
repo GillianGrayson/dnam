@@ -625,9 +625,9 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
     if config.feature_importance != "none":
         feature_importances_cv.to_excel(f"feature_importances_cv.xlsx", index=False)
     cv_ids = df.loc[:, [f"fold_{fold_idx:04d}" for fold_idx in metrics_cv.loc[:, 'fold'].values]]
-    cv_ids.to_excel(f"cv_ids.xlsx", index=True)
+    cv_ids.to_excel(f"cv_ids.xlsx")
     predictions = df.loc[:, [f"fold_{best['fold']:04d}", target, "Prediction"]]
-    predictions.to_excel(f"predictions.xlsx", index=True)
+    predictions.to_excel(f"predictions.xlsx")
 
     datamodule.ids_trn = best['ids_trn']
     datamodule.ids_val = best['ids_val']
@@ -707,7 +707,7 @@ def trn_val_tst_regression(config: DictConfig) -> Optional[float]:
             df_fig.loc[df.index[datamodule.ids_tst[tst_set_name]], 'Part'] = tst_set_name
             color_order.append(tst_set_name)
 
-    plt.figure()
+    fig = plt.figure()
     sns.set_theme(style='whitegrid')
     xy_min = df_fig[[target,'Prediction']].min().min()
     xy_max = df_fig[[target,'Prediction']].max().max()

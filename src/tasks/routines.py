@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
-import plotly.io as pio
-pio.kaleido.scope.mathjax = None
 import torch
 
 

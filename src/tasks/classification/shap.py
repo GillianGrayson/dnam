@@ -11,8 +11,6 @@ from scripts.python.routines.plot.save import save_figure
 from scripts.python.routines.plot.layout import add_layout
 from scripts.python.routines.plot.scatter import add_scatter_trace
 import plotly.express as px
-import plotly.io as pio
-pio.kaleido.scope.mathjax = None
 from slugify import slugify
 
 

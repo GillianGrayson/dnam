@@ -23,7 +23,7 @@ def main(config: DictConfig):
     # Read more here: https://github.com/facebookresearch/hydra/issues/934
     from src.tasks.regression.trn_val_tst import trn_val_tst_regression
     from src.tasks.classification.trn_val_tst import trn_val_tst_classification
-    from src.tasks.survival.trn_val_tst import trn_val_tst_survival
+    # from src.tasks.survival.trn_val_tst import trn_val_tst_survival
     from src.utils import utils
     import torch
 
@@ -49,8 +49,8 @@ def main(config: DictConfig):
         return trn_val_tst_regression(config)
     elif config.task == "classification":
         return trn_val_tst_classification(config)
-    elif config.task == "survival":
-        return trn_val_tst_survival(config)
+    # elif config.task == "survival":
+    #     return trn_val_tst_survival(config)
     else:
         raise ValueError(f"Unsupported task: {config.task}")
 

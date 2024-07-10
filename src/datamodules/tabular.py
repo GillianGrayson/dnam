@@ -10,7 +10,6 @@ from scripts.python.routines.plot.save import save_figure
 import plotly.express as px
 from scripts.python.routines.plot.layout import add_layout
 import plotly.graph_objects as go
-import impyute.imputation.cs as imp
 import pathlib
 from typing import List, Optional, Tuple
 import matplotlib.pyplot as plt
@@ -238,26 +237,7 @@ class TabularDataModule(LightningDataModule):
 
         is_nans = self.data_all.loc[:, self.feats_con].isnull().values.any()
         if is_nans:
-            n_nans = self.data_all.loc[:, self.feats_con].isna().sum().sum()
-            log.info(f"Perform imputation for {n_nans} missed values")
-            self.data_all.loc[:, self.feats_con] = self.data_all.loc[:, self.feats_con].astype('float')
-            if self.data_imputation == "median":
-                imputed = imp.median(self.data_all.loc[:, self.feats_con].values)
-            elif self.data_imputation == "mean":
-                imputed = imp.mean(self.data_all.loc[:, self.feats_con].values)
-            elif self.data_imputation == "fast_knn":
-                imputed = imp.fast_knn(self.data_all.loc[:, self.feats_con].values)
-            elif self.data_imputation == "random":
-                imputed = imp.random(self.data_all.loc[:, self.feats_con].values)
-            elif self.data_imputation == "mice":
-                imputed = imp.mice(self.data_all.loc[:, self.feats_con].values)
-            elif self.data_imputation == "em":
-                imputed = imp.em(self.data_all.loc[:, self.feats_con].values)
-            elif self.data_imputation == "mode":
-                imputed = imp.mode(self.data_all.loc[:, self.feats_con].values)
-            else:
-                raise ValueError(f"Unsupported imputation: {self.data_imputation}")
-            self.data_all.loc[:, self.feats_con] = imputed
+            raise ValueError(f"Imputation must be performed")
         self.data_all.loc[:, self.feats_con] = self.data_all.loc[:, self.feats_con].astype('float32')
 
         self.data_all['ids'] = self.data_all.index.values
@@ -379,16 +359,16 @@ class TabularDataModule(LightningDataModule):
             if tst_set_name != 'tst_all':
                 df_fig.loc[df_fig.index[self.ids_tst[tst_set_name]], "Part"] = tst_set_name
 
-        hist_min = df_fig.loc[:, target_label].min()
-        hist_max = df_fig.loc[:, target_label].max()
+        hist_min = df_fig.loc[:, target_label].min() - 0.1 * np.ptp(df_fig.loc[:, target_label].values)
+        hist_max = df_fig.loc[:, target_label].max() + 0.1 * np.ptp(df_fig.loc[:, target_label].values)
         hist_width = hist_max - hist_min
-        hist_n_bins = 20
+        hist_n_bins = 10
         hist_bin_width = hist_width / hist_n_bins
 
         hue_order = ['trn', 'val'] + [x for x in self.ids_tst.keys() if x != 'tst_all']
 
-        fig = plt.figure()
         sns.set_theme(style='whitegrid')
+        fig = plt.figure()
         sns.histplot(
             data=df_fig,
             bins=hist_n_bins,
