@@ -1,0 +1,57 @@
+# @package _global_
+
+data_type: immuno
+model_type: lightgbm
+outcome: "Age"
+
+dataset: "test_v2"
+
+project_name: ${data_type}_${model_type}_inference_${dataset}
+
+seed: 69
+
+ckpt_path: "${base_dir}/models/${data_type}_trn_val_${model_type}/runs/2022-04-15_19-17-12/epoch_625_best_0008.txt"
+
+debug: False
+print_config: True
+ignore_warnings: True
+test_after_training: True
+
+in_dim: 1
+out_dim: 1
+
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+work_dir: "${base_dir}/models/${project_name}"
+data_dir: "${base_dir}"
+
+is_shap: False
+is_shap_save: False
+shap_explainer: Tree
+
+# Plot params
+num_top_features: 10
+num_examples: 10
+
+# specify here default training configuration
+defaults:
+  - override /trainer: null # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /datamodule: null
+  - override /callbacks: none.yaml
+  - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+datamodule:
+  _target_: src.datamodules.unn.UNNDataModuleInference
+  task: "regression"
+  features_fn: "${data_dir}/features.xlsx"
+  classes_fn: ""
+  trn_val_fn: "${data_dir}/train_val.xlsx"
+  inference_fn: "${data_dir}/${dataset}.xlsx"
+  outcome: "Age"
+  batch_size: 128
+  num_workers: 0
+  pin_memory: False
+  imputation: "fast_knn"
+  k: 1

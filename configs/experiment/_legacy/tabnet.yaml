@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - override /model: tabnet.yaml
+  - override /datamodule: betas_pheno_datamodule.yaml
+  - override /trainer: tabnet.yaml
+  - override /callbacks: none.yaml
+  - override /logger: many_loggers.yaml
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+trainer:
+  max_epochs: 10
+  patience: 5

@@ -1,0 +1,64 @@
+# @package _global_
+
+disease: Parkinson
+data_type: harmonized
+outcome: "Status"
+model_type: lightgbm
+run_type: "trn_tst"
+
+impute_targets: "100"
+impute_type: DecisionTreeRegressor
+k: 1
+
+dataset: "GSE72774" # 'GSE152027' 'GSE116379' 'GSE41169' 'GSE116378' 'GSE87571' "GSE72774"
+
+project_name: ${disease}_${data_type}_${model_type}_impute_${dataset}_${impute_targets}
+
+seed: 69
+
+ckpt_path: "${base_dir}/${data_type}/models/small/${dataset}/${disease}_${data_type}_${run_type}_${model_type}_${dataset}_${in_dim}/multiruns/2022-03-31_00-43-28/4/epoch_1053_best_0000.txt"
+
+debug: False
+print_config: True
+ignore_warnings: True
+test_after_training: True
+
+in_dim: 890
+out_dim: 2
+
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
+work_dir: "${base_dir}/${data_type}/models/${project_name}"
+data_dir: "${base_dir}/${data_type}"
+
+is_shap: False
+is_shap_save: False
+shap_explainer: Tree
+
+# Plot params
+num_top_features: 10
+num_examples: 10
+
+# specify here default training configuration
+defaults:
+  - override /trainer: null # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /datamodule: null
+  - override /callbacks: none.yaml
+  - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+datamodule:
+  _target_: src.datamodules.dnam.DNAmDataModuleImpute
+  task: "binary"
+  features_fn: "${base_dir}/${data_type}/cpgs/serial/${run_type}/${model_type}/${dataset}/${in_dim}.xlsx"
+  features_impute_fn: "${base_dir}/${data_type}/cpgs/serial/${run_type}/${model_type}/${dataset}/impute/${impute_targets}.xlsx"
+  classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
+  trn_val_fn: "${data_dir}/data_trn_val.pkl"
+  inference_fn: "${data_dir}/data_tst_${dataset}.pkl"
+  outcome: "Status"
+  batch_size: 128
+  num_workers: 0
+  pin_memory: False
+  imputation: ${impute_type}
+  k: ${k}

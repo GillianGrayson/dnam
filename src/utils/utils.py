@@ -1,9 +1,8 @@
 import logging
-import os
 import warnings
 from typing import List, Sequence
-
 import pytorch_lightning as pl
+from pytorch_lightning.loggers.logger import Logger
 import rich.syntax
 import rich.tree
 from omegaconf import DictConfig, OmegaConf
@@ -52,15 +51,16 @@ def extras(config: DictConfig) -> None:
         config.trainer.fast_dev_run = True
 
     # force debugger friendly configuration if <config.trainer.fast_dev_run=True>
-    if config.trainer.get("fast_dev_run"):
-        log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
-        # Debuggers don't like GPUs or multiprocessing
-        if config.trainer.get("gpus"):
-            config.trainer.gpus = 0
-        if config.datamodule.get("pin_memory"):
-            config.datamodule.pin_memory = False
-        if config.datamodule.get("num_workers"):
-            config.datamodule.num_workers = 0
+    if 'trainer' in config:
+        if config.trainer.get("fast_dev_run"):
+            log.info("Forcing debugger friendly configuration! <config.trainer.fast_dev_run=True>")
+            # Debuggers don't like GPUs or multiprocessing
+            if config.trainer.get("gpus"):
+                config.trainer.gpus = 0
+            if config.datamodule.get("pin_memory"):
+                config.datamodule.pin_memory = False
+            if config.datamodule.get("num_workers"):
+                config.datamodule.num_workers = 0
 
     # disable adding new keys to config
     OmegaConf.set_struct(config, True)
@@ -91,7 +91,7 @@ def print_config(
     style = "dim"
     tree = rich.tree.Tree("CONFIG", style=style, guide_style=style)
 
-    for field in fields:
+    for field in config:
         branch = tree.add(field, style=style, guide_style=style)
 
         config_section = config.get(field)
@@ -112,13 +112,28 @@ def empty(*args, **kwargs):
 
 
 @rank_zero_only
-def log_hyperparameters(
+def log_hyperparameters_stand_alone(
+        config: DictConfig,
+        logger,
+) -> None:
+
+    for l in logger:
+        l.log_hyperparams(config)
+
+        # disable logging any more hyperparameters for all loggers
+        # this is just a trick to prevent trainer from logging hparams of model,
+        # since we already did that above
+        l.log_hyperparams = empty
+
+
+@rank_zero_only
+def log_hyperparameters_pytorch(
     config: DictConfig,
     model: pl.LightningModule,
     datamodule: pl.LightningDataModule,
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
-    logger: List[pl.loggers.LightningLoggerBase],
+    logger: List[Logger],
 ) -> None:
     """This method controls which parameters from Hydra config are saved by Lightning loggers.
 
@@ -146,13 +161,14 @@ def log_hyperparameters(
         p.numel() for p in model.parameters() if not p.requires_grad
     )
 
-    # send hparams to all loggers
-    trainer.logger.log_hyperparams(hparams)
+    if trainer.logger is not None:
+        # send hparams to all loggers
+        trainer.logger.log_hyperparams(hparams)
 
-    # disable logging any more hyperparameters for all loggers
-    # this is just a trick to prevent trainer from logging hparams of model,
-    # since we already did that above
-    trainer.logger.log_hyperparams = empty
+        # disable logging any more hyperparameters for all loggers
+        # this is just a trick to prevent trainer from logging hparams of model,
+        # since we already did that above
+        trainer.logger.log_hyperparams = empty
 
 
 def finish(
@@ -161,7 +177,7 @@ def finish(
     datamodule: pl.LightningDataModule,
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
-    logger: List[pl.loggers.LightningLoggerBase],
+    logger: List[Logger],
 ) -> None:
     """Makes sure everything closed properly."""
 
@@ -169,5 +185,4 @@ def finish(
     for lg in logger:
         if isinstance(lg, pl.loggers.wandb.WandbLogger):
             import wandb
-
             wandb.finish()

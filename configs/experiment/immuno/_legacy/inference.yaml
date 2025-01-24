@@ -1,0 +1,155 @@
+# @package _global_
+
+task: regression
+data_type: immuno
+# Available types of models:
+# elastic_net (stand_alone)
+# xgboost (stand_alone)
+# catboost (stand_alone)
+# lightgbm (stand_alone)
+# widedeep_tab_mlp (pytorch)
+# widedeep_tab_resnet (pytorch)
+# widedeep_tab_net (pytorch)
+# widedeep_tab_transformer (pytorch)
+# widedeep_ft_transformer (pytorch)
+# widedeep_saint (pytorch)
+# widedeep_tab_fastformer (pytorch)
+# widedeep_tab_perceiver (pytorch)
+# pytorch_tabular_autoint (pytorch)
+# pytorch_tabular_tabnet (pytorch)
+# pytorch_tabular_node (pytorch)
+# pytorch_tabular_category_embedding (pytorch)
+# pytorch_tabular_ft_transformer (pytorch)
+# pytorch_tabular_tab_transformer (pytorch)
+# nbm_spam_spam (pytorch)
+# nbm_spam_nam (pytorch)
+# nbm_spam_nbm (pytorch)
+# arm_net_models (pytorch)
+# danet (pytorch)
+# nam (pytorch)
+# stg (pytorch)
+model_type: danet # widedeep_tab_net # danet
+target: Age
+
+project_name: ${data_type}_inference_${model_type}
+
+seed: 1337
+
+path_ckpt: "D:/YandexDisk/Work/pydnameth/draft/06_somewhere/models/small/danet/32/best_fold_0009.ckpt"
+data_part_column: Status # Region
+data_part_main: Control # Central
+
+in_dim: 1
+out_dim: 1
+
+debug: False
+print_config: False
+ignore_warnings: True
+
+embed_dim: 16
+
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+work_dir: "${base_dir}/models/${project_name}"
+data_dir: "${base_dir}"
+
+# SHAP values
+is_shap: False # True False
+is_shap_save: True
+shap_explainer: Kernel # Tree Kernel Deep
+shap_bkgrd: trn # trn all tree_path_dependent
+
+# LIME weights
+is_lime: False # True False
+lime_bkgrd: trn # trn all
+lime_num_features: all # 10 all
+lime_save_weights: True
+
+# Plot params
+num_top_features: 10
+num_examples: 300
+
+# specify here default training configuration
+defaults:
+  - _self_
+  - override /datamodule: null
+  - override /trainer: default.yaml # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /callbacks: none.yaml
+  - override /logger: none.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+datamodule:
+  _target_: src.datamodules.tabular.TabularDataModule
+  task: ${task}
+  feats_con_fn: "${data_dir}/feats_con_top10.xlsx"
+  feats_cat_fn: null
+  feats_cat_encoding: label
+  feats_cat_embed_dim: ${embed_dim}
+  target: ${target}
+  target_classes_fn: null
+  data_fn: "${data_dir}/global_data/all_1052_121222/df_samples(all_1052_121222)_proc(raw)_imp(fast_knn)_replace(quarter).xlsx"
+  data_index: index
+  data_imputation: fast_knn
+  split_by: trn_val
+  split_trn_val: [0.80, 0.20]
+  split_top_feat: null
+  split_explicit_feat: Split
+  batch_size: 512
+  num_workers: 0
+  pin_memory: False
+  seed: ${seed}
+  weighted_sampler: True
+
+model:
+  type: ${model_type}
+
+danet:
+  _target_: src.models.tabular.danet.danet.DANetModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.09103819498050514
+  optimizer_weight_decay: 2.1396873600065802e-05
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  layer_num: 30
+  base_outdim: 64
+  k: 7
+  virtual_batch_size: 256
+  drop_rate: 0.03479968662869476
+
+widedeep_tab_net:
+  _target_: src.models.tabular.widedeep.tab_net.WDTabNetModel
+  task: ${task}
+  loss_type: "L1Loss"
+  input_dim: ${in_dim}
+  output_dim: ${out_dim}
+  optimizer_lr: 0.12476988667170572
+  optimizer_weight_decay: 1.216983116182198e-07
+  scheduler_step_size: 100
+  scheduler_gamma: 0.8
+  column_idx: null
+  cat_embed_input: null
+  cat_embed_dropout: 0.1
+  use_cat_bias: False
+  cat_embed_activation: null
+  continuous_cols: null
+  cont_norm_layer: "batchnorm"
+  embed_continuous: False
+  cont_embed_dim: 16
+  cont_embed_dropout: 0.1
+  use_cont_bias: True
+  cont_embed_activation: null
+  n_steps: 2
+  attn_dim: 20
+  dropout: 0.028354475497966526
+  n_glu_step_dependent: 1
+  n_glu_shared: 4
+  ghost_bn: True
+  virtual_batch_size: 128
+  momentum: 0.1068950240822053
+  gamma: 1.1677939635640748
+  epsilon: 1e-15
+  mask_type: "entmax"

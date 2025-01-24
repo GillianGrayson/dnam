@@ -1,0 +1,14 @@
+_target_: src.datamodules.dnam.betas_pheno.DNAmDataModuleTogether
+
+path: ""
+cpgs_fn: ""
+statuses_fn: ""
+dnam_fn: ""
+pheno_fn: ""
+outcome: ""
+batch_size: 30
+trn_val_tst_split: [0.8, 0.1, 0.1]
+num_workers: 0
+pin_memory: False
+seed: 2
+weighted_sampler: False

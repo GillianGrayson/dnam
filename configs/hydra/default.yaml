@@ -1,12 +1,13 @@
-# output paths for hydra logs
+# All details about hydra configuration available here:
+# [https://hydra.cc]
 run:
-  dir: logs/runs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ${work_dir}/runs/${now:%Y-%m-%d_%H-%M-%S}
 sweep:
-  dir: logs/multiruns/${now:%Y-%m-%d_%H-%M-%S}
-  subdir: ${hydra.job.num}
+    dir: ${work_dir}/multiruns/${now:%Y-%m-%d_%H-%M-%S}_${hydra.sweeper.sampler.seed}
+    subdir: ${hydra.job.num}
 
-# you can set here environment variables that are universal for all users
-# for system specific variables (like data paths) it's better to use .env file!
+# You can set here environment variables that are universal for all users.
+# For system specific variables (like data paths) it's better to use .env file!
 job:
   env_set:
     EXAMPLE_VAR: "example_value"

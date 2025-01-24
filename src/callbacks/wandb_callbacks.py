@@ -1,5 +1,5 @@
-import glob
-import os
+import subprocess
+from pathlib import Path
 from typing import List
 
 import matplotlib.pyplot as plt
@@ -43,10 +43,18 @@ class WatchModel(Callback):
 
 
 class UploadCodeAsArtifact(Callback):
-    """Upload all *.py files to wandb as an artifact, at the beginning of the run."""
+    """Upload all code files to wandb as an artifact, at the beginning of the run."""
 
-    def __init__(self, code_dir: str):
+    def __init__(self, code_dir: str, use_git: bool = True):
+        """
+
+        Args:
+            code_dir: the code directory
+            use_git: if using git, then upload all files that are not ignored by git.
+            if not using git, then upload all '*.py' file
+        """
         self.code_dir = code_dir
+        self.use_git = use_git
 
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
@@ -54,8 +62,29 @@ class UploadCodeAsArtifact(Callback):
         experiment = logger.experiment
 
         code = wandb.Artifact("project-source", type="code")
-        for path in glob.glob(os.path.join(self.code_dir, "**/*.py"), recursive=True):
-            code.add_file(path)
+
+        if self.use_git:
+            # get .git folder
+            # https://alexwlchan.net/2020/11/a-python-function-to-ignore-a-path-with-git-info-exclude/
+            git_dir_path = Path(
+                subprocess.check_output(["git", "rev-parse", "--git-dir"]).strip().decode("utf8")
+            ).resolve()
+
+            for path in Path(self.code_dir).resolve().rglob("*"):
+                if (
+                    path.is_file()
+                    # ignore files in .git
+                    and not str(path).startswith(str(git_dir_path))  # noqa: W503
+                    # ignore files ignored by git
+                    and (  # noqa: W503
+                        subprocess.run(["git", "check-ignore", "-q", str(path)]).returncode == 1
+                    )
+                ):
+                    code.add_file(str(path), name=str(path.relative_to(self.code_dir)))
+
+        else:
+            for path in Path(self.code_dir).resolve().rglob("*.py"):
+                code.add_file(str(path), name=str(path.relative_to(self.code_dir)))
 
         experiment.log_artifact(code)
 
@@ -68,6 +97,10 @@ class UploadCheckpointsAsArtifact(Callback):
         self.upload_best_only = upload_best_only
 
     @rank_zero_only
+    def on_keyboard_interrupt(self, trainer, pl_module):
+        self.on_train_end(trainer, pl_module)
+
+    @rank_zero_only
     def on_train_end(self, trainer, pl_module):
         logger = get_wandb_logger(trainer=trainer)
         experiment = logger.experiment
@@ -77,8 +110,8 @@ class UploadCheckpointsAsArtifact(Callback):
         if self.upload_best_only:
             ckpts.add_file(trainer.checkpoint_callback.best_model_path)
         else:
-            for path in glob.glob(os.path.join(self.ckpt_dir, "**/*.ckpt"), recursive=True):
-                ckpts.add_file(path)
+            for path in Path(self.ckpt_dir).rglob("*.ckpt"):
+                ckpts.add_file(str(path))
 
         experiment.log_artifact(ckpts)
 
@@ -108,7 +141,7 @@ class LogConfusionMatrix(Callback):
             self.preds.append(outputs["preds"])
             self.targets.append(outputs["targets"])
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, on_save_checkpoint):
         """Generate confusion matrix."""
         if self.ready:
             logger = get_wandb_logger(trainer)
@@ -118,7 +151,6 @@ class LogConfusionMatrix(Callback):
             targets = torch.cat(self.targets).cpu().numpy()
 
             confusion_matrix = metrics.confusion_matrix(y_true=targets, y_pred=preds)
-
             # set figure size
             plt.figure(figsize=(14, 8))
 
@@ -128,8 +160,13 @@ class LogConfusionMatrix(Callback):
             # set font size
             sn.heatmap(confusion_matrix, annot=True, annot_kws={"size": 8}, fmt="g")
 
+            # cosmetics
+            plt.xlabel("Prediction", fontsize=15)
+            plt.ylabel("True Label", fontsize=15)
+
             # names should be uniqe or else charts from different experiments in wandb will overlap
-            experiment.log({f"confusion_matrix/{experiment.name}": wandb.Image(plt)}, commit=False)
+            fn = f"{trainer.current_epoch:03d}"
+            experiment.log({f"confusion_matrix/{fn}": wandb.Image(plt)}, commit=False)
 
             # according to wandb docs this should also work but it crashes
             # experiment.log(f{"confusion_matrix/{experiment.name}": plt})
@@ -166,7 +203,7 @@ class LogF1PrecRecHeatmap(Callback):
             self.preds.append(outputs["preds"])
             self.targets.append(outputs["targets"])
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_save_checkpoint(self, trainer, pl_module, on_save_checkpoint):
         """Generate f1, precision and recall heatmap."""
         if self.ready:
             logger = get_wandb_logger(trainer=trainer)
@@ -193,9 +230,11 @@ class LogF1PrecRecHeatmap(Callback):
                 fmt=".3f",
                 yticklabels=["F1", "Precision", "Recall"],
             )
+            plt.yticks(rotation=90)
 
+            fn = f"{trainer.current_epoch:03d}"
             # names should be uniqe or else charts from different experiments in wandb will overlap
-            experiment.log({f"f1_p_r_heatmap/{experiment.name}": wandb.Image(plt)}, commit=False)
+            experiment.log({f"f1_p_r_heatmap/{fn}": wandb.Image(plt)}, commit=False)
 
             # reset plot
             plt.clf()

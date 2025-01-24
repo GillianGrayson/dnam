@@ -1,0 +1,11 @@
+_target_: src.models.dnam.fcmlp.FCMLPModel
+
+n_input: 391023
+topology: [256, 128]
+n_output: 4
+task: "classification"
+dropout: 0.0
+loss_type: "CrossEntropyLoss"
+lr: 0.0001
+weight_decay: 0.00005
+

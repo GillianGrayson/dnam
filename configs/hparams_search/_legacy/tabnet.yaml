@@ -1,0 +1,71 @@
+# @package _global_
+
+# example hyperparameter optimization of some experiment with Optuna:
+# python run.py --multirun hparams_search=fcmlp experiment=example_simple
+# python run.py --multirun hparams_search=fcmlp experiment=example_simple hydra.sweeper.n_trials=30
+# python run.py --multirun hparams_search=fcmlp experiment=example_simple logger=wandb
+
+defaults:
+  - override /hydra/sweeper: optuna
+
+# choose metric which will be optimized by Optuna
+optimized_metric: "val_f1_score_weighted"
+
+hydra:
+  # here we define Optuna hyperparameter search
+  # it optimizes for value returned from function with @hydra.main decorator
+  # learn more here: https://hydra.cc/docs/next/plugins/optuna_sweeper
+  sweeper:
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    storage: null
+    study_name: null
+    n_jobs: 1
+
+    # 'minimize' or 'maximize' the objective
+    direction: maximize
+
+    # number of experiments that will be executed
+    n_trials: 20
+
+    # choose Optuna hyperparameter sampler
+    # learn more here: https://optuna.readthedocs.io/en/stable/reference/samplers.html
+    sampler:
+      _target_: optuna.samplers.TPESampler
+      seed: 2
+      consider_prior: true
+      prior_weight: 1.0
+      consider_magic_clip: true
+      consider_endpoints: false
+      n_startup_trials: 10
+      n_ei_candidates: 24
+      multivariate: false
+      warn_independent_sampling: true
+
+    # define range of hyperparameters
+    search_space:
+      model.n_d:
+        type: categorical
+        choices: [8]
+      model.n_a:
+        type: categorical
+        choices: [8]
+      model.n_steps:
+        type: categorical
+        choices: [3, 6]
+      model.n_independent:
+        type: categorical
+        choices: [1, 3]
+      model.n_shared:
+        type: categorical
+        choices: [2, 4]
+      model.lambda_sparse:
+        type: categorical
+        choices: [0.001, 0.01]
+      model.optimizer_lr:
+        type: float
+        low: 0.00001
+        high: 0.01
+      model.optimizer_weight_decay:
+        type: categorical
+        choices: [0.0, 0.001]
+

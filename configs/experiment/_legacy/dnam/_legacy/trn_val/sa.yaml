@@ -1,0 +1,141 @@
+# @package _global_
+
+disease: Parkinson
+data_type: harmonized
+model_type: lightgbm
+outcome: "Status"
+
+in_dim: 1000
+out_dim: 2
+
+project_name: ${disease}_${data_type}_trn_val_${model_type}
+
+seed: 100
+
+cv_is_split: True
+cv_n_splits: 5
+cv_n_repeats: 1
+
+optimized_metric: "accuracy_weighted"
+optimized_mean: "cv_mean"
+optimized_part: "val"
+direction: "max"
+
+is_shuffle: True
+
+debug: False
+print_config: True
+ignore_warnings: True
+test_after_training: True
+
+max_epochs: 2000
+patience: 100
+
+base_dir: "C:/YandexDisk/Work/pydnameth/datasets/meta/tasks/GPL13534_Blood/${disease}"
+work_dir: "${base_dir}/${data_type}/models/${project_name}"
+data_dir: "${base_dir}/${data_type}"
+
+# SHAP values
+is_shap: False
+is_shap_save: False
+shap_explainer: Tree # Tree Kernel Deep
+shap_bkgrd: tree_path_dependent # trn all tree_path_dependent
+
+# LIME weights
+is_lime: False
+lime_bkgrd: trn # trn all
+lime_num_features: 20 # 10 all
+lime_save_weights: True
+
+# Plot params
+num_top_features: 10
+num_examples: 5
+
+# specify here default training configuration
+defaults:
+  - _self_
+  - override /trainer: null # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /datamodule: null
+  - override /callbacks: none.yaml
+  - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+datamodule:
+  _target_: src.datamodules.dnam.DNAmDataModuleNoTest
+  task: "binary"
+  features_fn: "${data_dir}/cpgs/${model_type}/${in_dim}.xlsx"
+  classes_fn: "${data_dir}/statuses/${out_dim}.xlsx"
+  trn_val_fn: "${data_dir}/data_trn_val_tst_GSE72774.pkl"
+  outcome: ${outcome}
+  trn_val_split: [0.8, 0.2]
+  batch_size: 128
+  num_workers: 0
+  pin_memory: False
+  seed: ${seed}
+  weighted_sampler: True
+
+# XGBoost model params
+xgboost:
+  output_dim: ${out_dim}
+  booster: 'gbtree'
+  learning_rate: 0.01
+  max_depth: 6
+  gamma: 0
+  sampling_method: 'uniform'
+  subsample: 1
+  objective: 'multi:softprob'
+  verbosity: 1
+  eval_metric: 'mlogloss'
+  max_epochs: ${max_epochs}
+  patience: ${patience}
+
+# CatBoost model params
+catboost:
+  output_dim: ${out_dim}
+  loss_function: 'MultiClass'
+  learning_rate: 0.01
+  depth: 4
+  min_data_in_leaf: 1
+  max_leaves: 31
+  task_type: 'CPU'
+  verbose: 1
+  max_epochs: ${max_epochs}
+  patience: ${patience}
+
+# LightGBM model params
+lightgbm:
+  output_dim: ${out_dim}
+  objective: 'multiclass'
+  boosting: 'gbdt'
+  learning_rate: 0.02
+  num_leaves: 31
+  device: 'cpu'
+  max_depth: -1
+  min_data_in_leaf: 20
+  feature_fraction: 0.9
+  bagging_fraction: 0.8
+  bagging_freq: 5
+  verbose: -1
+  metric: 'multi_logloss'
+  max_epochs: ${max_epochs}
+  patience: ${patience}
+
+logistic_regression:
+  penalty: "elasticnet"
+  l1_ratio: 0.5
+  C: 1.0
+  multi_class: "multinomial"
+  solver: "saga"
+  max_iter: 100
+  tol: 1e-4
+  verbose: 0
+
+svm:
+  C: 1.0
+  kernel: "rbf"
+  decision_function_shape: "ovr"
+  max_iter: -1
+  tol: 1e-2
+  verbose: 1

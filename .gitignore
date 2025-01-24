@@ -145,3 +145,9 @@ logs/
 wandb/
 .env
 .autoenv
+
+submit/dnam/output/
+
+scripts/python/dataset_specific/GSEUNN/tasks/.pt_tmp/
+
+scripts/python/dataset_specific/GSEUNN/tasks/lightning_logs/

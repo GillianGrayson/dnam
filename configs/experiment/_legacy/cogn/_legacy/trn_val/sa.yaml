@@ -1,0 +1,110 @@
+# @package _global_
+
+data_type: cogn
+model_type: catboost
+outcome: "Age"
+
+project_name: ${data_type}_trn_val_${model_type}
+
+seed: 69
+
+cv_is_split: True
+cv_n_splits: 5
+cv_n_repeats: 10
+
+optimized_metric: "mean_absolute_error"
+optimized_part: "val"
+direction: "min"
+
+is_shuffle: False
+
+debug: False
+print_config: True
+ignore_warnings: True
+test_after_training: True
+
+max_epochs: 10000
+patience: 1000
+
+base_dir: "E:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/021_ml_data/${data_type}"
+work_dir: "${base_dir}/models/${project_name}"
+data_dir: "${base_dir}"
+
+is_shap: True
+is_shap_save: False
+shap_explainer: Tree
+
+# Plot params
+num_top_features: 15
+num_examples: 10
+
+# specify here default training configuration
+defaults:
+  - override /trainer: null # choose trainer from 'configs/trainer/'
+  - override /model: null
+  - override /datamodule: null
+  - override /callbacks: none.yaml
+  - override /logger: many_loggers.yaml # set logger here or use command line (e.g. `python run.py logger=wandb`)
+  - override /hydra/hydra_logging: colorlog
+  - override /hydra/job_logging: colorlog
+
+datamodule:
+  _target_: src.datamodules.unn.UNNDataModuleNoTest
+  task: "regression"
+  features_fn: "${data_dir}/features.xlsx"
+  cat_features_fn: ""
+  cat_encoding: ""
+  classes_fn: ""
+  trn_val_fn: "${data_dir}/data.xlsx"
+  outcome: ${outcome}
+  batch_size: 64
+  trn_val_split: [0.80, 0.20]
+  num_workers: 0
+  pin_memory: False
+  seed: ${seed}
+  weighted_sampler: True
+  imputation: fast_knn
+  k: 1
+
+# XGBoost model params
+xgboost:
+  booster: 'gbtree'
+  learning_rate: 0.01
+  max_depth: 6
+  gamma: 0
+  sampling_method: 'uniform'
+  subsample: 1
+  objective: 'reg:squarederror'
+  verbosity: 1
+  eval_metric: 'mae'
+  max_epochs: ${max_epochs}
+  patience: ${patience}
+
+# CatBoost model params
+catboost:
+  loss_function: 'MAE'
+  learning_rate: 0.01
+  depth: 6
+  min_data_in_leaf: 4
+  max_leaves: 31
+  task_type: 'CPU'
+  verbose: 1
+  max_epochs: ${max_epochs}
+  patience: ${patience}
+
+# LightGBM model params
+lightgbm:
+  objective: 'regression'
+  boosting: 'gbdt'
+  learning_rate: 0.01
+  num_leaves: 31
+  device: 'cpu'
+  max_depth: -1
+  min_data_in_leaf: 7
+  feature_fraction: 0.9
+  bagging_fraction: 0.8
+  bagging_freq: 5
+  verbose: 0
+  metric: 'l1'
+  max_epochs: ${max_epochs}
+  patience: ${patience}

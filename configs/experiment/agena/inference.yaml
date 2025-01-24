@@ -1,0 +1,41 @@
+# @package _global_
+
+# Global params
+task: regression    # Task type. Options: ["regression", "classification"]
+target: "Age"       # Target column name
+seed: 1337          # Random seed
+
+# Inference params
+path_ckpt: "D:/YandexDisk/Work/pydnameth/draft/08_agena/models/widedeep_tab_net/best_fold_0002.ckpt"
+data_part_column: Part
+data_part_main: "UNN EpiTYPER"
+
+# Data params
+in_dim: 8       # Number of input features
+out_dim: 1      # Output dimension
+embed_dim: 16   # Default embedding dimension
+
+# Info params
+print_config: False         # Print config?
+
+# Directories and files params
+project_name: ${model.name}_inference
+base_dir: "D:/YandexDisk/Work/pydnameth/datasets/GPL21145/GSEUNN/special/042_agena/ml_data"
+data_dir: "${base_dir}"
+work_dir: "${base_dir}/models/${project_name}"
+
+# SHAP values params
+is_shap: False                       # Calculate SHAP values?
+is_shap_save: True                  # Save SHAP values?
+shap_explainer: Sampling                # Type of explainer. Options: ["Tree", "Kernel", "Deep"]
+shap_bkgrd: all     # Type of background data. Options: ["trn", "all"]
+
+# LIME weights
+is_lime: False                      # Calculate LIME?
+lime_save_weights: True             # Save LIME weights?
+lime_bkgrd: trn                     # Type of background data. Options: ["trn", "all"]
+lime_num_features: all              # Number of features. Options: [int, "all"]
+
+# Plot params
+num_top_features: 8  # Number of most important features to plot
+num_examples: 10      # Number of samples to plot some SHAP figures

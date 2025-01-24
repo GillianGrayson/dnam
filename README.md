@@ -26,7 +26,7 @@ to your `README.md`.
 -->
 
 ## 📌&nbsp;&nbsp;Introduction
-This template tries to be as general as possible - you can easily delete any unwanted features from the pipeline or rewire the configuration, by modifying behavior in [src/train.py](src/train.py).
+This template tries to be as general as possible - you can easily delete any unwanted features from the pipeline or rewire the configuration, by modifying behavior in [src/train.py](src/experiment/classification/trn_val_tst/pl.py).
 
 > Effective usage of this template requires learning of a couple of technologies: [PyTorch](https://pytorch.org), [PyTorch Lightning](https://www.pytorchlightning.ai) and [Hydra](https://hydra.cc). Knowledge of some experiment logging framework like [Weights&Biases](https://wandb.com), [Neptune](https://neptune.ai) or [MLFlow](https://mlflow.org) is also recommended.
 
@@ -49,7 +49,7 @@ It makes your code neatly organized and provides lots of useful features, like a
 ## Main Ideas Of This Template
 - **Predefined Structure**: clean and scalable so that work can easily be extended and replicated (see [#Project Structure](#project-structure))
 - **Rapid Experimentation**: thanks to automating pipeline with config files and hydra command line superpowers (see [#Your Superpowers](#your-superpowers))
-- **Little Boilerplate**: so pipeline can be easily modified (see [src/train.py](src/train.py))
+- **Little Boilerplate**: so pipeline can be easily modified (see [src/train.py](src/experiment/classification/trn_val_tst/pl.py))
 - **Main Configuration**: main config file specifies default training configuration (see [#Main Project Configuration](#main-project-configuration))
 - **Experiment Configurations**: stored in a separate folder, they can be composed out of smaller configs, override chosen parameters or define everything from scratch (see [#Experiment Configuration](#experiment-configuration))
 - **Workflow**: comes down to 4 simple steps (see [#Workflow](#workflow))
@@ -322,7 +322,7 @@ python run.py -m datamodule.batch_size=32,64,128 model.lr=0.001,0.0005
 <details>
 <summary><b>Create a sweep over hyperparameters with Optuna</b></summary>
 
-> Using [Optuna Sweeper](https://hydra.cc/docs/next/plugins/optuna_sweeper) plugin doesn't require you to code any boilerplate into your pipeline, everything is defined in a [single config file](configs/hparams_search/mnist_optuna.yaml)!
+> Using [Optuna Sweeper](https://hydra.cc/docs/next/plugins/optuna_sweeper) plugin doesn't require you to code any boilerplate into your pipeline, everything is defined in a [single config file](configs/hparams_search/_legacy/mnist_optuna.yaml)!
 ```yaml
 # this will run hyperparameter search defined in `configs/hparams_search/mnist_optuna.yaml`
 # over chosen experiment config
@@ -395,7 +395,7 @@ Have a question? Found a bug? Missing a specific feature? Ran into a problem? Fe
 
 
 ### How it works
-By design, every run is initialized by [run.py](run.py) file. All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
+By design, every run is initialized by [run.py](to_delete/run_fcmlp.py) file. All PyTorch Lightning modules are dynamically instantiated from module paths specified in config. Example model config:
 ```yaml
 _target_: src.models.mnist_model.MNISTLitModel
 input_size: 784
@@ -411,13 +411,13 @@ model = hydra.utils.instantiate(config.model)
 ```
 This allows you to easily iterate over new models!<br>
 Every time you create a new one, just specify its module path and parameters in appriopriate config file. <br>
-The whole pipeline managing the instantiation logic is placed in [src/train.py](src/train.py).
+The whole pipeline managing the instantiation logic is placed in [src/train.py](src/experiment/classification/trn_val_tst/pl.py).
 
 <br>
 
 
 ### Main Project Configuration
-Location: [configs/config.yaml](configs/config.yaml)<br>
+Location: [configs/config.yaml](configs/to_delete/main_fcmlp.yaml)<br>
 Main project config contains default training configuration.<br>
 It determines how config is composed when simply executing command `python run.py`.<br>
 It also specifies everything that shouldn't be managed by experiment configurations.
@@ -559,8 +559,8 @@ logger:
 <br>
 
 ### Workflow
-1. Write your PyTorch Lightning model (see [mnist_model.py](src/models/mnist_model.py) for example)
-2. Write your PyTorch Lightning datamodule (see [mnist_datamodule.py](src/datamodules/mnist_datamodule.py) for example)
+1. Write your PyTorch Lightning model (see [mnist_model.py](src/models/old/mnist_model.py) for example)
+2. Write your PyTorch Lightning datamodule (see [mnist_datamodule.py](src/datamodules/to_delete/mnist_datamodule.py) for example)
 3. Write your experiment config, containing paths to your model and datamodule
 4. Run training with chosen experiment config: `python run.py experiment=experiment_name`
 <br>
@@ -612,7 +612,7 @@ These tools help you keep track of hyperparameters and output metrics and allow 
  ```
 You can use many of them at once (see [configs/logger/many_loggers.yaml](configs/logger/many_loggers.yaml) for example).<br>
 You can also write your own logger.<br>
-Lightning provides convenient method for logging custom metrics from inside LightningModule. Read the docs [here](https://pytorch-lightning.readthedocs.io/en/latest/extensions/logging.html#automatic-logging) or take a look at [MNIST example](src/models/mnist_model.py).
+Lightning provides convenient method for logging custom metrics from inside LightningModule. Read the docs [here](https://pytorch-lightning.readthedocs.io/en/latest/extensions/logging.html#automatic-logging) or take a look at [MNIST example](src/models/old/mnist_model.py).
 <br><br>
 
 
@@ -698,7 +698,7 @@ The following is example of loading model from checkpoint and running prediction
 from PIL import Image
 from torchvision import transforms
 
-from src.models.mnist_model import MNISTLitModel
+from src.models.old.mnist_model import MNISTLitModel
 
 
 def predict():
@@ -809,7 +809,7 @@ List of extra utilities available in the template:
 - debug mode
 <!-- - (TODO) resuming latest run -->
 
-You can easily remove any of those by modifying [run.py](run.py) and [src/train.py](src/train.py).
+You can easily remove any of those by modifying [run.py](to_delete/run_fcmlp.py) and [src/train.py](src/experiment/classification/trn_val_tst/pl.py).
 <br><br>
 
 <!--
@@ -1126,7 +1126,7 @@ This way you can reference any datamodule attribute from your config like this:
 # this will get 'datamodule.some_param' field
 some_parameter: ${datamodule: some_param}
 ```
-When later accessing this field, say in your lightning model, it will get automatically resolved based on all resolvers that are registered. Remember not to access this field before datamodule is initialized. **You also need to set resolve to false in print_config() in [run.py](run.py) method or it will throw errors!**
+When later accessing this field, say in your lightning model, it will get automatically resolved based on all resolvers that are registered. Remember not to access this field before datamodule is initialized. **You also need to set resolve to false in print_config() in [run.py](to_delete/run_fcmlp.py) method or it will throw errors!**
 ```python
 utils.print_config(config, resolve=False)
 ```

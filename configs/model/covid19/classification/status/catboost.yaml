@@ -1,0 +1,13 @@
+# CatBoost parameters available here:
+# [https://catboost.ai/en/docs/references/training-parameters/]
+name: catboost
+output_dim: ${out_dim}
+loss_function: 'MultiClass'
+learning_rate: 0.01
+depth: 4
+min_data_in_leaf: 10
+max_leaves: 31
+task_type: 'CPU'
+verbose: 0
+max_epochs: ${max_epochs}
+patience: ${patience}

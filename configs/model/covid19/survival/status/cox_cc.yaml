@@ -1,0 +1,9 @@
+name: cox_cc
+optimizer_lr: 0.01
+optimizer_weight_decay: 1e-7
+net_num_nodes:
+- 32
+- 32
+batch_norm: True
+dropout: 0.1
+output_bias: False
