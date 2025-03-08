@@ -1,8 +1,10 @@
 # @package _global_
 
+# example hyperparameter optimization of some experiment with Optuna:
+# python train.py -m hparams_search=mnist_optuna experiment=example
+
 defaults:
   - override /hydra/sweeper: optuna
-
 
 # here we define Optuna hyperparameter search
 # it optimizes for value returned from function with @hydra.main decorator
@@ -14,7 +16,7 @@ hydra:
     study_name: null
     n_jobs: 1
     direction: minimize
-    n_trials: 100
+    n_trials: 500
 
     # choose Optuna hyperparameter sampler
     # docs: https://optuna.readthedocs.io/en/stable/reference/samplers.html
@@ -32,4 +34,6 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.alpha: tag(log, interval(0.00001, 100000))
+      model.learning_rate: tag(log, interval(0.05, 0.75))
+      model.depth: choice(2, 3, 4)
+      model.min_data_in_leaf: int(range(5, 30, step=1))

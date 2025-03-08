@@ -2,8 +2,8 @@
 
 # Global params
 task: regression      # Task type. Options: ["regression", "classification"]
-target: "CXCL9_log"         # Target column name
-target_label: "CXCL9_log"   # Target label
+target: "Age"         # Target column name
+target_label: "Age"   # Target label
 seed: 1337           # Random seed
 
 # Cross-validation params
@@ -13,7 +13,7 @@ cv_n_repeats: 2     # Number of repeats in cross-validation
 cv_all_combinations: False
 
 # Data params
-in_dim: 100    # Number of input features. null for auto select from loaded files with features
+in_dim: 24    # Number of input features. null for auto select from loaded files with features
 out_dim: 1      # Output dimension
 embed_dim: 16   # Default embedding dimension
 
@@ -36,7 +36,7 @@ test_after_training: True   # Test after training?
 
 # Directories and files params
 project_name: ${model.name}_trn_val_tst
-base_dir: "E:/YandexDisk/Work/bbd/immunology/003_EpImAge/imp_source(imm)_method(knn)_params(5)/no_harm/mrmr_100/CXCL9"
+base_dir: "E:/YandexDisk/Work/bbd/immunology/003_EpImAge/imp_source(imm)_method(knn)_params(5)/no_harm/mrmr_100/EpImAge"
 data_dir: "${base_dir}"
 work_dir: "${base_dir}/models/${project_name}"
 

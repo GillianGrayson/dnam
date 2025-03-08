@@ -3,7 +3,6 @@
 defaults:
   - override /hydra/sweeper: optuna
 
-
 # here we define Optuna hyperparameter search
 # it optimizes for value returned from function with @hydra.main decorator
 # docs: https://hydra.cc/docs/next/plugins/optuna_sweeper
@@ -14,7 +13,7 @@ hydra:
     study_name: null
     n_jobs: 1
     direction: minimize
-    n_trials: 100
+    n_trials: 500
 
     # choose Optuna hyperparameter sampler
     # docs: https://optuna.readthedocs.io/en/stable/reference/samplers.html
@@ -32,4 +31,7 @@ hydra:
 
     # define range of hyperparameters
     params:
-      model.alpha: tag(log, interval(0.00001, 100000))
+      model.learning_rate: tag(log, interval(0.0075, 0.25))
+      model.max_depth: choice(2, 3, 4)
+      model.subsample: interval(0.6, 1.0)
+      model.gamma: tag(log, interval(0.1, 100)) # choice(0, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0, 20.0)
